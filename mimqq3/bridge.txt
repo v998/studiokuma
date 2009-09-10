@@ -1,0 +1,211 @@
+callbacks.cpp:119
+#if 0
+	if (READC_D2(QQ_BRIDGETARGET)) {
+		QunSendIMExPacket* sendpacket=new QunSendIMExPacket(READC_D2(QQ_BRIDGETARGET));
+		string strSend=pszMsg;
+		strSend=strSend.erase(strSend.length()-1,1);
+		strSend+=message;
+		sendpacket->setMessage(strSend);
+		if (hasFontAttribute) {
+			sendpacket->setBold(isBold);
+			sendpacket->setItalic(isItalic);
+			sendpacket->setBlue(blue);
+			sendpacket->setRed(red);
+			sendpacket->setGreen(green);
+			sendpacket->setFontSize(fontSize);
+		}
+
+		char szTemp[691]={0};
+		char* pszMsgSrc=mir_strdup(strSend.c_str());
+		char* pszMsg=pszMsgSrc;
+		int msgCount=(int)ceil((float)strlen(pszMsg)/(690));
+		if ((strlen(pszMsg)%690+12)>700) msgCount++;
+		unsigned short seq;
+		HANDLE hSendContact=util_find_contact(READC_D2(QQ_BRIDGETARGET));
+		sendpacket->setNumFragments(msgCount);
+		sendpacket->setMessageID(HIWORD(GetTickCount()));
+
+		for (int c=0; c<msgCount; c++) {
+			strncpy(szTemp,pszMsg,690);
+			if (strlen(pszMsg)>690) {
+				szTemp[690]=0;
+				pszMsg+=690;
+			} else if (strlen(pszMsg)>678) {
+			  szTemp[678]=0;
+			  pszMsg+=678;
+			} else
+				szTemp[strlen(pszMsg)]=0;
+
+			if (c>0) sendpacket=new QunSendIMExPacket(*sendpacket);
+			sendpacket->setSeqOfFragments(c);
+			seq=DBGetContactSettingWord(hSendContact,qqProtocolName,"Sequence",0)+1;
+			sendpacket->setSequence(seq);
+			DBWriteContactSettingWord(hSendContact,qqProtocolName,"Sequence",seq);
+			sendpacket->setMessage(szTemp);
+			if (c==0) {
+				util_log(0,"Sequence of first Qun IM is 0x%x",sendpacket->getSequence());
+				network->append(sendpacket);
+			} else {
+				util_log(0,"Added Qun IM packet 0x%x to queue",sendpacket->getSequence());
+				pendingImList[sendpacket->getSequence()]=sendpacket;
+			}
+		}
+
+		mir_free(pszMsgSrc);
+	}
+#endif
+
+options.cpp:406
+#if 0
+static BOOL CALLBACK DlgProcOptsBridging(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
+
+static BOOL CALLBACK AddQunDstProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
+	switch (msg) {
+			case WM_INITDIALOG: // Dialog initialization, lParam=hContact
+				{
+					HANDLE hContact=(HANDLE)lParam;
+					DBVARIANT dbv;
+					TCHAR szTemp[MAX_PATH];
+
+					AddQunSrcProc(hwndDlg,msg,wParam,lParam);
+
+					SetDlgItemText(hwndDlg,IDC_QUNLABEL,TranslateT("Source Qun:"));
+					SetDlgItemText(hwndDlg,IDC_MEMBERLABEL,TranslateT("Target Qun:"));
+
+					READC_TS2("Nick",&dbv);
+					wcscpy(szTemp,wcschr(dbv.ptszVal,L')')+2);
+					DBFreeVariant(&dbv);
+					swprintf(szTemp+wcslen(szTemp),L" (%d)",READC_D2("ExternalID"));
+					SetDlgItemText(hwndDlg,IDC_QUNID,szTemp);
+					SetWindowText(hwndDlg,TranslateT("Select Relay Target"));
+
+					SetWindowLong(hwndDlg,GWL_USERDATA,(LONG)lParam);
+				}
+				break;
+			case WM_COMMAND: // Button pressed
+				{
+					switch (LOWORD(wParam)) {
+						case IDOK: // OK Button
+							{
+								int index=SendDlgItemMessage(hwndDlg,IDC_MEMBERLIST,CB_GETCURSEL,0,0);
+								if (index!=CB_ERR) {
+									HANDLE hContact=(HANDLE)SendDlgItemMessage(hwndDlg,IDC_MEMBERLIST,CB_GETITEMDATA,index,0);
+									if (hContact!=(HANDLE)CB_ERR) {
+										HANDLE hContactSrc=(HANDLE)GetWindowLong(hwndDlg,GWL_USERDATA);
+										if (hContact==hContactSrc) {
+											MessageBox(hwndDlg,TranslateT("Source and Target Qun cannot be the same!"),NULL,MB_ICONERROR);
+										} else {
+											WRITEC_D(QQ_BRIDGETARGET,DBGetContactSettingDword(hContactSrc,qqProtocolName,UNIQUEIDSETTING,0));
+											DlgProcOptsBridging(hwndBridging,WM_INITDIALOG,0,0);
+											EndDialog(hwndDlg,0);
+										}
+									}
+								}
+							}
+							break;
+						case IDCANCEL: // Cancel Button
+							EndDialog(hwndDlg,0);
+							break;
+					}
+				}
+	}
+	return false;
+}
+
+static BOOL CALLBACK DlgProcOptsBridging(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
+	switch (msg)
+	{
+	case WM_INITDIALOG:	// Options dialog is being initialized/选消以话框进行初始化
+		{
+			HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+			DWORD dwTarget;
+			DBVARIANT dbv;
+			WCHAR szTemp[MAX_PATH];
+			TranslateDialogDefault(hwndDlg);
+
+			SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_RESETCONTENT,0,0);
+
+			while (hContact) {
+				if (!lstrcmpA(qqProtocolName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+					READC_B2("IsQun")) {
+					if (dwTarget=READC_D2(QQ_BRIDGETARGET)) {
+						*szTemp=0;
+						if (!READC_TS2("Nick",&dbv)) {
+							wcscpy(szTemp,wcschr(dbv.ptszVal,L')')+2);
+							DBFreeVariant(&dbv);
+						}
+						swprintf(szTemp+wcslen(szTemp),L"(%d) -> ",READC_D2("ExternalID"));
+						
+						if (HANDLE hContact=util_find_contact(dwTarget)) {
+							if (!READC_TS2("Nick",&dbv)) {
+								wcscat(szTemp,wcschr(dbv.ptszVal,L')')+2);
+								DBFreeVariant(&dbv);
+							}
+							swprintf(szTemp+wcslen(szTemp),L"(%d)",READC_D2("ExternalID"));
+						} else
+							swprintf(szTemp+wcslen(szTemp),TranslateT("Unknown Qun(IntID:%d)"),dwTarget);
+
+						SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_SETITEMDATA, SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_ADDSTRING,0,(LPARAM)szTemp),(LPARAM)hContact);
+					}					
+				}
+					 
+				hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
+			}
+
+			return TRUE;
+		}
+
+	case WM_COMMAND:	// When a control is toggled
+		//SendMessage(GetParent(hwndDlg), PSM_CHANGED, 0, 0);
+		switch (LOWORD(wParam)) {
+			case IDC_ADD:
+				{
+					if (HANDLE hContact=(HANDLE)DialogBox(hinstance,MAKEINTRESOURCE(IDD_ADDQUNMEMBER),hwndDlg,AddQunSrcProc)) {
+						DialogBoxParam(hinstance,MAKEINTRESOURCE(IDD_ADDQUNMEMBER),hwndDlg,AddQunDstProc,(LPARAM)hContact);
+					}
+				}
+				break;
+			case IDC_REMOVE:
+				{
+					int index=SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_GETCURSEL,0,0);
+					if (index!=LB_ERR) {
+						HANDLE hContact=(HANDLE)SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_GETITEMDATA,index,0);
+						if (hContact!=(HANDLE)LB_ERR) {
+							DELC("BridgeTarget");
+							SendDlgItemMessage(hwndDlg,IDC_BRIDGELIST,LB_DELETESTRING,index,0);
+						}
+					}
+				}
+				break;
+		}
+		break;
+
+	case WM_NOTIFY:		// When a notify is sent by Options Dialog (Property Sheet)
+		{
+			switch (((LPNMHDR)lParam)->code)
+				case PSN_APPLY:	// Apply Settings/确ˇ设置
+				{
+
+					/*
+					// Check Options/紒E庋∠丒
+					CHECK_BYTE_SETTING(QQ_SUPPRESSQUNMSG,IDC_SUPPRESSQUN);
+					WRITE_CHECK_SETTING(QQ_SUPPRESSQUNMSG,IDC_SUPPRESSQUN);
+					//CHECK_BYTE_SETTING(QQ_NEWCHAT,IDC_NEWCHAT);
+					//WRITE_BYTE_SETTING(QQ_NEWCHAT,(BYTE)IsDlgButtonChecked(hwndDlg,IDC_NEWCHAT));
+					CHECK_BYTE_SETTING(QQ_ADDQUNNUMBER,IDC_ADDQUNNUMBER);
+					WRITE_CHECK_SETTING(QQ_ADDQUNNUMBER,IDC_ADDQUNNUMBER);
+					WRITE_CHECK_SETTING(QQ_NOREMOVEQUNIMAGE,IDC_NOREMOVEQUNIMAGE);
+					WRITE_CHECK_SETTING(QQ_NOLOADQUNIMAGE,IDC_NOLOADQUNIMAGE);
+					WRITE_CHECK_SETTING(QQ_NOSILENTQUNHISTORY,IDC_NOSILENTQUNHISTORY);
+
+					// Apply Options
+					if(reconnectRequired) MessageBox(hwndDlg,TranslateT("The changes you have made require you to reconnect to the QQ network before they take effect"),APPNAME,MB_OK);
+					*/
+					return TRUE;
+				}
+		}
+		break;
+	}
+	return FALSE;
+}
+#endif

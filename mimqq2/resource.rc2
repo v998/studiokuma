@@ -1,0 +1,44 @@
+#include "version.h"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_COMMA
+ PRODUCTVERSION VERSION_COMMA
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040404b0"
+        BEGIN
+            VALUE "FileDescription", "Project Nagato"
+            VALUE "FileVersion", VERSION_DOT
+            VALUE "InternalName", "mimqq2"
+            VALUE "LegalCopyright", "ª©Åv©Ò¦³ (C) 2006 ¤pºµ¤u§@«Ç"
+            VALUE "OriginalFilename", "MirandaQQ.dll"
+            VALUE "ProductName", "MirandaQQ2 Ç¼Ç~ÇÆÇÛÇ¿Ç« ÇæÇïÇ« ÇåÇ~ÇÒÇåÇæ"
+            VALUE "ProductVersion", VERSION_DOT
+			VALUE "libeva", "MirandaQQ uses the open source libeva library. \nCopyright(C) Yunfan. http://evaq.sourceforge.net"
+			VALUE "Miranda", "Miranda IM is an open source IM client with tons of plugins available. \nFor more information, visit http://www.miranda-im.org"
+#ifdef __MINGW32__
+			VALUE "SpecialBuild", "This binary is built by Dev-C++ using MinGW32, which may behave differently with VC8 build."
+#endif
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x404, 1200
+    END
+END
+

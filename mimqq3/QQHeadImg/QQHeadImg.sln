@@ -1,0 +1,22 @@
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QQHeadImg", "QQHeadImg.vcproj", "{56EB9CAB-3E0F-4BE3-95E0-474996511B78}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+		Release-Test|Win32 = Release-Test|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Debug|Win32.ActiveCfg = Debug|Win32
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Debug|Win32.Build.0 = Debug|Win32
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Release|Win32.ActiveCfg = Release|Win32
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Release|Win32.Build.0 = Release|Win32
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Release-Test|Win32.ActiveCfg = Release-Test|Win32
+		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Release-Test|Win32.Build.0 = Release-Test|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

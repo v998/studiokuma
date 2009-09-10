@@ -1,0 +1,1 @@
+"c:\My Documents\Visual Studio Projects\EXEAppend\Debug\EXEAppend.exe" config.txt

@@ -1,0 +1,8 @@
+MIMFetion is released under the terms and conditions of GNU Public License Version 2.
+
+The source of MIMFetion is available in SourceForge.net.
+For more information, visit the following URL for accessing through SVN:
+
+http://sourceforge.net/svn/?group_id=142640
+
+Note: Source for MIMFetion is placed at /trunk/fetion directory.
