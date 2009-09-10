@@ -1,0 +1,199 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中��E(台灣) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHT)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
+#pragma code_page(950)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+227                     BITMAP                  "face\\127.bmp"
+226                     BITMAP                  "face\\126.bmp"
+225                     BITMAP                  "face\\125.bmp"
+224                     BITMAP                  "face\\124.bmp"
+223                     BITMAP                  "face\\123.bmp"
+222                     BITMAP                  "face\\122.bmp"
+221                     BITMAP                  "face\\121.bmp"
+220                     BITMAP                  "face\\120.bmp"
+219                     BITMAP                  "face\\119.bmp"
+218                     BITMAP                  "face\\118.bmp"
+217                     BITMAP                  "face\\117.bmp"
+216                     BITMAP                  "face\\116.bmp"
+215                     BITMAP                  "face\\115.bmp"
+214                     BITMAP                  "face\\114.bmp"
+213                     BITMAP                  "face\\113.bmp"
+212                     BITMAP                  "face\\112.bmp"
+211                     BITMAP                  "face\\111.bmp"
+210                     BITMAP                  "face\\110.bmp"
+209                     BITMAP                  "face\\109.bmp"
+208                     BITMAP                  "face\\108.bmp"
+207                     BITMAP                  "face\\107.bmp"
+206                     BITMAP                  "face\\106.bmp"
+205                     BITMAP                  "face\\105.bmp"
+204                     BITMAP                  "face\\104.bmp"
+203                     BITMAP                  "face\\103.bmp"
+202                     BITMAP                  "face\\102.bmp"
+201                     BITMAP                  "face\\101.bmp"
+200                     BITMAP                  "face\\100.bmp"
+199                     BITMAP                  "face\\99.bmp"
+198                     BITMAP                  "face\\98.bmp"
+197                     BITMAP                  "face\\97.bmp"
+196                     BITMAP                  "face\\96.bmp"
+195                     BITMAP                  "face\\95.bmp"
+194                     BITMAP                  "face\\94.bmp"
+193                     BITMAP                  "face\\93.bmp"
+192                     BITMAP                  "face\\92.bmp"
+191                     BITMAP                  "face\\91.bmp"
+190                     BITMAP                  "face\\90.bmp"
+189                     BITMAP                  "face\\89.bmp"
+188                     BITMAP                  "face\\88.bmp"
+187                     BITMAP                  "face\\87.bmp"
+186                     BITMAP                  "face\\86.bmp"
+185                     BITMAP                  "face\\85.bmp"
+184                     BITMAP                  "face\\84.bmp"
+183                     BITMAP                  "face\\83.bmp"
+182                     BITMAP                  "face\\82.bmp"
+181                     BITMAP                  "face\\81.bmp"
+180                     BITMAP                  "face\\80.bmp"
+179                     BITMAP                  "face\\79.bmp"
+178                     BITMAP                  "face\\78.bmp"
+177                     BITMAP                  "face\\77.bmp"
+176                     BITMAP                  "face\\76.bmp"
+175                     BITMAP                  "face\\75.bmp"
+174                     BITMAP                  "face\\74.bmp"
+173                     BITMAP                  "face\\73.bmp"
+172                     BITMAP                  "face\\72.bmp"
+171                     BITMAP                  "face\\71.bmp"
+170                     BITMAP                  "face\\70.bmp"
+169                     BITMAP                  "face\\69.bmp"
+168                     BITMAP                  "face\\68.bmp"
+167                     BITMAP                  "face\\67.bmp"
+166                     BITMAP                  "face\\66.bmp"
+165                     BITMAP                  "face\\65.bmp"
+164                     BITMAP                  "face\\64.bmp"
+163                     BITMAP                  "face\\63.bmp"
+162                     BITMAP                  "face\\62.bmp"
+161                     BITMAP                  "face\\61.bmp"
+160                     BITMAP                  "face\\60.bmp"
+159                     BITMAP                  "face\\59.bmp"
+158                     BITMAP                  "face\\58.bmp"
+157                     BITMAP                  "face\\57.bmp"
+156                     BITMAP                  "face\\56.bmp"
+155                     BITMAP                  "face\\55.bmp"
+154                     BITMAP                  "face\\54.bmp"
+153                     BITMAP                  "face\\53.bmp"
+152                     BITMAP                  "face\\52.bmp"
+151                     BITMAP                  "face\\51.bmp"
+150                     BITMAP                  "face\\50.bmp"
+149                     BITMAP                  "face\\49.bmp"
+148                     BITMAP                  "face\\48.bmp"
+147                     BITMAP                  "face\\47.bmp"
+146                     BITMAP                  "face\\46.bmp"
+145                     BITMAP                  "face\\45.bmp"
+144                     BITMAP                  "face\\44.bmp"
+143                     BITMAP                  "face\\43.bmp"
+142                     BITMAP                  "face\\42.bmp"
+141                     BITMAP                  "face\\41.bmp"
+140                     BITMAP                  "face\\40.bmp"
+139                     BITMAP                  "face\\39.bmp"
+138                     BITMAP                  "face\\38.bmp"
+137                     BITMAP                  "face\\37.bmp"
+136                     BITMAP                  "face\\36.bmp"
+135                     BITMAP                  "face\\35.bmp"
+134                     BITMAP                  "face\\34.bmp"
+133                     BITMAP                  "face\\33.bmp"
+132                     BITMAP                  "face\\32.bmp"
+131                     BITMAP                  "face\\31.bmp"
+130                     BITMAP                  "face\\30.bmp"
+129                     BITMAP                  "face\\29.bmp"
+128                     BITMAP                  "face\\28.bmp"
+127                     BITMAP                  "face\\27.bmp"
+126                     BITMAP                  "face\\26.bmp"
+125                     BITMAP                  "face\\25.bmp"
+124                     BITMAP                  "face\\24.bmp"
+123                     BITMAP                  "face\\23.bmp"
+122                     BITMAP                  "face\\22.bmp"
+121                     BITMAP                  "face\\21.bmp"
+120                     BITMAP                  "face\\20.bmp"
+119                     BITMAP                  "face\\19.bmp"
+118                     BITMAP                  "face\\18.bmp"
+117                     BITMAP                  "face\\17.bmp"
+116                     BITMAP                  "face\\16.bmp"
+115                     BITMAP                  "face\\15.bmp"
+114                     BITMAP                  "face\\14.bmp"
+113                     BITMAP                  "face\\13.bmp"
+112                     BITMAP                  "face\\12.bmp"
+111                     BITMAP                  "face\\11.bmp"
+110                     BITMAP                  "face\\10.bmp"
+109                     BITMAP                  "face\\9.bmp"
+108                     BITMAP                  "face\\8.bmp"
+107                     BITMAP                  "face\\7.bmp"
+106                     BITMAP                  "face\\6.bmp"
+105                     BITMAP                  "face\\5.bmp"
+104                     BITMAP                  "face\\4.bmp"
+103                     BITMAP                  "face\\3.bmp"
+102                     BITMAP                  "face\\2.bmp"
+101                     BITMAP                  "face\\1.bmp"
+1000                    BITMAP                  "face\\1000.bmp"
+1001                    BITMAP                  "face\\1001.bmp"
+1002                    BITMAP                  "face\\1002.bmp"
+#endif    // 中��E(台灣) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

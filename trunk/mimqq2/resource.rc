@@ -1,0 +1,577 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "resource.h"
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+#include "version.h"
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// ì˙ñ{åÍ resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// GIF
+//
+
+IDR_ERRORBMP            GIF                     "errorBmp.gif"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CHOOSEACCOUNT DIALOGEX 0, 0, 186, 94
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOPMOST
+CAPTION "Choose Account"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,73,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,73,50,14
+    LTEXT           "Choose the account for sending QQ message:",IDC_STATIC,7,7,172,8
+    LISTBOX         IDC_QQLIST,7,17,172,52,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_CHOOSEACCOUNT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 87
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // ì˙ñ{åÍ resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// íÜçëåÍ (ë‰òp) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHT)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
+#pragma code_page(950)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPT DIALOGEX 0, 0, 295, 240
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Login",IDC_GROUPMAIN,6,13,282,70,WS_GROUP
+    RTEXT           "&QQID:",IDC_STATIC,22,21,45,8
+    EDITTEXT        IDC_LOGIN,69,20,52,12,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "&Password:",IDC_STATIC,123,21,39,8
+    EDITTEXT        IDC_PASSWORD,167,20,49,12,ES_PASSWORD | ES_AUTOHSCROLL
+    RTEXT           "Login &Server:",IDC_STATIC,12,36,56,8
+    COMBOBOX        IDC_SERVER,69,35,147,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_VERSION,6,3,282,12,ES_CENTER | ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "",IDC_UNICODEMSG,21,68,195,8
+    CONTROL         "Force &Invisible",IDC_FORCEINVISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,21,63,10
+    CONTROL         "&Auto Select",IDC_AUTOSERVER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,36,63,10
+    CONTROL         "Force &Unicode",IDC_FORCEUNICODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,67,65,10
+    GROUPBOX        "Copyright Notice",IDC_STATIC,6,85,282,124
+    LTEXT           "",IDC_NOTICE,11,97,271,106
+    RTEXT           "&Conversion:",IDC_STATIC,16,52,51,8
+    COMBOBOX        IDC_CONVERSION,69,51,210,90,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_INFO_QQ1 DIALOGEX 0, 0, 207, 125
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "QQ:",IDC_STATIC,7,7,55,8
+    LTEXT           "Sex:",IDC_STATIC,7,44,55,8
+    LTEXT           "Area:",IDC_STATIC,7,57,55,8
+    LTEXT           "Nickname:",IDC_STATIC,7,20,55,8
+    LTEXT           "Province:",IDC_STATIC,7,70,55,8
+    LTEXT           "City:",IDC_STATIC,7,83,55,8
+    EDITTEXT        IDC_INFO_UID,65,7,82,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_NICKNAME,65,20,82,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Age:",IDC_STATIC,7,32,55,8
+    EDITTEXT        IDC_INFO_AGE,65,32,82,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Client Version:",IDC_STATIC,7,96,55,8
+    EDITTEXT        IDC_INFO_CLIENTVER,65,96,134,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    COMBOBOX        IDC_INFO_SEX,65,43,82,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INFO_AREA,65,56,82,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INFO_PROVINCE,65,69,82,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INFO_CITY,65,82,82,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Face:",IDC_STATIC,151,14,29,8
+    CONTROL         "",IDC_INFO_FACE,"Static",SS_BITMAP,183,8,15,13
+    LTEXT           "Personal Sig:",IDC_STATIC,7,107,55,8
+    EDITTEXT        IDC_INFO_SIGNATURE,65,108,134,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+END
+
+IDD_INFO_QUN1 DIALOGEX 0, 0, 217, 143
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_QUNINFO_CREATOR,41,18,61,9,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT | WS_EX_STATICEDGE
+    EDITTEXT        IDC_QUNINFO_NAME,41,29,61,9,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT | WS_EX_STATICEDGE
+    EDITTEXT        IDC_QUNINFO_QID,41,7,61,9,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Qun ID:",IDC_STATIC,7,7,33,8
+    LTEXT           "Name:",IDC_STATIC,7,29,33,8
+    LTEXT           "Creator:",IDC_STATIC,7,18,34,8
+    LTEXT           "Category:",IDC_STATIC,105,29,35,8
+    COMBOBOX        IDC_QUNINFO_CATEGORY,142,27,68,30,CBS_DROPDOWN | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Qun Notice (Member only)",IDC_STATIC,7,40,203,48
+    GROUPBOX        "Qun Description",IDC_STATIC,7,88,203,49
+    EDITTEXT        IDC_QUNINFO_NOTICE,12,51,192,32,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_STATICEDGE
+    EDITTEXT        IDC_QUNINFO_DESC,12,100,192,32,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_STATICEDGE
+END
+
+IDD_INFO_QUN2 DIALOGEX 0, 0, 217, 136
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_QUNINFO_MEMBERLIST,7,7,136,122,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Add To Me",IDC_QUNINFO_ADDTOME,150,7,60,14,0,WS_EX_STATICEDGE
+    PUSHBUTTON      "&Del Member",IDC_QUNINFO_DELMEMBER,150,23,60,14,0,WS_EX_STATICEDGE
+    PUSHBUTTON      "&Set Admin",IDC_QUNINFO_SETADMIN,150,51,60,14,WS_DISABLED,WS_EX_STATICEDGE
+    PUSHBUTTON      "&Unset Admin",IDC_QUNINFO_UNSETADMIN,150,67,60,14,WS_DISABLED,WS_EX_STATICEDGE
+    PUSHBUTTON      "&Transfer",IDC_QUNINFO_TRANSFER,150,83,60,14,WS_DISABLED,WS_EX_STATICEDGE
+END
+
+IDD_INFO_QQ2 DIALOGEX 0, 0, 207, 125
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Email:",IDC_STATIC,7,6,48,8
+    LTEXT           "Phone:",IDC_STATIC,7,49,48,8
+    LTEXT           "Mobile:",IDC_STATIC,7,63,48,8
+    LTEXT           "Address:",IDC_STATIC,7,21,48,8
+    EDITTEXT        IDC_INFO_EMAIL,57,6,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_ADDRESS,57,21,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Zip Code:",IDC_STATIC,7,35,48,8
+    EDITTEXT        IDC_INFO_ZIPCODE,57,35,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_PHONE,57,49,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_MOBILE,57,63,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "IP:",IDC_STATIC,7,106,48,8,NOT WS_VISIBLE
+    EDITTEXT        IDC_INFO_IP,57,106,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_VISIBLE | NOT WS_BORDER,WS_EX_TRANSPARENT | WS_EX_STATICEDGE
+    LTEXT           "Level:",IDC_STATIC,7,74,48,8
+    LTEXT           "Online:",IDC_STATIC,7,86,48,8
+    EDITTEXT        IDC_LEVEL,57,75,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_ONLINE,57,87,142,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+END
+
+IDD_INFO_QQ3 DIALOGEX 0, 0, 207, 125
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Real Name:",-1,7,7,39,8
+    LTEXT           "Home Page:",-1,7,47,39,8
+    LTEXT           "Description:",-1,7,61,39,8
+    LTEXT           "College:",-1,7,21,39,8
+    LTEXT           "Zodiac:",-1,112,8,39,8
+    LTEXT           "Blood:",-1,112,21,39,8
+    EDITTEXT        IDC_INFO_REALNAME,47,7,59,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_COLLEGE,47,20,59,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Occupation:",-1,7,34,39,8
+    EDITTEXT        IDC_INFO_OCCUPATION,47,34,59,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    LTEXT           "Horoscope:",-1,112,34,39,8
+    COMBOBOX        IDC_INFO_HOROSCOPE,152,34,47,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INFO_ANIMAL,152,7,47,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INFO_BLOOD,152,20,47,30,CBS_DROPDOWN | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_INFO_HOMEPAGE,47,47,152,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_INFO_DESCRIPTION,47,60,152,58,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER,WS_EX_TRANSPARENT | WS_EX_STATICEDGE
+END
+
+IDD_ADDQUNMEMBER DIALOGEX 0, 0, 186, 65
+STYLE DS_SYSMODAL | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add Qun Member"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,28,44,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,107,44,50,14
+    LTEXT           "Qun:",IDC_QUNLABEL,7,8,55,8
+    LTEXT           "Member to &Add:",IDC_MEMBERLABEL,7,24,52,8
+    EDITTEXT        IDC_QUNID,63,7,116,12,ES_AUTOHSCROLL | ES_READONLY
+    COMBOBOX        IDC_MEMBERLIST,64,23,115,129,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_OPT2 DIALOGEX 0, 0, 295, 240
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    CONTROL         "Suppress Qun Messa&ges by default (Requires Reconnect)",IDC_SUPPRESSQUN,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,19,262,10
+    CONTROL         "Don't &load qun images (Requires Reconnect)",IDC_NOLOADQUNIMAGE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,30,262,10
+    CONTROL         "Add QQ &Number to member list (Requires Reconnect)",IDC_ADDQUNNUMBER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,41,262,10
+    GROUPBOX        "Qun Settings",IDC_STATIC,6,7,283,79
+    CONTROL         "Don't add history items for &ignored qun",IDC_NOSILENTQUNHISTORY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,53,262,10
+END
+
+IDD_CHANGESIGNATURE DIALOGEX 0, 0, 186, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Change Signature"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,30,41,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,106,41,50,14
+    LTEXT           "Enter new Personal Signature:",IDC_CAPTION,7,7,172,8
+    EDITTEXT        IDC_SIGNATURE,7,21,172,12,ES_AUTOHSCROLL
+END
+
+IDD_QUNLIST DIALOGEX 0, 0, 137, 190
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_QUNNOTICE,0,0,137,32,ES_MULTILINE | ES_READONLY | NOT WS_BORDER
+    LISTBOX         IDC_QUNMEMBERS,0,48,48,40,LBS_SORT | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_OPTMAIN DIALOGEX 0, 0, 311, 246
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_OPTIONSTAB,"SysTabControl32",0x0,1,1,310,245,WS_EX_ACCEPTFILES
+END
+
+IDD_OPT_SETTINGS DIALOGEX 0, 0, 295, 230
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Configuration",IDC_GROUPCONFIG,6,3,282,187
+    CONTROL         "Don't Add &Identity to contacts when multiple accounts (Requires Reconnect)",IDC_NOADDIDENTITY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,28,263,10
+    CONTROL         "Re&move invalid characters in Nicknames (Requires Reconnect)",IDC_REMOVENICKCHARS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,39,263,10
+    CONTROL         "Don't use &Personal Signature support (Requires Reconnect)",IDC_NOMODEMSG,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,50,263,10
+    CONTROL         "Reply &Mode Message",IDC_REPLYMODEMSG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,61,133,10
+    CONTROL         "Filter A&ll Add Request",IDC_CUSTOMBLOCK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,98,132,10
+    LTEXT           "Use avatar support for:",IDC_STATIC,11,154,92,8
+    COMBOBOX        IDC_AVATARTYPE,105,153,89,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Use S&tatus Message as Personal Signature",IDC_STATUSASPERSONAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,73,263,10
+    CONTROL         "Need &Acknowledgement on sending messages",IDC_WAITACK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,17,263,10
+    CONTROL         "Show &News Broadcast",IDC_SHOWAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,86,133,10
+    CONTROL         "Show QQ Mai&l Notification",IDC_MAILNOTIFY,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,11,111,132,10
+    LTEXT           "",IDC_VERSION,10,180,273,8
+    CONTROL         "Don't show &Progress Popups",IDC_NOPROGRESSPOPUPS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,123,132,10
+    LTEXT           "Manual Version override: 0x",IDC_STATIC,11,138,91,8,NOT WS_VISIBLE
+    EDITTEXT        IDC_MANUALVERSION,105,135,40,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
+    LTEXT           "",IDC_CURRENTVERSION,148,138,133,8,NOT WS_VISIBLE
+    LTEXT           "Font and Color selection is now placed in FontService page.",IDC_STATIC,11,175,269,8
+END
+
+IDD_SELECTIMAGE DIALOGEX 0, 0, 186, 134
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Image to Post"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Post Image",IDOK,75,113,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,113,50,14
+    LISTBOX         IDC_IMAGELIST,7,7,172,100,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "+",IDC_ADD,7,113,16,14
+    PUSHBUTTON      "-",IDC_REMOVE,26,113,16,14
+END
+
+IDD_RENAMEIMAGE DIALOGEX 0, 0, 186, 57
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Rename Image"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,36,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,36,50,14
+    LTEXT           "&Enter a new name for the image:",IDC_STATIC,7,7,172,8
+    EDITTEXT        IDC_NAME,7,18,172,12,ES_AUTOHSCROLL
+END
+
+IDD_CODEVERIFY DIALOGEX 0, 0, 196, 100
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Code Verification"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,35,79,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,107,79,50,14
+    LTEXT           "Your QQ Number requires graphical code verification. \nPlease enter the code as shown in following picture:",IDC_STATIC,7,7,182,20
+    CONTROL         "",IDC_CODEIMAGE,"Static",SS_BITMAP,67,31,57,20
+    RTEXT           "Code:",IDC_STATIC,35,58,32,8
+    EDITTEXT        IDC_CODE,67,58,57,14,ES_AUTOHSCROLL
+END
+
+IDD_OPT3 DIALOGEX 0, 0, 295, 240
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    LTEXT           "Settings in this page affect all copies of MirandaQQ. All settings here will take effect after restarting Miranda IM.",IDC_STATIC,12,0,277,18
+    CONTROL         "Completely disable Qun &Image support (and built-in web server)",IDC_GLOBAL_WSDISABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,24,221,10
+    GROUPBOX        "Web Server",IDC_STATIC,6,50,283,61
+    CONTROL         "&Allow non-local connections",IDC_GLOBAL_WSNONLOCAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,62,270,10
+    LTEXT           "Binds to port:",IDC_STATIC,12,74,66,8
+    EDITTEXT        IDC_GLOBAL_WSPORT,84,74,30,14,ES_AUTOHSCROLL
+    LTEXT           "Document &root:",IDC_STATIC,12,92,66,8
+    EDITTEXT        IDC_GLOBAL_WSROOT,84,92,126,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_GLOBAL_WSBROWSE,210,92,18,14
+    CONTROL         "Don't &remove qun image on exit",IDC_NOREMOVEQUNIMAGE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,36,262,10
+END
+
+IDD_ACCMGRUI DIALOGEX 0, 0, 186, 134
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "&QQID:",IDC_STATIC,7,7,45,8
+    EDITTEXT        IDC_LOGIN,54,7,54,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "&Password:",IDC_STATIC,7,24,47,8
+    EDITTEXT        IDC_PASSWORD,54,24,54,12,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "Force &Invisible",IDC_FORCEINVISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,116,24,63,10
+    LTEXT           "&Server:",IDC_STATIC,7,42,47,8
+    COMBOBOX        IDC_SERVER,54,42,125,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_INFO_QQ1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 199
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 118
+    END
+
+    IDD_INFO_QUN1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 210
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 136
+    END
+
+    IDD_INFO_QUN2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 210
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 129
+    END
+
+    IDD_INFO_QQ2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 199
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 118
+    END
+
+    IDD_INFO_QQ3, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 199
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 118
+    END
+
+    IDD_ADDQUNMEMBER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 58
+    END
+
+    IDD_CHANGESIGNATURE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_QUNLIST, DIALOG
+    BEGIN
+        RIGHTMARGIN, 119
+        BOTTOMMARGIN, 189
+    END
+
+    IDD_SELECTIMAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 127
+    END
+
+    IDD_RENAMEIMAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 50
+    END
+
+    IDD_CODEVERIFY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 189
+        VERTGUIDE, 67
+        VERTGUIDE, 124
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 93
+        HORZGUIDE, 31
+        HORZGUIDE, 51
+        HORZGUIDE, 58
+    END
+
+    IDD_OPT3, DIALOG
+    BEGIN
+        VERTGUIDE, 6
+        VERTGUIDE, 12
+        VERTGUIDE, 78
+        VERTGUIDE, 84
+        VERTGUIDE, 114
+        VERTGUIDE, 210
+        VERTGUIDE, 228
+        VERTGUIDE, 282
+        VERTGUIDE, 289
+        HORZGUIDE, 18
+        HORZGUIDE, 24
+        HORZGUIDE, 36
+        HORZGUIDE, 48
+        HORZGUIDE, 60
+        HORZGUIDE, 78
+    END
+
+    IDD_ACCMGRUI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        VERTGUIDE, 54
+        VERTGUIDE, 108
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 124
+        HORZGUIDE, 24
+        HORZGUIDE, 42
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_TM                  ICON                    "CristalQQ-16x16x8.ico"
+IDI_OFFLINE             ICON                    "CristalQQ-16x16x8-offline.ico"
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""resource.h""\r\n"
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""version.h""\r\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#include ""resource.rc2""\r\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_QUNMEMBER MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "x",                           ID__INFO, INACTIVE
+        MENUITEM SEPARATOR
+        MENUITEM "Send Message",                ID__SENDMESSAGE
+        MENUITEM "User Details",                ID__USERDETAILS
+        MENUITEM SEPARATOR
+        MENUITEM "Kick Member",                 ID__KICKMEMBER
+    END
+END
+
+#endif    // íÜçëåÍ (ë‰òp) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include "resource.rc2"
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

@@ -1,0 +1,154 @@
+; QQ2009SP1 QQ Smileys Mapping for MirandaQQ3
+; Warning! NEVER modify values of first 2 columns!
+; 2009Index	2006Index	en	py
+; Line 1
+0e	4f	/:)	/wx
+01	42	/:~	/pz
+02	43	/:B	/se
+03	44	/:|	/fd
+04	45	/8-)	/dy
+05	46	/:<	/ll
+06	47	/:$	/hx
+07	48	/:X	/bz
+08	49	/:Z	/shui
+09	4a	/:'(	/dk
+0a	4b	/:-|	/gg
+0b	4c	/:@	/fn
+0c	4d	/:P	/tp
+0d	4e	/:D	/cy
+00	41	/:O	/jy
+
+; Line 2
+0f	73	/:(	/ng
+10	74	/:+	/kuk
+60	a1	/--b	/lengh
+12	76	/:Q	/zk
+13	77	/:T	/tuu
+14	8a	/;P	/tx
+15	8b	/;-D	/ka
+16	8c	/;d	/baiy
+17	8d	/;o	/am
+18	8e	/:g	/jie
+19	8f	/|-)	/kun
+1a	78	/:!	/jk
+1b	79	/:L	/lh
+1c	7a	/:>	/hanx
+1d	7b	/:;	/db
+
+; Line 3
+1e	90	/;f	/fendou
+1f	91	/:-S	/zhm
+20	92	/?	/yiw
+21	93	/;x	/xu
+22	94	/;@	/yun
+23	95	/:8	/zhem
+24	96	/;!	/shuai
+25	97	/!!!	/kl
+26	98	/xx	/qiao
+27	99	/bye	/zj
+61	a2	/wipe	/ch
+62	a3	/dig	/kb
+63	a4	/handclap	/gz
+64	a5	/&-(	/qd
+65	a6	/B-)	/huaix
+
+; Line 4
+66	a7	/<@	/zhh
+67	a8	/@>	/yhh
+68	a9	/:-O	/hq
+69	aa	/>-|	/bs
+6a	ab	/P-(	/wq
+6b	ac	/:'|	/kk
+6c	ad	/X-)	/yx
+6d	ae	/:*	/qq
+6e	af	/@x	/xia
+6f	b0	/8*	/kel
+70	b1	/pd	/cd
+59	61	/<W>	/xig
+71	b2	/beer	/pj
+72	b3	/basketb	/lq
+73	b4	/oo	/pp
+
+; Line 5
+3c	80	/coffee	/kf
+3d	81	/eat	/fan
+2e	7c	/pig	/zt
+3f	62	/rose	/mg
+40	63	/fade	/dx
+74	b5	/showlove	/sa
+42	65	/heart	/xin
+43	66	/break	/xs
+35	67	/cake	/dg
+36	9c	/li	/shd
+37	9d	/bome	/zhd
+38	9e	/kn	/dao
+39	5e	/footb	/zq
+75	b6	/ladybug	/pch
+3b	89	/shit	/bb
+
+; Line 6
+4b	6e	/moon	/yl
+4a	6b	/sun	/ty
+45	68	/gift	/lw
+31	7f	/hug	/yb
+4c	6f	/strong	/qiang
+4d	70	/weak	/ruo
+4e	88	/share	/ws
+4f	a0	/v	/shl
+76	b7	/@)	/bq
+77	b8	/jj	/gy
+78	b9	/@@	/qt
+79	ba	/bad	/cj
+7a	bb	/iloveu	/aini
+7b	bc	/no	/bu
+7c	bd	/ok	/hd
+
+; Line 7
+2a	5c	/love	/aiq
+55	56	/<L>	/fw
+2b	58	/jump	/tiao
+29	5a	/shake	/fad
+56	5b	/<O>	/oh
+7d	be	/circle	/zhq
+7e	bf	/kotow	/kt
+7f	c0	/turn	/ht
+80	c1	/skip	/tsh
+81	c2	/oY	/hsh
+82	c3	/#-0	/jd
+83	c4	/hiphop	/jw
+84	c5	/kiss	/xw
+85	c6	/<&	/ztj
+86	c7	/&>	/ytj
+
+; Legacy
+11	75	/:#	/feid
+28	59	/go	/shan
+2c	57	/find	/zhao
+2d	55	x	/mm
+2f	7d	/cat	/maom
+30	7e	/dog	/xg
+32	9a	/$	/qianc
+33	9b	/(!)	/dp
+34	60	/cup	/bei
+3a	9f	/music	/yy
+3e	82	/pill	/yw
+41	64	x	/wen
+44	83	/meeting	/hy
+46	84	/phone	/dh
+47	85	/time	/si
+
+48	86	/email	/yj
+49	87	/tv	/ds
+50	50	/<D>	/dd
+51	51	/<J>	/mn
+52	52	/<H>	/hl
+53	53	/<M>	/mamao
+54	54	/<QQ>	/qz
+57	5d	/<B>	/bj
+58	5f	/<U>	/qsh
+5a	69	/<!!>	/xy
+5b	6a	/<~>	/duoy
+5c	6c	/<Z>	/xr
+5d	6d	/<*>	/xixing
+5e	71	/<00>	/nv
+5f	72	/<11>	/nan
