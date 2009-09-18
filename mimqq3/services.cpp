@@ -3527,14 +3527,10 @@ int __cdecl CNetwork::SetStatus(int iNewStatus) {
 	util_log(0,"PS_SETSTATUS(%d,0)", iNewStatus);
 
 	if (m_iDesiredStatus==ID_STATUS_OFFLINE) {
-#if 0 // TODO
-		if (Packet::isClientKeySet()) {
-			append(new ChangeStatusPacket(QQ_FRIEND_STATUS_OFFLINE));
-			for(int i=0; i<4; i++) {
-				append(new LogoutPacket());
-			}
+		if(m_client.process == P_LOGIN ){
+			for(int i=0; i<4; i++)
+				prot_login_logout(&m_client);
 		}
-#endif
 		disconnect();
 	}
 	else if (m_iStatus==ID_STATUS_OFFLINE)
