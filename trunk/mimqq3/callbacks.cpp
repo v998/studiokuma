@@ -3381,6 +3381,8 @@ void CNetwork::_eventCallback(char* msg) {
 				WRITEC_B("IsAdmin",(qm->role & 1)?1:0);
 			}
 
+			if (READC_B2("SilentQun")==1) WRITEC_W("Status",ID_STATUS_DND);
+
 			util_log(0,"Qun %d: Member info completed, ask for real names",q->number);
 			append(new QunRequestAllRealNames(q->number));
 

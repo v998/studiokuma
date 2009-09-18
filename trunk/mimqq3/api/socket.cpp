@@ -1,5 +1,5 @@
 #include <stdafx.h>
-#define NOFILTER
+// #define NOFILTER
 
 void CClientConnection::connectionError() {
 	util_log(0,"%s: Default Connection Error",m_name.c_str());
@@ -120,10 +120,12 @@ void CClientConnection::_connect() {
 		if (m_connection)
 			util_log(0,"[%s] Resuming from exception state",getName().c_str());
 		else {
+			/*
 			if (redirect) {
 				util_log(0,"[%s] Wait 1 sec before starting new connection",getName().c_str());
 				Sleep(1000);
 			}
+			*/
 			m_connection=(HANDLE)CallService(MS_NETLIB_OPENCONNECTION,(WPARAM)hNetlibUser,(LPARAM)&nloc);
 		}
 

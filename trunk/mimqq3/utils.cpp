@@ -35,6 +35,10 @@ void CNetwork::SetContactsOffline() {
 						WRITEC_B("NoInit",1);
 					else
 						DELC("NoInit");
+					if (READC_W2("Status")==ID_STATUS_DND)
+						WRITEC_B("SilentQun",1);
+					else
+						DELC("SilentQun");
 				}
 				WRITEC_W("Status", ID_STATUS_OFFLINE);
 			}
@@ -399,26 +403,7 @@ void CNetwork::GoOffline() {
 
 	qqclient_logout(&m_client);
 	qqclient_cleanup(&m_client);
-	/*
-	HANDLE hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
-	while (hContact) {
-		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0)))
-			if (READC_W2("Status")!=ID_STATUS_OFFLINE) {
-				if (READC_B2("IsQun")==1) {
-					WRITEC_B("QunInit",0);
-					WRITEC_B("ServerQun",0);
-					WRITEC_D("QunVersion",0);
-					if (READC_W2("Status")==ID_STATUS_INVISIBLE) 
-						WRITEC_B("NoInit",1);
-					else
-						DELC("NoInit");
-				}
-				WRITE_W( hContact, "Status", ID_STATUS_OFFLINE );
-			}
 
-		hContact = ( HANDLE )CallService( MS_DB_CONTACT_FINDNEXT, ( WPARAM )hContact, 0 );
-	}
-	*/
 	if (!Miranda_Terminated()) SetContactsOffline();
 
 	while (m_pendingImList.size()) {
@@ -431,10 +416,10 @@ void CNetwork::GoOffline() {
 	ZeroMemory(&m_currentMedia, sizeof(m_currentMedia));
 	*/
 
-#if 0 // TODO
 	if (m_userhead) m_userhead->disconnect();
 	if (m_qunimage) m_qunimage->disconnect();
 
+#if 0 // TODO
 	Packet::clearAllKeys();
 	if (!Miranda_Terminated()) CEvaAccountSwitcher::FreeAccount();
 #endif
