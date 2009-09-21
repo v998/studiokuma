@@ -71,7 +71,7 @@ qqpacket* packetmgr_new_send( qqclient* qq, int cmd )
 void packetmgr_inc_seqno( qqclient* qq )
 {
 	qq->seqno ++;
-	qq->seqno = rand();
+	//qq->seqno = rand();
 }
 
 void packetmgr_new_seqno( qqclient* qq )
@@ -326,7 +326,7 @@ int packetmgr_check_packet( struct qqclient* qq, int timeout )
 			loop_remove( &mgr->sent_loop, p );
 		}
 		if( p ){
-			if( p->send_times >= 3 ){
+			if(p->send_times >= (qq->login_finish?3:2) ){
 				ushort cmd=p->command;
 				MSG("Failed to send the packet. command: %x\n", p->command );
 				delete_func( p );

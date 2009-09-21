@@ -74,6 +74,10 @@ void CNetwork::SetResident() {
 	SETRESIDENTVALUE("LastLoginTS");
 	SETRESIDENTVALUE("LastLoginIP");
 	SETRESIDENTVALUE("LoginTS");
+	SETRESIDENTVALUE("QunInit");
+	SETRESIDENTVALUE("ServerQun");
+	SETRESIDENTVALUE("QunVersion");
+	SETRESIDENTVALUE("CardVersion");
 }
 
 bool CNetwork::setConnectString(LPCSTR pszConnectString) {

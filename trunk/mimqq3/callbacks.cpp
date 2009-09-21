@@ -3303,13 +3303,14 @@ void CNetwork::_eventCallback(char* msg) {
 				// BroadcastStatus(ID_STATUS_CONNECTING);
 				break;
 			case P_LOGGING:
-				BroadcastStatus(m_iStatus+1);
+				// BroadcastStatus(m_iStatus+1);
 				break;
 			case P_VERIFYING:
-				BroadcastStatus(m_iStatus+1);
+				// BroadcastStatus(m_iStatus+1);
 				break;
 			case P_LOGIN:
 				// BroadcastStatus(m_iDesiredStatus);
+				m_client.login_finish = 1;	//we can recv message now.
 				EnableMenuItems(TRUE);
 
 				if (!this->m_conservative) {
@@ -3330,15 +3331,19 @@ void CNetwork::_eventCallback(char* msg) {
 				}
 			case P_ERROR: // Packet timeout or generic error
 				if (!handled) {
-					if (m_iStatus<ID_STATUS_ONLINE) {
-						// if (m_iStatus>ID_STATUS_CONNECTING+5)
+					if (m_iStatus<ID_STATUS_ONLINE || m_client.login_finish==0) {
+						if (/*m_client.network==TCP || */m_iStatus>ID_STATUS_CONNECTING+10 && m_iStatus<ID_STATUS_OFFLINE)
 							ShowNotification(TranslateT("Connection to server timed out."),NIIF_ERROR);
-						/*else {
+						else {
+							if (m_iStatus>=ID_STATUS_ONLINE) m_iStatus=ID_STATUS_CONNECTING;
+
 							BroadcastStatus(m_iStatus+1);
 							util_log(0,"Connection timed out, retrying...");
-							this->setRedirect();
+							m_client.process = P_LOGGING;
+							//prot_login_a4(&m_client);
+							prot_login_touch(&m_client);
 							return;
-						}*/
+						}
 					}
 					handled=true;
 				}
