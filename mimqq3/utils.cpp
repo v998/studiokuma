@@ -31,6 +31,7 @@ void CNetwork::SetContactsOffline() {
 					WRITEC_B("QunInit",0);
 					WRITEC_B("ServerQun",0);
 					WRITEC_D("QunVersion",0);
+					WRITEC_D("CardVersion",0);
 					if (READC_W2("Status")==ID_STATUS_INVISIBLE) 
 						WRITEC_B("NoInit",1);
 					else

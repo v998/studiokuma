@@ -222,7 +222,7 @@ void prot_login_verify( struct qqclient* qq )
 		return;
 	}
 	verify_data->size = PACKET_SIZE;
-	put_int( verify_data, rand() );	//random??
+	put_int( verify_data, qq->seqno/*rand()*/ );	//random??
 	put_word( verify_data, 0x0001 );
 	put_int( verify_data, qq->number );
 	put_data( verify_data, qq->data.version_spec, sizeof(qq->data.version_spec) );
