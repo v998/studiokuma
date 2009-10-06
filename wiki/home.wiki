@@ -9,8 +9,8 @@ This page lists and links the open source projects hosted in this site, which ar
 
 
 = Links (連結) =
-  * MirandaQQ2 *(libeva branch)*
-  * MirandaQQ3 *(myqq branch)*
-  * MIMFetion
+  * [MirandaQQ2] *(libeva branch)*
+  * [MirandaQQ3] *(myqq branch)*
+  * [MIMFetion]
 
 _(NOTE: All sub-pages linked from here are written in Traditional Chinese)_
