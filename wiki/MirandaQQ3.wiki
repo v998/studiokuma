@@ -24,4 +24,6 @@ Most current testing version of this plugin can be found in *Downloads* panel of
 
 = Revision History (版本更新記錄) =
 
-For detailed revision history, visit [MirandaQQ3History].
+For detailed revision history, visit [MirandaQQ3History]. (NOTE: All logs are in Traditional Chinese)
+
+若要檢視詳細的版本更新記錄，請移轉到 [MirandaQQ3History]。
