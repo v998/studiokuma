@@ -1,4 +1,4 @@
-#summary MirandaQQ3
+#summary QQ Protocol Plugin for Miranda IM
 
 = Introduction (介紹) =
 
