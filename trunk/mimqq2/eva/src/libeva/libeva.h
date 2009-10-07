@@ -24,7 +24,7 @@
 #include "evadefines.h"
 #include "md5.h"
 #include "evacrypt.h"
-#include "evautil.h"
+#include "libeva2/evautil.h"
 #include "evapacket.h"
 #include "evalogintoken.h"
 #include "evalogin.h"

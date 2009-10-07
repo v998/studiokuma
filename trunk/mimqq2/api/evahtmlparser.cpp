@@ -180,6 +180,10 @@ std::string EvaHtmlParser::processPic34(const std::string &src)
 std::string EvaHtmlParser::processPic36( const std::string &src, CustomizedPic * args )
 {
 	std::string contents=src.substr(10,src.length()-9-11-1);
+	if (src.length()<25) {
+		// [ZDY][36]k1A [/36][/ZDY]
+		return "(img36 err:"+src+")";
+	}
 	args->isFirst = true;
 	args->type = 36;
 	uint pos = 0;
@@ -241,9 +245,13 @@ std::string EvaHtmlParser::processPic36( const std::string &src, CustomizedPic *
 	args->tmpFileName = m_qunImagePath + args->fileName;
 
 	util_log(0,"ZDY36: c=%s, f=%s, i=%d, p=%d",contents.c_str(), args->fileName.c_str(),args->ip,args->port);
-	ostringstream o;
-	o << DBGetContactSettingWord(NULL,g_dllname,QQ_HTTPDPORT,170);
-	return "[img]http://127.0.0.1:" + o.str() + "/qunimage/" + args->fileName +"[/img]";
+	if (args->ip==0) {
+		return "(img36 err:zeroip)";
+	} else {
+		ostringstream o;
+		o << DBGetContactSettingWord(NULL,g_dllname,QQ_HTTPDPORT,170);
+		return "[img]http://127.0.0.1:" + o.str() + "/qunimage/" + args->fileName +"[/img]";
+	}
 }
 
 std::string EvaHtmlParser::processPic37( const std::string &src)

@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "evaimreceive.h"
 #include "evadefines.h"
-#include "evautil.h"
+#include "../../../libeva2/evautil.h"
 #include <string.h>
 #ifdef _WIN32
 #include <winsock.h>
@@ -65,7 +65,7 @@ std::string ReceiveIMPacket::convertToShow(const std::string &src, const unsigne
 	for(uint i=start; i<src.length()-1; i++){
 	// Here it is length()-1 to cut off the extra space at the end of every message (always)
 		if(src[i]==0x14){
-			converted+=EvaUtil::smileyToText(src[++i]);
+			converted+=EvaUtil::smileyToText((unsigned char)src[++i]);
 			converted+=' ';
 		}else if(src[i]==0x15){
 				int t=0;

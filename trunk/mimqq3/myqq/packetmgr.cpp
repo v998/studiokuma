@@ -326,7 +326,7 @@ int packetmgr_check_packet( struct qqclient* qq, int timeout )
 			loop_remove( &mgr->sent_loop, p );
 		}
 		if( p ){
-			if(p->send_times >= (qq->login_finish?3:2) ){
+			if(p->send_times >= 10/*(qq->login_finish?3:2)*/ ){
 				ushort cmd=p->command;
 				MSG("Failed to send the packet. command: %x\n", p->command );
 				delete_func( p );
@@ -335,7 +335,7 @@ int packetmgr_check_packet( struct qqclient* qq, int timeout )
 					qqclient_set_process( qq, P_ERROR );
 				}
 			}else{
-				DBG("resend packet cmd: %x", p->command );
+				DBG("resend packet cmd: %x, retry=%d", p->command,p->send_times );
 				packetmgr_put_urge( qq, p, 1 );
 			}
 		}

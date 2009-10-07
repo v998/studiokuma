@@ -30,7 +30,7 @@ void CNetwork::SetContactsOffline() {
 				if (READC_B2("IsQun")==1) {
 					WRITEC_B("QunInit",0);
 					WRITEC_B("ServerQun",0);
-					WRITEC_W("QunVersion",0);
+					WRITEC_D("QunVersion",0);
 					if (READC_W2("Status")==ID_STATUS_INVISIBLE) 
 						WRITEC_B("NoInit",1);
 					else
@@ -384,7 +384,7 @@ void CNetwork::GoOffline() {
 				if (READC_B2("IsQun")==1) {
 					WRITEC_B("QunInit",0);
 					WRITEC_B("ServerQun",0);
-					WRITEC_W("QunVersion",0);
+					WRITEC_D("QunVersion",0);
 					if (READC_W2("Status")==ID_STATUS_INVISIBLE) 
 						WRITEC_B("NoInit",1);
 					else
@@ -485,4 +485,23 @@ LRESULT CALLBACK PopupWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	}
 
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void CNetwork::RemoveAllCardNames(HANDLE hContact) {
+	list<DWORD> idlist;
+	char szTemp[20];
+
+	DBCONTACTENUMSETTINGS dbces={_RemoveAllCardNamesProc,(LPARAM)&idlist,m_szModuleName};
+	if (CallService(MS_DB_CONTACT_ENUMSETTINGS,(WPARAM)hContact,(LPARAM)&dbces)!=-1) {
+		for (list<DWORD>::iterator iter=idlist.begin(); iter!=idlist.end(); iter++) {
+			ultoa(*iter,szTemp,10);
+			DELC(szTemp);
+		}
+	}
+
+}
+
+int CNetwork::_RemoveAllCardNamesProc(const char *szSetting,LPARAM lParam) {
+	if (*szSetting>='1' && *szSetting<='9') ((list<DWORD>*)lParam)->push_back(strtoul(szSetting,NULL,10));
+	return 0;
 }
