@@ -238,6 +238,8 @@ private:
 	int ShowNotification(LPCWSTR info, DWORD flags);
 	void ForkThread(ThreadFunc func, void* arg=NULL);
 	void __cdecl ThreadMsgBox(void* szMsg);
+	void RemoveAllCardNames(HANDLE hContact);
+	static int _RemoveAllCardNamesProc(const char *szSetting,LPARAM lParam);
 
 	// callbacks.cpp
 	void callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);

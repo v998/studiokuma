@@ -2032,15 +2032,17 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 								qm=(qunmember*)fil->items[cc];
 								itoa(qm->number,szQQID,10);
 
-								WRITEC_U8S(szQQID,qm->nickname);
-								
-								if (qm->number==creator) {
-									/*
-									pwszCreator=mir_a2u_cp(realName.c_str(),936);
-									DBWriteContactSettingWString(hContact,m_szModuleName,"CreatorName",pwszCreator);
-									mir_free(pwszCreator);
-									*/
-									WRITEC_U8S("CreatorName",qm->nickname);
+								if (strcmp(szQQID,qm->nickname)) {
+									WRITEC_U8S(szQQID,qm->nickname);
+									
+									if (qm->number==creator) {
+										/*
+										pwszCreator=mir_a2u_cp(realName.c_str(),936);
+										DBWriteContactSettingWString(hContact,m_szModuleName,"CreatorName",pwszCreator);
+										mir_free(pwszCreator);
+										*/
+										WRITEC_U8S("CreatorName",qm->nickname);
+									}
 								}
 								
 	#ifdef MIRANDAQQ_IPC
@@ -3332,9 +3334,9 @@ void CNetwork::_eventCallback(char* msg) {
 			case P_ERROR: // Packet timeout or generic error
 				if (!handled) {
 					if (m_iStatus<ID_STATUS_ONLINE || m_client.login_finish==0) {
-						if (/*m_client.network==TCP || */m_iStatus>ID_STATUS_CONNECTING+10 && m_iStatus<ID_STATUS_OFFLINE)
+						// if (/*m_client.network==TCP || */m_iStatus>ID_STATUS_CONNECTING+10 && m_iStatus<ID_STATUS_OFFLINE)
 							ShowNotification(TranslateT("Connection to server timed out."),NIIF_ERROR);
-						else {
+						/*else {
 							if (m_iStatus>=ID_STATUS_ONLINE) m_iStatus=ID_STATUS_CONNECTING;
 
 							BroadcastStatus(m_iStatus+1);
@@ -3343,7 +3345,7 @@ void CNetwork::_eventCallback(char* msg) {
 							//prot_login_a4(&m_client);
 							prot_login_touch(&m_client);
 							return;
-						}
+						}*/
 					}
 					handled=true;
 				}
@@ -3360,6 +3362,17 @@ void CNetwork::_eventCallback(char* msg) {
 	} else if (!strcmp(msg,"clusterinfo")) {
 		if (qqqun* q=qun_get_by_ext(&m_client,atoi(pszArgs))) {
 			HANDLE hContact=AddContact(q->number,false,false);
+			
+			// MIMQQ2 aware: remove qunver/cardver
+			if (READC_B2("MIMQQVersion")!=3) {
+				util_log(0,"%s(): Found incompatible qun %d, requesting new info.",__FUNCTION__,q->number);
+				DELC("QunVersion");
+				DELC("CardVersion");
+				WRITEC_B("MIMQQVersion",3);
+				
+				if (READC_B2("MIMQQVersion")==2) RemoveAllCardNames(hContact);
+			}
+						
 			WCHAR wszTemp[MAX_PATH];
 			CHAR szTemp[MAX_PATH];
 			wcscpy(wszTemp,TranslateT("QQ Qun"));
@@ -3378,6 +3391,7 @@ void CNetwork::_eventCallback(char* msg) {
 			WRITEC_W("MaxMember",q->max_member);
 			WRITEC_W("Status",ID_STATUS_ONLINE);
 			WRITEC_B("IsQun",1);
+			
 			WRITEC_D("QunVersion",q->version);
 			// WRITEC_D("CardVersion",q->realnames_version);
 			q->realnames_version=READC_D2("CardVersion");
@@ -3388,8 +3402,10 @@ void CNetwork::_eventCallback(char* msg) {
 
 			if (READC_B2("SilentQun")==1) WRITEC_W("Status",ID_STATUS_DND);
 
-			util_log(0,"Qun %d: Member info completed, ask for real names",q->number);
-			append(new QunRequestAllRealNames(q->number));
+			if (q->realnames_version==0) {
+				util_log(0,"Qun %d: Member info completed, ask for real names",q->number);
+				append(new QunRequestAllRealNames(q->number));
+			}
 
 			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
 			dr->hContact=hContact;

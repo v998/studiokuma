@@ -575,11 +575,11 @@
 				>
 			</File>
 			<File
-				RelativePath="R:\errorBmp.gif"
+				RelativePath=".\errorBmp.gif"
 				>
 			</File>
 			<File
-				RelativePath=".\errorBmp.gif"
+				RelativePath="R:\errorBmp.gif"
 				>
 			</File>
 			<File
@@ -1349,6 +1349,7 @@
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
+						ExcludedFromBuild="true"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1911,6 +1912,62 @@
 				RelativePath="version.h"
 				>
 			</File>
+		</Filter>
+		<Filter
+			Name="libeva2"
+			>
+			<File
+				RelativePath=".\libeva2\evautil.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-UNICODE|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Unicode|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\libeva2\evautil.h"
+				>
+			</File>
+			<Filter
+				Name="Source Files"
+				>
+			</Filter>
+			<Filter
+				Name="Header Files"
+				>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

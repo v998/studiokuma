@@ -128,6 +128,12 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 
 	strcat(pszMsg,message.c_str());
 
+	char* ppszTemp=pszMsg;
+	while (ppszTemp=strchr(ppszTemp,'\r')) {
+		if (ppszTemp[1]!='\n') *ppszTemp='\n'; // Change single '\r' to NL
+		ppszTemp++;
+	}
+
 	if (g_enableBBCode && hasFontAttribute) { // Close Tags for BBCode
 		if (fontSize>0) strcat(pszMsg,"[/size]");
 		if (isUnderline) strcat(pszMsg,"[/u]");
@@ -307,6 +313,12 @@ void CNetwork::_imCallback(const int imType, const void* data) {
 				strcat(msg,received->getMessage().c_str());
 			} else {
 				strcat(msg,sOut.c_str());
+			}
+
+			char* ppszTemp=msg;
+			while (ppszTemp=strchr(ppszTemp,'\r')) {
+				if (ppszTemp[1]!='\n') *ppszTemp='\n'; // Change single '\r' to NL
+				ppszTemp++;
 			}
 
 			if (g_enableBBCode && received->hasFontAttribute()) {
@@ -1211,15 +1223,21 @@ void CNetwork::_requestExtraInfoCallback(RequestExtraInfoReplyPacket* packet) {
 	} else if (READ_B2(NULL,QQ_AVATARTYPE)==0) {
 		HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
 		std::list<unsigned int> list;
+		std::list<unsigned int> quns;
 
 		while (hContact) {
 			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
 				if (READC_W2("ExtraInfo") & QQ_EXTAR_INFO_USER_HEAD)
 					list.push_back(READC_D2(UNIQUEIDSETTING));
+				else if (READC_B2("IsQun")==1)
+					quns.push_back(READC_D2(UNIQUEIDSETTING));
 			}
 
 			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
 		}
+
+		for (std::list<unsigned int>::iterator iter=quns.begin(); iter!=quns.end(); iter++)
+			list.push_back(*iter);
 
 		if (list.size()) {
 			m_userhead=new CUserHead(this);
@@ -1384,6 +1402,18 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 				Qun q(iter->getQQ());
 				m_qunList.add(q);
 			}
+
+			// MIMQQ3/Incompatible MIMQQ2 aware: remove qunver/cardver
+			if (hContact=FindContact(iter->getQQ())) {
+				if (READC_B2("MIMQQVersion")!=2) {
+					util_log(0,"%s(): Found incompatible qun %d, requesting new info.",__FUNCTION__,iter->getQQ());
+					DELC("QunVersion");
+					DELC("CardVersion");
+
+					if (READC_B2("MIMQQVersion")==3) RemoveAllCardNames(hContact);
+					WRITEC_B("MIMQQVersion",2);
+				}
+			}
 		}
 	}
 
@@ -1512,8 +1542,8 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 			hContact=AddContact(qunid,false,false);
 			if (hContact) {
 				WRITEC_B("IsQun",1);
-				WRITEC_W("QunVersion",info.getVersionID());
-				WRITEC_W("CardVersion",-1);
+				WRITEC_D("QunVersion",info.getVersionID());
+				WRITEC_D("CardVersion",-1);
 			}
 		}
 
@@ -1682,7 +1712,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 				
 				_stprintf(szMsg,TranslateT("Qun Modification Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
 				ShowNotification(szMsg,NIIF_INFO);
-				WRITEC_W("CardVersion",-1);
+				WRITEC_D("CardVersion",-1);
 				append(new QunGetInfoPacket(qunid));
 				mir_free(pszServerMsg);
 			}
@@ -1871,7 +1901,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 
 				util_log(0,"Qun %d RealNames version: %d -> %d",qunid, qun->getRealNamesVersion(),packet->getCardVersion());
 
-				if (packet->getCardVersion()!=READC_W2("CardVersion") || READC_D2("QunCardUpdate")==-1) {
+				if (packet->getCardVersion()!=READC_D2("CardVersion") || READC_D2("QunCardUpdate")==-1) {
 					util_log(0,"Qun %d: Different card version(%d), perform update",qunid,packet->getCardVersion());
 					fUpdate=true;
 				} else if (time(NULL)-READC_D2("QunCardUpdate")>60) {
@@ -1916,7 +1946,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 
 						qun->setRealNamesVersion(packet->getCardVersion());
 						WRITEC_D("QunCardUpdate",(DWORD)time(NULL));
-						WRITEC_W("CardVersion",packet->getCardVersion());
+						WRITEC_D("CardVersion",packet->getCardVersion());
 
 						util_log(0,"Writing names for Qun %d",qunid);
 
@@ -2119,12 +2149,12 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 					
 					_qunImCallback2(qunID,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
 					hContact=FindContact(qunID);
-					if (READC_W2("QunVersion")!=im->getVersionID()) {
-						WRITEC_W("QunVersion",im->getVersionID());
+					if (READC_D2("QunVersion")!=im->getVersionID()) {
+						WRITEC_D("QunVersion",im->getVersionID());
 						WRITEC_D("QunCardUpdate",-1);
 						append(new QunGetInfoPacket(qunID));
 					} else {
-						util_log(0,"qunImCallback(): QunVersion=%d, versionID=%d",READC_W2("QunVersion"),im->getVersionID());
+						util_log(0,"qunImCallback(): QunVersion=%d, versionID=%d",READC_D2("QunVersion"),im->getVersionID());
 						_updateQunCard(hContact, qunID);
 					}
 
@@ -2302,7 +2332,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 						ccs.lParam = ( LPARAM )&pre;
 						CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
 
-						WRITEC_W("CardVersion",-1);
+						WRITEC_D("CardVersion",-1);
 						append(new QunGetInfoPacket(packet->getSender()));
 					}
 

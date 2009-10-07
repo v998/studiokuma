@@ -108,7 +108,7 @@ int qqclient_md5_create( qqclient* qq, uint num, uchar* md5_pass )
 	return 0;
 }
 
-#define INTERVAL 5
+// #define INTERVAL 5
 void* qqclient_keepalive( void* data )
 {
 	qqclient* qq = (qqclient*) data;
@@ -128,7 +128,7 @@ void* qqclient_keepalive( void* data )
 		// counter ++;
 		/*if( counter % INTERVAL == 0 )*/{
 			if( qq->process == P_LOGGING || qq->process == P_LOGIN ){
-				packetmgr_check_packet( qq, 5 );
+				packetmgr_check_packet( qq, 2/*5*/ );
 				if( qq->process == P_LOGIN ){
 					//1次心跳/分钟
 					// if( counter / ( 1 *30*INTERVAL) > 0 ){

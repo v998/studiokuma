@@ -700,7 +700,7 @@ void CQunListV2::refresh() {
 					if (!m_timerEnabled) {
 						DialogProc(m_hwnd,WM_TIMER,1,0);
 					}
-				} else if (READC_W2("QunVersion")==0) {
+				} else if (READC_D2("QunVersion")==0) {
 					SendDlgItemMessage(m_hwnd,IDC_QUNMEMBERS,LB_ADDSTRING,NULL,(LPARAM)TranslateT("0Please Wait..."));
 					qqNsThread->sendPacket(new QunGetInfoPacket(m_qunid));
 				} else

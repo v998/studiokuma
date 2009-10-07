@@ -2880,6 +2880,7 @@ int __cdecl CNetwork::SendContacts(HANDLE hContact, int flags, int nContacts, HA
 
 int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char** ppszFiles) {
 	char* file=*ppszFiles;
+	char* afile=NULL;
 	if (ppszFiles[1]!=NULL) {
 		MessageBoxW(NULL,TranslateT("Only 1 file is allowed"),NULL,MB_ICONERROR);
 		return 0;
@@ -2888,6 +2889,12 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 	if (READC_B2("IsQun")==1) {
 		// Qun
 		SendMessage(GetForegroundWindow(),WM_CLOSE,NULL,NULL);
+
+		if (file[1]==0) {
+			// Miranda IM 0.9: ppszFiles maybe in Unicode
+			afile=mir_u2a((LPWSTR)file);
+			file=afile;
+		}
 
 		// Test file first
 		char* pszExt=strrchr(file,'.')+1;
@@ -2910,6 +2917,7 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 			str.append("[/img]");
 			CallService(MS_MSG_SENDMESSAGE,(WPARAM)hContact,(LPARAM)str.c_str());
 		}
+		if (afile) mir_free(afile);
 	} else {
 		MessageBoxW(NULL,TranslateT("This MirandaQQ2 build does not support file transfer."),NULL,MB_ICONERROR);
 #if 0
