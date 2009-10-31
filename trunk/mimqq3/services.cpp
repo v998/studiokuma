@@ -208,7 +208,6 @@ void KickQunUser(void* args) {
 // lParam: N/A
 // Return: 0 is the operation completed, 1 otherwise
 MIMPROC(OnContactDeleted) {
-#if 0 // TODO
 	char* szProto;
 	unsigned int uid;
 	char is_qun;
@@ -216,7 +215,7 @@ MIMPROC(OnContactDeleted) {
 
 	szProto=(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
 	if (!szProto || strcmp(szProto, m_szModuleName)) return 0;
-	if (!Packet::isClientKeySet()) return 1;
+	if (!m_client.login_finish) return 1;
 
 	if (DBGetContactSettingByte(hContact,"CList","NotOnList",0)==1) return 0;
 
@@ -237,9 +236,13 @@ MIMPROC(OnContactDeleted) {
 			util_log(0,"%s(): About to remove contact with uid=%d",__FUNCTION__,uid);
 			if (MessageBox(NULL,TranslateT("Do you want to delete the contact from server?\n(If you answer 'No', the contact will appear in your list again when you online next time)"),APPNAME,MB_YESNO | MB_ICONQUESTION)==IDYES) {
 				// Remove buddy from server list
+				/*
 				DeleteFriendPacket *packet=new DeleteFriendPacket();
 				packet->setBuddyQQ(uid);
 				append(packet);
+				*/
+				m_client.data.operating_number = uid;
+				prot_user_request_token( &m_client, uid, OP_DELBUDDY, 6, 0 );
 			}
 		} else if (is_qun) { // Remove qun contact
 			util_log(0,"%s(): About to remove qun contact with uid=%d",__FUNCTION__,uid);
@@ -249,7 +252,7 @@ MIMPROC(OnContactDeleted) {
 			}
 		}
 	}
-#endif
+
 	return 0;
 }
 
@@ -276,7 +279,7 @@ MIMPROC(OnPrebuildContactMenu) {
 		if (m_client.login_finish==1) {
 			if (READC_B2("IsQun")==1) {
 				//Qun* qun=m_qunList.getQun(READC_D2(UNIQUEIDSETTING));
-				config=0x1b4;
+				config=0x74; //0x1b4;
 				if (READC_D2("Creator")==m_myqq || READC_B2("IsAdmin")) { // Show "Add member to Qun"
 					config+=0x2;
 				}
@@ -1235,14 +1238,13 @@ extern "C" {
 	// lParam: N/A
 	// Return: Always 0
 	MIMPROC(DownloadGroup) {
-#if 0 // TODO
-		if (Packet::isClientKeySet()) {
+		if (m_client.login_finish) {
 			m_downloadGroup=true;
 			m_qqusers=0;
 			m_hGroupList.clear();
-			append(new GroupNameOpPacket(QQ_DOWNLOAD_GROUP_NAME));
+			append(new GroupNameOpPacket(0x1f/*QQ_DOWNLOAD_GROUP_NAME*/,0));
 		}
-#endif
+
 		return 0;
 	}
 
@@ -1391,7 +1393,6 @@ extern "C" {
 	// lParam: Determined by msg
 	// Return: true if the message has been handled and should not sent to parent, false otherwise
 	BOOL CALLBACK ModifySignatureDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
-#if 0 // TODO
 		ASKDLGPARAMS* currentAskDlgParams=(ASKDLGPARAMS*)GetWindowLong(hwndDlg,GWL_USERDATA);
 		switch (msg) {
 			case WM_INITDIALOG: // Dialog initialization, lParam=hContact
@@ -1435,21 +1436,30 @@ extern "C" {
 								}
 							}
 							break;
+						case QQ_CMD_ADD_FRIEND_AUTH: // This already includes adding Qun and User
+							// 'A' is qun, 'a' is user
+							SetWindowText(hwndDlg,TranslateT("Authorization Reason"));
+							SetDlgItemText(hwndDlg,IDC_CAPTION,TranslateT("Please enter authorization reason:"));
+							break;
 						case QQ_QUN_CMD_JOIN_QUN_AUTH:
 						case AUTH_INFO_SUB_CMD_QUN:
 							SetWindowText(hwndDlg,TranslateT("Reauthorize"));
 							SetDlgItemText(hwndDlg,IDC_CAPTION,TranslateT("The qun needs authorization, please enter your reason:"));
 							break;
+						/*
 						case QQ_CMD_ADD_FRIEND_AUTH:
 						case AUTH_INFO_SUB_CMD_USER:
 							SetWindowText(hwndDlg,TranslateT("Reauthorize"));
 							SetDlgItemText(hwndDlg,IDC_CAPTION,TranslateT("The user needs authorization, please enter your reason:"));
 							break;
+						*/
+#if 0 // TODO
 						case QQ_CMD_LOGIN:
 							SetWindowText(hwndDlg,TranslateT("Enter Password"));
 							SetDlgItemText(hwndDlg,IDC_CAPTION,TranslateT("Please enter your QQ login password:"));
 							SendDlgItemMessage(hwndDlg,IDC_SIGNATURE,EM_SETPASSWORDCHAR,(WPARAM)_T('*'),NULL);
 							break;
+#endif
 						default:
 							MessageBox(NULL,L"ASSERT: ModifySignatureDlgProc with unknown command, please report to developer.",currentAskDlgParams->network->m_tszUserName,MB_ICONERROR|MB_APPLMODAL);
 							break;
@@ -1518,6 +1528,29 @@ extern "C" {
 											}
 										}
 										break;
+									case QQ_CMD_ADD_FRIEND_AUTH: // This already includes adding Qun and User
+										// 'A' is qun, 'a' is user
+										{
+											LPSTR pszTemp=mir_utf8encodeW(szSignature);
+											//strncpy(currentAskDlgParams->network->m_client.data.addbuddy_str, pszTemp, 50 );
+											DBWriteContactSettingTString(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,"AuthReason",szSignature);
+											// currentAskDlgParams->network->m_client.data.operating_number=currentAskDlgParams->network->m_deferActionData;
+
+											/*if (currentAskDlgParams->network->m_deferActionType=='A') {
+												// Add qun
+												MessageBox(hwndDlg,L"Qun Joining not supported yet",NULL,0);
+											} else*/ {
+												// Add contact
+												//prot_user_request_token( &currentAskDlgParams->network->m_client, currentAskDlgParams->network->m_deferActionData, OP_ADDBUDDY, 1, 0 );
+												//qqclient_add
+												currentAskDlgParams->network->m_deferActionAux=1;
+												qqclient_add(&currentAskDlgParams->network->m_client,currentAskDlgParams->network->m_deferActionData,pszTemp);
+											}
+											mir_free(pszTemp);
+										}
+										break;
+
+#if 0
 									case QQ_CMD_ADD_FRIEND_AUTH:
 									case AUTH_INFO_SUB_CMD_USER:
 										{
@@ -1525,15 +1558,25 @@ extern "C" {
 												// Field emptied
 												MessageBox(hwndDlg,TranslateT("You must enter a reason."),NULL,MB_ICONERROR);
 											} else {
-												LPSTR pszTemp=mir_u2a_cp(szSignature,936);
+												// LPSTR pszTemp=mir_u2a_cp(szSignature,936);
+												/*
 												int qqid=DBGetContactSettingDword(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,UNIQUEIDSETTING,0);
 												AddFriendAuthPacket* packet=new AddFriendAuthPacket(qqid,QQ_MY_AUTH_REQUEST);
 												packet->setMessage(pszTemp);
+												*/
+												DBWriteContactSettingTString(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,"AuthReason",szSignature);
+												LPSTR pszTemp=mir_utf8encodeW(szSignature);
+												strncpy(currentAskDlgParams->network->m_client.data.addbuddy_str, pszTemp, 50 );
 												mir_free(pszTemp);
-												currentAskDlgParams->network->append(packet);
+
+												prot_user_request_token( &currentAskDlgParams->network->m_client, currentAskDlgParams->network->m_deferActionData, OP_ADDBUDDY, 1, 0 );
+
+												// mir_free(pszTemp);
+												// currentAskDlgParams->network->append(packet);
 											}
 										}
 										break;
+#endif
 									case QQ_QUN_CMD_JOIN_QUN_AUTH:
 									case AUTH_INFO_SUB_CMD_QUN:
 										{
@@ -1550,7 +1593,7 @@ extern "C" {
 												} else {
 													LPSTR pszTemp=mir_u2a_cp(szSignature,936);
 
-													QunAuthPacket* packet=new QunAuthPacket(currentAskDlgParams->network->m_addUID,QQ_QUN_AUTH_REQUEST);
+													QunAuthPacket* packet=new QunAuthPacket(currentAskDlgParams->network->m_deferActionData,QQ_QUN_AUTH_REQUEST);
 													packet->setCode((unsigned char*)currentAskDlgParams->pAux,currentAskDlgParams->nAux);
 													packet->setMessage(pszTemp);
 													mir_free(pszTemp);
@@ -1559,6 +1602,7 @@ extern "C" {
 											}
 										}
 										break;
+#if 0 // TODO
 									case QQ_CMD_LOGIN:
 										{
 											if (!*szSignature) {
@@ -1580,11 +1624,13 @@ extern "C" {
 												mir_free(szSignature2);
 											}
 										}
+#endif
 								}
 								EndDialog(hwndDlg,0);
 							}
 							break;
 						case IDCANCEL: // Cancel Button
+							currentAskDlgParams->network->m_deferActionType=0;
 							EndDialog(hwndDlg,0);
 							break;
 					}
@@ -1595,7 +1641,7 @@ extern "C" {
 				free(currentAskDlgParams);
 				break;
 		}
-#endif
+
 		return false;
 	}
 
@@ -1985,14 +2031,13 @@ extern "C" {
 	}
 #endif // UPGRADE_DISABLE
 	MIMPROC(DownloadUserHead) {
-#if 0 // TODO
-		if (Packet::isClientKeySet()) {
+		if (m_client.login_finish!=0) {
 			if (m_userhead)
 				MessageBox(NULL,TranslateT("User head download is in progress, please try again later."),NULL,MB_ICONERROR);
 			else
 				append(new RequestExtraInfoPacket());
 		}
-#endif
+
 		return 0;
 	}
 
@@ -2223,18 +2268,21 @@ extern "C" {
 			settingsNames.push_back(szSetting);
 		return 0;
 	}
-#endif // UPGRADE_DISABLE
+#endif
+
 	MIMPROC(QunSpace) {
 		HANDLE hContact=(HANDLE)wParam;
+		/*
 		CHAR szIE[MAX_PATH];
 		STARTUPINFOA si={sizeof(si)};
 		PROCESS_INFORMATION pi;
-		/*
+		
 		CHAR szUrl[MAX_PATH]="http://group.qq.com/group_index.shtml?groupid=";
 		itoa(READC_D2("ExternalID"),szUrl+strlen(szUrl),10);
 		*/
 		// http://ptlogin.qq.com/group?clientuin=85379868&clientkey=7C747509EF03FBC2C38A5125F9833DF7926625ABF72B7FE2555B57A528F1B9F7&gid=17834828&type=0
 
+		/*
 		CHAR szUrl[MAX_PATH]="http://ptlogin.qq.com/group?clientuin=";
 		itoa(m_myqq,szUrl+strlen(szUrl),10);
 		strcat(szUrl,"&clientkey=");
@@ -2242,18 +2290,24 @@ extern "C" {
 		strcat(szUrl,"&gid=");
 		itoa(READC_D2("ExternalID"),szUrl+strlen(szUrl),10);
 		strcat(szUrl,"&type=0");
+
 		strcat(strcat(strcpy(szIE,"\""),getenv("ProgramFiles")),"\\Internet Explorer\\iexplore.exe\" ");
 		strcat(szIE,szUrl);
 		CreateProcessA(NULL,szIE,NULL,NULL,FALSE,0,NULL,NULL,&si,&pi);
 		CloseHandle(pi.hThread);
 		CloseHandle(pi.hProcess);
 		//ShellExecuteA(NULL,NULL,"iexplore.exe",szUrl,NULL,SW_SHOWNORMAL);
+		*/
+		// http://qun.qq.com/air/2571213#2571213
+		CHAR szUrl[MAX_PATH];
+		DWORD dwExtID=READC_D2("ExternalID");
+		sprintf(szUrl,"http://qun.qq.com/air/%d#%d",dwExtID,dwExtID);
+		CallService(MS_UTILS_OPENURL,0,(LPARAM)szUrl);
 		return 0;
 	}
-#if 0 // UPGRADE_DISABLE
 
-#if 0 // Not Working
-	MIMPROC2(ChangeHeadImage) {
+#if 0
+	MIMPROC2(ChangeHeadImage) { // Not working
 		// http://face.qq.com/index.shtml?clientuin=85379868&clientkey=E357ACA2A1377164EECCBD5F68A0CE11804B3F1EA7F4573ECF538AE336D7
 		CHAR szUrl[MAX_PATH]="http://face.qq.com/index.shtml?clientuin=";
 		itoa(Packet::getQQ(),szUrl+strlen(szUrl),10);
@@ -2262,7 +2316,7 @@ extern "C" {
 		ShellExecuteA(NULL,NULL,"iexplore.exe",szUrl,NULL,SW_SHOWNORMAL);
 		return 0;
 	}
-#endif
+
 #endif // UPGRADE_DISABLE
 	MIMPROC(QQMail) {
 		// http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=xxx&K=xxx
@@ -2467,15 +2521,19 @@ extern "C" {
 #endif
 
 		/*
-		qqpacket* p = packetmgr_new_send( &m_client, 0xae );
-		if( !p ) return 0;
-		bytebuffer *buf = p->buf;
-		put_byte(buf,0x01);
-		put_word(buf,0x07);
-		put_int(buf,0x00);
-		post_packet( &m_client, p, SESSION_KEY );
+		SearchUserPacket* packet=new SearchUserPacket();
+		packet->setSearchType(QQ_SEARCH_QQ);
+		packet->setQQ(431533686);
+		packet->setMatchEntireString(false);
+		append(packet);
 		*/
-		prot_user_request_token(&m_client,0,0,8,0);
+		
+		/*
+		m_client.data.operating_number=431533686;
+		strncpy(m_client.data.addbuddy_str, "ABCDE", 50 );
+		prot_user_request_token( &m_client, 431533686, OP_ADDBUDDY, 1, 0 );
+		*/
+		qqclient_add(&m_client,431533686,"ABCDE");
 
 		return 0;
 	}
@@ -2504,35 +2562,52 @@ extern "C" {
 //////////////////////////////////////////////////////////////////////////
 
 HANDLE __cdecl CNetwork::AddToList(int flags, PROTOSEARCHRESULT* psr) {
-#if 0 // TODO
-	HANDLE hContact;
-	char uid[16]={0};
-	LPSTR is_qun=strchr(psr->nick,'(');
+	if (m_client.login_finish) {
+		HANDLE hContact;
+		char uid[16]={0};
+		LPSTR is_qun=strchr(psr->nick,'(');
 
-	if (!Packet::isClientKeySet()) return 0;
+		if (is_qun) { // Adding a Qun
+			strcpy(uid,is_qun+1);
+			*strchr(uid,')')=0;
+		} else // Adding a QQ user
+			strcpy(uid,psr->nick);
 
-	if (is_qun) { // Adding a Qun
-		strcpy(uid,is_qun+1);
-		*strchr(uid,')')=0;
-	} else // Adding a QQ user
-		strcpy(uid,psr->nick);
+		if (!(hContact=AddContact(atol(uid),flags & PALF_TEMPORARY,true))) return NULL;
+		if (is_qun) {
+			WRITEC_B("IsQun",1);
+			WRITEC_D("ExternalID",strtol(psr->nick,NULL,10));
+		}
 
-	if (!(hContact=AddContact(atol(uid),flags & PALF_TEMPORARY,true))) return NULL;
-	if (is_qun) {
-		WRITEC_B("IsQun",1);
-		WRITEC_D("ExternalID",atoi(psr->nick));
+		if (!(flags & PALF_TEMPORARY)) { // Not temporary contact, can send Add Friend/Join Qun request
+			util_log(0,"Send Add Request, IsQun=%d",is_qun);
+			m_deferActionData=atol(uid);
+			m_deferActionAux=0; // Phase
+			if (is_qun) {
+				m_deferActionType='A';
+				append(new QunJoinPacket(m_deferActionData));
+			} else {
+				m_deferActionType='a';
+				// prot_buddy_request_addbuddy(&m_client,m_deferActionData);
+				// append(new EvaAddFriendExPacket(m_deferActionData));
+				ASKDLGPARAMS* adp=(ASKDLGPARAMS*)malloc(sizeof(ASKDLGPARAMS));
+				adp->network=this;
+				adp->command=QQ_CMD_ADD_FRIEND_AUTH;
+				adp->hContact=hContact;
+				DialogBoxParam(hinstance,MAKEINTRESOURCE(IDD_CHANGESIGNATURE),NULL,ModifySignatureDlgProc,(LPARAM)adp);
+			}
+
+			/*
+			ASKDLGPARAMS* adp=(ASKDLGPARAMS*)malloc(sizeof(ASKDLGPARAMS));
+			adp->network=this;
+			adp->command=QQ_CMD_ADD_FRIEND_AUTH;
+			adp->hContact=hContact;
+			DialogBoxParam(hinstance,MAKEINTRESOURCE(IDD_CHANGESIGNATURE),NULL,ModifySignatureDlgProc,(LPARAM)adp);
+			*/
+		}
+		return hContact;
 	}
 
-	if (!(flags & PALF_TEMPORARY)) { // Not temporary contact, can send Add Friend/Join Qun request
-		util_log(0,"Send Add Request, IsQun=%s",is_qun);
-		m_addUID=atol(uid);
-		if (is_qun)
-			append(new QunJoinPacket(m_addUID));
-		else 
-			append(new EvaAddFriendExPacket(m_addUID));
-	}
-	return hContact;
-#endif
 	return 0;
 }
 
@@ -2614,15 +2689,14 @@ HANDLE __cdecl CNetwork::AddToListByEvent(int flags, int iContact, HANDLE hDbEve
 }
 
 int __cdecl CNetwork::Authorize(HANDLE hContact) {
-#if 0 // TODO
 	DBEVENTINFO dbei={sizeof(dbei)};
 	unsigned int* uid;
 	unsigned int qunUID;
 	HANDLE hContact2;
-	Qun* qun=NULL;
 	LPSTR pszBlob;
+	qqqun* qun=NULL;
 
-	if (!Packet::isClientKeySet()) return 1;   
+	if (m_client.login_finish==0) return 1;   
 	if ((dbei.cbBlob=CallService(MS_DB_EVENT_GETBLOBSIZE, (WPARAM)hContact, 0))==-1) return 1;
 	pszBlob=(LPSTR)(dbei.pBlob=(PBYTE)alloca(dbei.cbBlob));
 
@@ -2637,7 +2711,7 @@ int __cdecl CNetwork::Authorize(HANDLE hContact) {
 	pszBlob+=strlen(pszBlob)+1; // msg
 	if (hContact2) qunUID=DBGetContactSettingDword(hContact2,m_szModuleName,UNIQUEIDSETTING,0);
 
-	if (qunUID) qun=m_qunList.getQun(qunUID);
+	if (qunUID) qun=qun_get(&m_client,qunUID,0);
 
 	if (qun) {
 		util_log(0, "%s(): You allowed user %d to join Qun %d",__FUNCTION__,*uid,qunUID);
@@ -2649,7 +2723,6 @@ int __cdecl CNetwork::Authorize(HANDLE hContact) {
 		util_log(0,"%s(): You allowed buddy %d to add you",__FUNCTION__,*uid);
 		append(new AddFriendAuthPacket(*uid, QQ_MY_AUTH_APPROVE));
 	}
-#endif
 	return 0;
 }
 
@@ -2858,6 +2931,32 @@ int __cdecl CNetwork::GetInfo(HANDLE hContact, int /*infoType*/) {
 }
 
 HANDLE __cdecl CNetwork::SearchBasic(const char* id) {
+	if (m_client.login_finish) {
+		/*
+		m_deferActionTS=time(NULL);
+		m_deferActionType='s';
+		m_deferActionData=strtoul(id,NULL,10);
+		prot_buddy_get_info(&m_client,m_deferActionData);
+
+		if (qun_get(&m_client,m_deferActionData,0))
+			m_deferActionAux=0;
+		else {
+			qun_get(&m_client,m_deferActionData,1);
+			m_deferActionAux=1;
+		}
+		prot_qun_get_info(&m_client,m_deferActionData,0);
+		*/
+
+		SearchUserPacket* packet=new SearchUserPacket();
+		packet->setSearchType(QQ_SEARCH_QQ);
+		packet->setQQ(id);
+		packet->setMatchEntireString(false);
+		m_deferActionType='s';
+		m_deferActionData=strtoul(id,NULL,10);
+		append(packet);
+
+		return (HANDLE)1;
+	}
 #if 0 // TODO
 	if (Packet::isClientKeySet()) {
 		// MirandaQQ only shows first 30 matching contacts, so setPage not used
@@ -3376,7 +3475,7 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 				}
 			}
 
-			int fontsize=(int)DBGetContactSettingByte(NULL,m_szModuleName,packet?"font1Size":"font2Size",9);
+			int fontsize=(int)DBGetContactSettingByte(NULL,m_szModuleName,packet?"font1Size":"font2Size",12);
 			//util_convertToGBK(font.lfFaceName);
 
 			if (packet) {
@@ -3395,11 +3494,6 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 		int retseq=0;
 
 		if (packet) {
-#if 0
-			prot_im_send_msg(&m_client,uid,(char*)msg);
-			delete packet;
-			retseq=1;
-#else
 			EvaHtmlParser parser;
 			std::list<string> outPicList = parser.getCustomImages(msg_with_qq_smiley);
 			packet->setAutoReply(true);
@@ -3509,7 +3603,6 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
 		}
 		return retseq;
-#endif
 	}
 	return 0;
 }
@@ -3570,6 +3663,8 @@ int __cdecl CNetwork::SetStatus(int iNewStatus) {
 					m_client.mimnetwork=this;
 					m_client.mode=m_iDesiredStatus==ID_STATUS_INVISIBLE?QQ_HIDDEN:QQ_ONLINE;
 					m_client.log_packet=1;
+					FoldersGetCustomPath(m_avatarFolder,m_client.verify_dir,MAX_PATH,"QQ");
+
 					setConnectString(dbv2.pszVal); // Need to reset because qqclient_create emptied the m_client structure
 					DBFreeVariant(&dbv2);
 					DBFreeVariant(&dbv); // Password

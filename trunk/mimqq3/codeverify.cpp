@@ -1,4 +1,4 @@
-/* MirandaQQ2 (libeva Version)
+﻿/* MirandaQQ2 (libeva Version)
 * Copyright(C) 2005-2007 Studio KUMA. Written by Stark Wong.
 *
 * Distributed under terms and conditions of GNU GPLv2.
@@ -43,7 +43,6 @@ CodeVerifyWindow::CodeVerifyWindow(ASKDLGPARAMS* adp) {
 }
 
 INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-#if 0 // TODO
 	switch (uMsg) {
 		case WM_INITDIALOG: 
 			{
@@ -52,17 +51,17 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 				CNetwork* network=cvw->m_adp?cvw->m_adp->network:cvw->m_code->m_network;
 				SetWindowLong(hwndDlg,GWL_USERDATA,lParam);
 
-				CallService(MS_DB_GETPROFILEPATH,MAX_PATH,(LPARAM)szCodeFile);
-				if (cvw->m_code) {
-					strcat(szCodeFile,"\\QQ\\CV-");
-					strcat(szCodeFile,network->m_szModuleName);
-					strcat(szCodeFile,".png");
-					cvw->m_codefile=mir_strdup(szCodeFile);
-					
-					FILE* fp=fopen(szCodeFile,"wb");
-					fwrite(cvw->m_code->m_Data,cvw->m_code->m_DataLen,1,fp);
-					fclose(fp);
+				//CallService(MS_DB_GETPROFILEPATH,MAX_PATH,(LPARAM)szCodeFile);
+				strcpy(szCodeFile,network->m_client.verify_dir);
 
+				if (cvw->m_code) {
+					// myqq already wrote the file to disk
+					if (network->m_client.login_finish) {
+						sprintf(szCodeFile+strlen(szCodeFile),"\\%u.jpg",network->m_client.number);
+					} else {
+						sprintf(szCodeFile+strlen(szCodeFile),"\\%u.png",network->m_client.number);
+					}
+					cvw->m_codefile=mir_strdup(szCodeFile);
 				} else {
 					NETLIBHTTPREQUEST nlhr={sizeof(nlhr),REQUEST_GET,NLHRF_GENERATEHOST};
 
@@ -78,7 +77,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 								if (hFile==INVALID_HANDLE_VALUE) {
 									CallService(MS_NETLIB_FREEHTTPREQUESTSTRUCT,(WPARAM)nlhrr,0);
 									MessageBox(NULL,TranslateT("Unable to retrieve verification image. please try again."),NULL,MB_ICONERROR);
-									network->m_addUID=0;
+									network->m_deferActionType=0;
 									EndDialog(hwndDlg,1);
 									return FALSE;
 								} else {
@@ -100,7 +99,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 					SendDlgItemMessage(hwndDlg,IDC_CODEIMAGE,STM_SETIMAGE,(WPARAM)IMAGE_BITMAP,(LPARAM)cvw->m_bitmap);
 				} else {
 					MessageBox(NULL,TranslateT("verycode may have changed. Please contact developer."),NULL,MB_ICONERROR);
-					network->m_addUID=0;
+					network->m_deferActionType=0;
 					EndDialog(hwndDlg,1);
 					return FALSE;
 				}
@@ -128,7 +127,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 						GetDlgItemTextA(hwndDlg,IDC_CODE,szCode,MAX_PATH);
 
 						if (cvw->m_code) {
-
+							/*
 							RequestLoginTokenExPacket *packet = new RequestLoginTokenExPacket(QQ_LOGIN_TOKEN_VERIFY);
 							packet->setToken(cvw->m_code->m_SessionToken,cvw->m_code->m_SessionTokenLen);
 							packet->setCode(szCode);
@@ -136,12 +135,28 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 
 							network->m_graphicVerifyCode=cvw->m_code;
 							network->append(packet);
-							m_windows[packet->getSequence()]=hwndDlg;
+							*/
+							/*
+							qqclient_set_process( &network->m_client, P_LOGGING );	//原来这个是P_LOGIN，错了。 20090709
+							prot_login_request( &network->m_client, &network->m_client.data.verify_token, szCode, 0 );
+							*/
+							/*
+							if (network->m_client.login_finish) {
+								qqclient_set_process( &network->m_client, P_LOGIN );	//原来漏了这个  20090709
+								prot_user_request_token( &network->m_client, network->m_client.data.operating_number, network->m_client.data.operation, 1, szCode );
+							} else {
+								qqclient_set_process( &network->m_client, P_LOGGING );	//原来这个是P_LOGIN，错了。 20090709
+								qqclient_verify(&network->m_client,szCode);
+							}
+							*/
+							qqclient_verify(&network->m_client,szCode);
+
+							m_windows[network->m_client.number]=hwndDlg;
 							EndDialog(hwndDlg,0);
 						} else {
 							EvaAddFriendGetAuthInfoPacket *packet;
 							if (cvw->m_adp->command==AUTH_INFO_SUB_CMD_QUN) {
-								HANDLE hContact=network->FindContact(network->m_addUID);
+								HANDLE hContact=network->FindContact(network->m_deferActionData);
 								packet = new EvaAddFriendGetAuthInfoPacket(DBGetContactSettingDword(hContact,network->m_szModuleName,"ExternalID",0), AUTH_INFO_CMD_CODE, true);
 							} else {
 								packet = new EvaAddFriendGetAuthInfoPacket();
@@ -160,12 +175,12 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 					break;
 				case IDCANCEL:
 					{
-						if (cvw->m_code) 
-							network->GoOffline();
-						else switch (cvw->m_adp->command) {
+						if (cvw->m_code)  {
+							if (!network->m_client.login_finish) network->GoOffline();
+						} else switch (cvw->m_adp->command) {
 							case AUTH_INFO_SUB_CMD_QUN:
 							case AUTH_INFO_SUB_CMD_USER:
-								network->m_addUID=0;
+								network->m_deferActionData=0;
 								break;
 							case AUTH_INFO_SUB_CMD_TEMP_SESSION:
 								delete network->m_savedTempSessionMsg;
@@ -223,6 +238,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 							DBFreeVariant(&dbv);
 						}
 						break;
+#if 0 // TODO
 					case AUTH_INFO_SUB_CMD_TEMP_SESSION:
 						{
 							SendTempSessionTextIMPacket* packet=network->m_savedTempSessionMsg;
@@ -231,13 +247,12 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 							network->m_savedTempSessionMsg=NULL;
 						}
 						break;
-
+#endif
 				}
 				EndDialog(hwndDlg,0);
 			}
 			break;
 	}
-#endif
 	return FALSE;
 }
 
@@ -246,12 +261,12 @@ HWND CodeVerifyWindow::getHwnd(int sequenceid) {
 }
 
 XGraphicVerifyCode::XGraphicVerifyCode():
-m_SessionTokenLen(0), m_SessionToken(NULL), m_DataLen(0), m_Data(NULL), m_code(NULL)
+m_SessionTokenLen(0), m_SessionToken(NULL), m_DataLen(0), m_Data(NULL), m_code(NULL), m_network(NULL)
 {
 };
 
 XGraphicVerifyCode::XGraphicVerifyCode(const XGraphicVerifyCode &rhs):
-m_SessionTokenLen(0), m_SessionToken(NULL), m_DataLen(0), m_Data(NULL), m_code(NULL)
+m_SessionTokenLen(0), m_SessionToken(NULL), m_DataLen(0), m_Data(NULL), m_code(NULL), m_network(NULL)
 {
 	*this = rhs; 
 }

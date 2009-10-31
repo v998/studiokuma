@@ -31,18 +31,18 @@
 
 GroupNameOpPacket::GroupNameOpPacket( )
 	: OutPacket(QQ_CMD_GROUP_NAME_OP, true),
-	type(QQ_UPLOAD_GROUP_NAME)
+	type(0x1f /* Download */), position(0)
 {
 } 
 
-GroupNameOpPacket::GroupNameOpPacket(const char cmdType)
+GroupNameOpPacket::GroupNameOpPacket(const char cmdType, const int pos)
 	: OutPacket(QQ_CMD_GROUP_NAME_OP, true),
-	type(cmdType)
+	type(cmdType), position(pos)
 {
 }
 
 GroupNameOpPacket::GroupNameOpPacket(const GroupNameOpPacket &rhs)
-	: OutPacket(rhs)
+	: OutPacket(rhs), position(0)
 {
 	groups = rhs.getGroups();
 	type = rhs.getType();
@@ -53,6 +53,7 @@ GroupNameOpPacket &GroupNameOpPacket::operator=(const GroupNameOpPacket &rhs)
 	*((OutPacket*)this) = (OutPacket)rhs;
 	groups = rhs.getGroups();
 	type = rhs.getType();
+	position = rhs.getPosition();
 	return *this;
 }
 
@@ -60,6 +61,7 @@ int GroupNameOpPacket::putBody( unsigned char * buf )
 {
     int pos = 0;
     buf[pos++] = type;
+	/*
     if(type == QQ_UPLOAD_GROUP_NAME) {
             unsigned char groupIndex = 0x00;
 	    std::list<std::string>::iterator iter = groups.begin();
@@ -76,10 +78,10 @@ int GroupNameOpPacket::putBody( unsigned char * buf )
                                     buf[pos++]=0x00;
                     }
             }
-    } else {
+    } else*/ {
 	//buf[pos++]=0x02;
 	buf[pos++] = 0x01;
-	memset(buf+pos, 0, 4);
+	*(int*)(buf+pos)=htonl(position);
 	pos+=4;
     }
     return pos;
@@ -89,7 +91,7 @@ int GroupNameOpPacket::putBody( unsigned char * buf )
 
 GroupNameOpReplyPacket::GroupNameOpReplyPacket(qqclient* client, unsigned char* buf, int len)
 	: InPacket(client, buf, len),
-	type(QQ_DOWNLOAD_GROUP_NAME)
+	type(0x1f/*QQ_DOWNLOAD_GROUP_NAME*/)
 {
 }
 
@@ -110,21 +112,44 @@ GroupNameOpReplyPacket &GroupNameOpReplyPacket::operator=( const GroupNameOpRepl
 
 void GroupNameOpReplyPacket::parseBody()
 {
+	int pos=0;
+
 	groupNames.clear();	
-	type = decryptedBuf[0];
-	if(type == QQ_DOWNLOAD_GROUP_NAME) {
-		int offset=7;
-		while(bodyLength>offset) {
-			std::string name((char*)(decryptedBuf+offset));
-			groupNames.push_back(name);
-			offset += 17;
+	type = decryptedBuf[pos++];
+
+	if(type == 0x1f /*QQ_DOWNLOAD_GROUP_NAME*/) {
+		unsigned char number;
+		unsigned short len;
+		unsigned short allocsize=261;
+		char* pszTemp=(char*)malloc(allocsize);
+
+		nextPosition=htonl(*(int*)(decryptedBuf+pos));
+		pos+=4;
+		pos++; // unknown 0x10
+		pos+=2; // unknown 0x0000
+
+		while (pos<bodyLength) {
+			number=decryptedBuf[pos++]; // number starts with 0x01
+			len=htons(*(unsigned short*)(decryptedBuf+pos));
+			pos+=2;
+
+			if (len>=allocsize) {
+				allocsize=len+1;
+				pszTemp=(char*)realloc(pszTemp,allocsize);
+			}
+			// NOTE: pszTemp is in UTF8
+			memcpy(pszTemp,decryptedBuf+pos,len);
+			pszTemp[len]=0;
+			groupNames.push_back(string(pszTemp));
+			pos+=len;
 		}
+		free(pszTemp);
 	}
 }
 
 const bool GroupNameOpReplyPacket::isDownloadReply() const 
 { 
-	return type == QQ_DOWNLOAD_GROUP_NAME; 
+	return type == 0x1f; // QQ_DOWNLOAD_GROUP_NAME; 
 } 
 
 /* =========================================================== */

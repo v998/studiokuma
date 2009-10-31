@@ -8,14 +8,14 @@
  *  2008-01-31 Created.
  *  2008-2-5   Add more commands.
  *  2008-7-15  Mr. Wugui said "There's no accident in the world.", 
- *	       but I always see accident in my code :)
+ *		   but I always see accident in my code :)
  *  2008-10-1  Character color support and nonecho password.
  *  2009-1-25  Use UTF-8 as a default type.
  *
  *  Description: This file mainly includes the functions about 
- *               Parsing Input Commands.
+ *			   Parsing Input Commands.
  *		 Warning: this file should be in UTF-8.
- *               
+ *			   
  */
 
 
@@ -105,22 +105,22 @@ static char help_msg[]=
 "欢迎使用 MyQQ2009 中文版\n"
 "这是一个为程序员和电脑爱好者制作的"
 "迷你控制台即时通讯软件,享受它吧!\n"
-"help:      显示以下帮助信息.\n"
-"add/a:     添加好友. add+QQ号码.\n"
+"help:	  显示以下帮助信息.\n"
+"add/a:	 添加好友. add+QQ号码.\n"
 "cls/clear: 清屏.\n"
-"view/v:    所有好(群)友列表.(指向前操作)\n"
-"who/w:     在线好(群)友列表.(指向前操作)\n"
-"qun/q:     显示群列表.(指向前操作)\n"
-"to/t:      指向某个QQ号或者前面的编号.\n"
+"view/v:	所有好(群)友列表.(指向前操作)\n"
+"who/w:	 在线好(群)友列表.(指向前操作)\n"
+"qun/q:	 显示群列表.(指向前操作)\n"
+"to/t:	  指向某个QQ号或者前面的编号.\n"
 "enter/e:   指向某个群号或者前面的编号.\n"
 "leave/l:   离开群.(指向后操作)\n"
-"say/s:     发送信息.(指向后操作)\n"
-"info/i:    查看相应信息.(指向后操作)\n"
+"say/s:	 发送信息.(指向后操作)\n"
+"info/i:	查看相应信息.(指向后操作)\n"
 "update/u:  更新所有列表.\n"
-"status:    改变状态(online|away|busy|killme|hidden)\n"
+"status:	改变状态(online|away|busy|killme|hidden)\n"
 "verify/r:  输入验证码(验证码在verify目录下).\n"
 "change/c:  更换用户登陆.\n"
-"exit/x:    退出.\n"
+"exit/x:	退出.\n"
 ;
 
 #ifdef __WIN32__
@@ -212,14 +212,14 @@ static char* to_utf8( char* s )
 #define _TEXT
 #endif
 static int getline(char *s, int lim) {
-    char *t;
-    int c;
+	char *t;
+	int c;
 
-    t = s;
-    while (--lim>1 && (c=getchar()) != EOF && c != '\n')
-        *s++ = c;
-    *s = '\0';
-    return s - t;
+	t = s;
+	while (--lim>1 && (c=getchar()) != EOF && c != '\n')
+		*s++ = c;
+	*s = '\0';
+	return s - t;
 }
 
 static char* mode_string( int mode )
@@ -321,16 +321,26 @@ static int myqq_get_buddy_info( qqclient* qq, uint uid, char* buf, int size )
 		return -1;
 	if( b == NULL )
 		return -2;
-	int len, ip = htonl(b->ip);
-	len = sprintf( buf,     "好友昵称\t%-32s\n"
-				"用户账号\t%-32d\n"
-				"IP地址\t\t%-32s\n"
-				"IP端口\t\t%-32d\n"
-				"头像\t\t%-32d\n"
-				"年龄\t\t%-32d\n"
-				"性别\t\t%-32s\n"
-				"状态\t\t%-32s\n",
-		b->nickname, b->number, inet_ntoa( *(struct in_addr*)&ip ), b->port, b->face, b->age,
+	int len;
+	len = sprintf( buf,	"好友昵称\t%s\n"
+				"用户账号\t%d\n"
+				"签名\t\t%s\n"
+				"备注\t\t%s\n"
+				"手机\t\t%s\n"
+				"邮箱\t\t%s\n"
+				"职业\t\t%s\n"
+				"主页\t\t%s\n"
+				"毕业学院\t%s\n"
+				"来自\t\t%s %s %s\n"
+				"通讯地址\t%s\n"
+				"自我介绍\t%s\n"
+				"头像\t\t%d\n"
+				"年龄\t\t%d\n"
+				"性别\t\t%s\n"
+				"状态\t\t%s\n",
+		b->nickname, b->number, b->signature, b->alias, b->mobilephone, 
+		b->email, b->occupation, b->homepage, b->school, b->country, b->province, b->city,
+		b->address, b->brief, b->face, b->age,
 		(b->sex==0x00)?"Male": (b->sex==0x01)?"Female":"Asexual", mode_string(b->status) );
 	return len;
 }
@@ -356,9 +366,9 @@ static char* util_escape( char* str )
 }
 
 /*   The output buf looks like this:
-L8bit  L16bit        L16bit        L32bit
-1      357339036     online		Xiao xia
-2      273310179     offline	Huang Guan
+L8bit  L16bit		L16bit		L32bit
+1	  357339036	 online		Xiao xia
+2	  273310179	 offline	Huang Guan
 */
 //Note: size must be big enough
 static int myqq_get_buddy_list( qqclient* qq, char* buf, int size, char online )
@@ -372,8 +382,13 @@ static int myqq_get_buddy_list( qqclient* qq, char* buf, int size, char online )
 	{
 		qqbuddy * b = (qqbuddy*)qq->buddy_list.items[i];
 		if( online && b->status == QQ_OFFLINE ) continue;
-		len = sprintf( buf, "%s%-8d%-16d%-16s%-16.64s\n", buf, ln ++, b->number, 
-			mode_string( (int) b->status ), util_escape( b->nickname ) );
+		if( *b->alias ){
+			len = sprintf( buf, "%s%-8d%-16d%-16s%-16.64s\n", buf, ln ++, b->number, 
+				mode_string( (int) b->status ), util_escape( b->alias ) );
+		}else{
+			len = sprintf( buf, "%s%-8d%-16d%-16s%-16.64s\n", buf, ln ++, b->number, 
+				mode_string( (int) b->status ), util_escape( b->nickname ) );
+		}
 		if( len + 80 > size ) break;
 	}
 	pthread_mutex_unlock( &qq->buddy_list.mutex );
@@ -381,9 +396,9 @@ static int myqq_get_buddy_list( qqclient* qq, char* buf, int size, char online )
 }
 
 /*   The output buf looks like this:
-L8bit  L16bit        L16bit        L32bit
-1      467788923     12118724	Xinxing Experimental School
-2      489234223     13223423	SGOS2007
+L8bit  L16bit		L16bit		L32bit
+1	  467788923	 12118724	Xinxing Experimental School
+2	  489234223	 13223423	SGOS2007
 */
 //Note: size must be big enough
 static int myqq_get_qun_list( qqclient* qq, char* buf, int size )
@@ -404,9 +419,9 @@ static int myqq_get_qun_list( qqclient* qq, char* buf, int size )
 }
 
 /*   The output buf looks like this:
-L8bit  L16bit        L16bit        L32bit
-1      357339036     Manager	Xiaoxia
-2      273310179     Fellow		Huang Guan
+L8bit  L16bit		L16bit		L32bit
+1	  357339036	 Manager	Xiaoxia
+2	  273310179	 Fellow		Huang Guan
 */
 //Note: size must be big enough
 static int myqq_get_qun_member_list( qqclient* qq, uint int_uid, char* buf, int size, char online )
@@ -444,16 +459,16 @@ static int myqq_get_qun_info( qqclient* qq, uint int_uid, char* buf, int size )
 
 	if( q == NULL )
 		return -2;
-	len = sprintf( buf, 	"名称\t\t%-32s\n"
-				"内部号码\t%-32d\n"
-				"群号码\t\t%-32d\n"
-				"群类型\t\t%-32s\n"
-				"是否允许加入\t%-32s\n"
-				"群分类\t\t%-32s\n"
-				"创建人\t\t%-32d\n"
-				"成员数量\t%-32d\n"
-				"群的简介\n%-32s\n"
-				"群的公告\n%-32s\n",
+	len = sprintf( buf, 	"名称\t\t%s\n"
+				"内部号码\t%d\n"
+				"群号码\t\t%d\n"
+				"群类型\t\t%s\n"
+				"加入验证\t%s\n"
+				"群分类\t\t%s\n"
+				"创建人\t\t%d\n"
+				"成员数量\t%d\n"
+				"群的简介\n%s\n"
+				"群的公告\n%s\n",
 		q->name, q->number, q->ext_number, (q->type==0x01)?"Normal":"Special",
 		(q->auth_type==0x01)?"No": (q->auth_type==0x02)?"Yes":
 			(q->auth_type==0x03)?"RejectAll":"Unknown",
@@ -465,7 +480,7 @@ static int myqq_get_qun_info( qqclient* qq, uint int_uid, char* buf, int size )
 //含颜色控制
 void buddy_msg_callback ( qqclient* qq, uint uid, time_t t, char* msg )
 {
-    charcolor( CCOL_LIGHTBLUE );	//red color
+	charcolor( CCOL_LIGHTBLUE );	//red color
 	char timestr[12];
 	char msgstr[64];
 	struct tm * timeinfo;
@@ -503,7 +518,7 @@ void buddy_msg_callback ( qqclient* qq, uint uid, time_t t, char* msg )
 void qun_msg_callback ( qqclient* qq, uint uid, uint int_uid,
 	time_t t, char* msg )
 {
-    charcolor( CCOL_REDGREEN );	//red color
+	charcolor( CCOL_REDGREEN );	//red color
 	char timestr[12];
 	char msgstr[64];
 	char* qun_name = myqq_get_qun_name( qq, int_uid );
@@ -583,7 +598,8 @@ int main(int argc, char** argv)
 	}
 	//login
 	clear_screen();
-lab:if( argc<3 )
+DO_LOGIN:
+	if( argc<3 )
 	{
 		uint uid;
 		char password[32];
@@ -615,11 +631,13 @@ lab:if( argc<3 )
 #endif
 		MSG(_TEXT("\n是否隐身登陆？(y/n)"));
 		scanf("%s", input );
+		//check if failed here...
 		qqclient_create( qq, uid, password );
 		qq->mode = *input=='y' ? QQ_HIDDEN : QQ_ONLINE;
 		qqclient_login( qq );
 		scanf("%c", input ); //If I don't add this, it will display '>' twice.
 	}else{
+		//check if failed here...
 		qqclient_create( qq, atoi(argv[1]), argv[2] );
 		if( argc > 3 )
 			qq->mode = atoi(argv[3])!=0 ? QQ_HIDDEN : QQ_ONLINE;
@@ -627,34 +645,40 @@ lab:if( argc<3 )
 		argc = 1;
 	}
 	MSG(_TEXT("登陆中...\n"));
-	while( qq->process == P_LOGGING )
-		qqclient_wait( qq, 1 );
-	while( qq->process == P_VERIFYING ){
-		MSG(_TEXT("请输入验证码（验证码目录下）: "));
-		scanf( "%s", input );
-		qqclient_verify( qq, *(uint*)input );
-		while( qq->process == P_LOGGING )
-			qqclient_wait( qq, 1 );
-	}
-	if( qq->process != P_LOGIN ){
+	for( ; qq->process != P_LOGIN; 
+		qqclient_wait( qq, 1 ) /*wait one second*/ ){
 		switch( qq->process ){
+		case P_LOGGING:
+			continue;
+		case P_VERIFYING:
+			MSG(_TEXT("请输入验证码（验证码目录下）: "));
+			scanf( "%s", input );
+			qqclient_verify( qq, *(uint*)input );
+			break;
 		case P_ERROR:
 			MSG(_TEXT("网络错误.\n"));
-			goto lab;
+			qqclient_logout( qq );
+			qqclient_cleanup( qq );
+			goto DO_LOGIN;
 		case P_DENIED:
 			MSG(_TEXT("您的QQ需要激活(http://jihuo.qq.com).\n"));
 #ifdef __WIN32__
 			ShellExecute(NULL,"open","http://jihuo.qq.com/",NULL,NULL,SW_SHOWNORMAL);
 #endif
-			goto lab;
+			qqclient_logout( qq );
+			qqclient_cleanup( qq );
+			goto DO_LOGIN;
 		case P_WRONGPASS:
 			MSG(_TEXT("您的密码错误.\n"));
-			goto lab;
+			qqclient_logout( qq );
+			qqclient_cleanup( qq );
+			goto DO_LOGIN;
+		default:
+			MSG(_TEXT("未知错误.\n"));
 		}
-		qqclient_logout( qq );
-		qqclient_cleanup( qq );
-		return 0;
+		
 	}
+	/* Success */
 	MSG( _TEXT(help_msg) );
 	while( qq->process != P_INIT ){
 		RESET_INPUT
@@ -825,6 +849,11 @@ SELECT_CMD:
 					MSG(_TEXT("请先选择一个好友.\n"));
 				}else{
 					char* buf = (char*)malloc(1024*4);	//4kb enough!
+					//update single buddy info
+					buddy_update_info( qq, buddy_get( qq, to_uid, 0 ) );
+					if( qqclient_wait( qq, 10 ) < 0 ){
+						MSG( _TEXT("获取好友详细资料失败。\n") );
+					}
 					if( myqq_get_buddy_info( qq, to_uid, buf, 1024*4 ) < 0 ){
 						sprintf( print_buf, "获取 %s 的信息失败\n", myqq_get_buddy_name( qq, to_uid ) );
 						MSG( _TEXT(print_buf) );

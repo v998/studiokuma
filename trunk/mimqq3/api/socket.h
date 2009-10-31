@@ -69,6 +69,7 @@ private:
 	bool m_stopping;
 	bool m_redirect;
 	string m_name;
+	time_t m_crashts;
 
 	/*
 	static map<CONN_TYPES,CClientConnection*> m_connections;

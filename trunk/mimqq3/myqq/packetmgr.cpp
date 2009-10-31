@@ -166,7 +166,7 @@ int handle_packet( qqclient* qq, qqpacket* p, uchar* data, int len )
 	
 	NEW( buf, sizeof( bytebuffer ),bytebuffer );
 	if( !buf ){
-		DBG("Error: no enough memory to allocate buf.");
+		DBG("error: no enough memory to allocate buf.");
 		return -99;
 	}
 	buf->pos = 0;
@@ -229,7 +229,7 @@ void* packetmgr_recv( void* data )
 	NEW( recv_buf, PACKET_SIZE,uchar );
 	p = packetmgr_new_packet( qq );
 	if( !p || !recv_buf ){
-		DBG("Error: p=%x  buf=%x", p, recv_buf );
+		DBG("error: p=%x  buf=%x", p, recv_buf );
 		DEL( p ); DEL( recv_buf );
 		return NULL;
 	}
@@ -262,7 +262,7 @@ void* packetmgr_recv( void* data )
 						memmove( recv_buf, recv_buf+len, pos );
 					}
 				}else if( pos == PACKET_SIZE ){
-					DBG("error: pos: %x ", pos );
+					DBG("error: pos: 0x%x ", pos );
 					pos = 0;
 				}
 			}
@@ -314,6 +314,9 @@ static int timeout_searcher( const void* p, const void* v )
 		return 0;
 	}
 }
+
+// NOTE: This function is modified for MirandaQQ3, so it does not update with myqq.
+// MirandaQQ3 has its own timeout strategy which resembles that of MirandaQQ2.
 int packetmgr_check_packet( struct qqclient* qq, int timeout )
 {
 	qqpacketmgr *mgr = &qq->packetmgr;
@@ -326,7 +329,7 @@ int packetmgr_check_packet( struct qqclient* qq, int timeout )
 			loop_remove( &mgr->sent_loop, p );
 		}
 		if( p ){
-			if(p->send_times >= 10/*(qq->login_finish?3:2)*/ ){
+			if(p->send_times >= 10/*2*/ ){
 				ushort cmd=p->command;
 				MSG("Failed to send the packet. command: %x\n", p->command );
 				delete_func( p );

@@ -68,62 +68,6 @@ void prot_user_keep_alive_reply( struct qqclient* qq, qqpacket* p )
 	port = ip= 0;
 }
 
-void prot_user_get_info( struct qqclient* qq, uint number )
-{
-	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_GET_USER_INFO );
-	if( !p ) return;
-	bytebuffer *buf = p->buf;
-	char number_str[16];
-	sprintf( number_str, "%u", number );
-	put_data( buf, (uchar*)number_str, strlen( number_str ) );
-	//save some information for reply packet
-	p->match = (qqpacket*)number;
-	post_packet( qq, p, SESSION_KEY );
-}
-
-void prot_user_get_info_reply( struct qqclient* qq, qqpacket* p )
-{
-	bytebuffer *buf = p->buf;
-	char* str = (char*)buf->data;
-	uint number;
-	int i, j, len = buf->len, s;
-	if( !p->match )
-		return;
-	number = (uint)p->match->match;
-//	DBG("number: %u", number );
-	qqbuddy* b = buddy_get( qq, number, 1 );
-	if( !b )
-		return;
-	for( i=0; i<len; i++ ){
-		if( str[i] == 0x1E ) str[i] = '\0';
-	}
-	str[i] = '\0';
-	for( i=0, s=0, j=0; i<=len && j<MAX_USER_INFO; i++ ){
-		if( str[i] == '\0' ){
-			strncpy( b->info_string[j], &str[s], i-s );
-			b->info_string[j][i-s] = 0;
-		//	DBG("info: %s", qq->user_info[j] );
-			j++;
-			s = i+1;
-		}
-	}
-//	DBG("j=%d", j ); 38
-	//get your nickname
-	strncpy( b->nickname, b->info_string[1], NICKNAME_LEN-1 );
-	DBG("got user info %u(%s)", b->number, b->nickname );
-
-	// Added by MIMQQ3
-	/*
-	char event[32];
-	sprintf( event, "buddyinfo^$%d", b->number );
-	qqclient_put_event( qq, event );
-	*/
-	FILE* fp=fopen("mimqq3-userinfo.bin","wb");
-	fwrite(buf->data,buf->len,1,fp);
-	fclose(fp);
-}
-
-
 void prot_user_change_status( struct qqclient* qq )
 {
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_CHANGE_STATUS );
@@ -175,14 +119,11 @@ void prot_user_get_key_reply( struct qqclient* qq, qqpacket* p )
 	case 4:	//file key
 		get_data( buf, key, 16 );
 		buf->pos += 12;
-		/*
-		get_token( buf, &tok );
-		*/
+		qq->data.file_token.len = (ushort)get_byte(buf);
+		get_data(buf,qq->data.file_token.data, qq->data.file_token.len); 
+//		get_token( buf, &tok );
 		memcpy( qq->data.file_key, key, 16 );
-		//qq->data.file_token = tok;
-
-		qq->data.file_token.len=(short)get_byte(buf);
-		get_data(buf,qq->data.file_token.data,qq->data.file_token.len);
+		// qq->data.file_token = tok;
 		DBG("got file key.");
 		break;
 	default:
@@ -353,7 +294,7 @@ void prot_user_get_level_reply( struct qqclient* qq, qqpacket* p )
 }
 
 
-void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, uint code )
+void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, char* code )
 {
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_REQUEST_TOKEN );
 	if( !p ) return;
@@ -364,7 +305,7 @@ void prot_user_request_token( struct qqclient* qq, uint number, uchar operation,
 		put_word( buf, type );	//
 		put_int( buf, number );
 		put_word( buf, 4 );
-		put_int( buf, htonl(code) );
+		put_data( buf, (uchar*)code,4 );
 		put_word( buf, strlen(qq->data.qqsession));
 		put_data( buf, (uchar*)qq->data.qqsession, strlen(qq->data.qqsession));
 	}else{
@@ -390,14 +331,15 @@ void prot_user_request_token_reply( struct qqclient* qq, qqpacket* p )
 			puts("Verifying code is incorrect!");
 			return;	//verify code wrong.
 		}
-		NEW( data, datalen, char );
-		NEW( url, 128, char );
-		NEW( session, 128, char );
 		int len, ret;
 		len = get_word( buf );
 		if( len >= 128 ){
-			DBG("url is too long.");	return;
+			DBG("url is too long.");
+			return;
 		}
+		NEW( data, datalen, char );
+		NEW( url, 128, char );
+		NEW( session, 128, char );
 		get_data( buf, (uchar*)url, len );
 		ret = http_request( &qq->http_sock, url, session, data, &datalen );
 		if( ret == 0 ){

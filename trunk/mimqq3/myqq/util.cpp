@@ -9,10 +9,12 @@
  *  2009-3-22 Add msleep.
  *
  */
+#include "stdafx.h"
 
 #ifdef __WIN32__
 #include <io.h>
 #include <windows.h>
+#include <direct.h>
 #else
 #include <sys/stat.h>
 #endif
@@ -100,42 +102,22 @@ char* mid_value( char* str, char* left, char* right, char* out, int outlen )
 //GET  HTTP/1.1
 int http_request( int* http_sock, char* url, char* session, char* data, int* datalen )
 {
-#if 0 // TODO
-	char host_name[32], uri[101], *header, *next, tmp[16];
-	int len, data_len;
-	//get host name
-	next = mid_value( url, "//", "/", host_name, 31 );
-	next = mid_value( next, "/", NULL, uri, 100 );
-	//connect
-	*http_sock = qqsocket_create( TCP, NULL, 0 );
-	if( *http_sock <= 0 )	return -3;
-	qqsocket_connect( *http_sock, host_name, 80 );
-	NEW( header, KB(4), char);
-	sprintf( header, "GET %s HTTP/1.1\r\n\r\n", uri );
-	qqsocket_send( *http_sock, (uchar*)header, strlen(header) );
-	len = qqsocket_recv( *http_sock, (uchar*)header, KB(4) );
-//	puts( header );
-	if( len>0 ){
-		next = mid_value( header, "Content-Length: ", "\r\n", tmp, 15 );
-		data_len = atoi( tmp );
-		next = mid_value( header, "getqqsession:", "\r\n", session, 127 );
-		while( len < data_len ){
-			int ret = qqsocket_recv( *http_sock, (uchar*)(header + len), KB(4)-len );
-			if( ret > 0 )	len += ret;	else	break;
-		}
-		next = strstr( header, "\r\n\r\n" ) + 4;
-		if( next ){
-			if( *datalen > data_len ){ 
-				memcpy( (void*)data, (void*)next, data_len );
-				*datalen = data_len;
-			}else{
-				DBG("datalen is too small.");
+
+	NETLIBHTTPREQUEST nlhr={sizeof(nlhr),REQUEST_GET,NLHRF_GENERATEHOST};
+	nlhr.szUrl=url;
+
+	if (NETLIBHTTPREQUEST* nlhrr=(NETLIBHTTPREQUEST*)CallService(MS_NETLIB_HTTPTRANSACTION,(WPARAM)hNetlibUser,(LPARAM)&nlhr)) {
+		for (int c=0; c<nlhrr->headersCount; c++) {
+			if (!strcmp(nlhrr->headers[c].szName,"getqqsession")) {
+				strcpy(session,nlhrr->headers[c].szValue);
+				memcpy(data,nlhrr->pData,nlhrr->dataLength);
+				*datalen=nlhrr->dataLength;
+				break;
 			}
 		}
+		CallService(MS_NETLIB_FREEHTTPREQUESTSTRUCT,(WPARAM)nlhrr,0);
 	}
-	DEL( header );
-	qqsocket_close( *http_sock );
-#endif
+
 	return 0;
 }
 
@@ -145,3 +127,14 @@ void msleep( unsigned int ms )
 	Sleep( ms );
 }
 #endif
+
+int get_splitable_pos( char* buf, int pos )
+{
+	//pos = 699
+	if( (uchar)buf[pos]>=0x80 && (uchar)buf[pos]<=0xBF ){
+		do	
+			pos--;
+		while( pos && (uchar)buf[pos]<0xC2 );
+	}
+	return pos;	//buf[pos]不可取
+}

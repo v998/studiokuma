@@ -1598,14 +1598,14 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath=".\myqq\util.c"
+					RelativePath=".\myqq\util.cpp"
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="0"
+							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
 				</File>
@@ -1631,6 +1631,14 @@
 				Name="headers"
 				Filter="h"
 				>
+				<File
+					RelativePath=".\libeva2\evaaddfriend.h"
+					>
+				</File>
+				<File
+					RelativePath=".\libeva2\evaaddfriendex.h"
+					>
+				</File>
 				<File
 					RelativePath=".\libeva2\evacrypt.h"
 					>
@@ -1688,6 +1696,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\libeva2\evasearchuser.h"
+					>
+				</File>
+				<File
 					RelativePath=".\libeva2\libcustompic\evatransfer.h"
 					>
 				</File>
@@ -1716,6 +1728,14 @@
 				Name="sources"
 				Filter="cpp"
 				>
+				<File
+					RelativePath=".\libeva2\evaaddfriend.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\libeva2\evaaddfriendex.cpp"
+					>
+				</File>
 				<File
 					RelativePath=".\libeva2\evacrypt.cpp"
 					>
@@ -1951,6 +1971,10 @@
 							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\libeva2\evasearchuser.cpp"
+					>
 				</File>
 				<File
 					RelativePath=".\libeva2\libcustompic\evatransfer.cpp"

@@ -26,14 +26,30 @@ extern "C" {
 #include "util.h"
 
 
+// we divide the message into pieces if it's too long
 void prot_im_send_msg( struct qqclient* qq, uint to, char* msg )
 {
+	const int max_length = 700;	//TX made it.
+	int pos=0, end_pos, slice_count, i;
 	int len = strlen( msg );
-	if( len > 700 ){ //分片功能未做，没时间.
-		return ;
+	slice_count = len / max_length + 1;	//in fact this not reliable.
+	ushort msg_id = (ushort)rand();
+	for( i=0; i<slice_count; i++ ){
+		end_pos = get_splitable_pos( msg, pos+MIN( len-pos, max_length ) );	
+		DBG("%u send (%d,%d) %d/%d", qq->number, pos, end_pos, i, slice_count );
+		//msg[pos] might be 0
+		prot_im_send_msg_ex( qq, to, &msg[pos], end_pos-pos, msg_id, slice_count, i );
+		pos = end_pos;
 	}
+}
+
+void prot_im_send_msg_ex( struct qqclient* qq, uint to, char* msg, int len,
+	ushort msg_id, uchar slice_count, uchar which_piece )
+{
 //	DBG("str: %s  len: %d", msg, len );
-	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_SEND_IM );
+	qqpacket* p;
+	if( !len ) return;
+	p = packetmgr_new_send( qq, QQ_CMD_SEND_IM );
 	if( !p ) return;
 	bytebuffer *buf = p->buf;
 	put_int( buf, qq->number );
@@ -51,18 +67,17 @@ void prot_im_send_msg( struct qqclient* qq, uint to, char* msg )
 	put_int( buf, p->time_create );
 	put_word( buf, qq->self->face );	//my face
 	put_int( buf, 1 );	//has font attribute
-	put_byte( buf, 1 );	//slice_count
-	put_byte( buf, 0 );	//slice_no
-	put_word( buf, 0 );	//msg_id??
+	put_byte( buf, slice_count );	//slice_count
+	put_byte( buf, which_piece );	//slice_no
+	put_word( buf, msg_id );	//msg_id??
 	put_byte( buf, QQ_IM_TEXT );	//auto_reply
 	put_int( buf, 0x4D534700 ); //"MSG"
 	put_int( buf, 0x00000000 );
 	put_int( buf, p->time_create );
-	put_int( buf, rand() );
+	put_int( buf, (msg_id<<16)|msg_id );	//maybe a random interger
 	put_int( buf, 0x00000000 );
 	put_int( buf, 0x09008600 );
-	// char font_name[] = "宋体";	//must be UTF8
-	char font_name[] = "\xe5\xae\x8b\xe4\xbd\x93";	//must be UTF8
+	char font_name[] = "\xe5\xae\x8b\xe4\xbd\x93"; //"宋体";	//must be UTF8
 	put_word( buf, strlen(font_name) );
 	put_data( buf, (uchar*)font_name, strlen( font_name) );
 	put_word( buf, 0x0000 );
@@ -145,7 +160,7 @@ static void parse_message_09( qqpacket* p, qqmessage* msg, char* tmp, int outlen
 				}
 			}
 		}
-		len = 0;	//use it.
+		len = 0;	//use it, or the compiler would bark.
 	}
 	tmp[i] = 0;
 }
@@ -182,7 +197,6 @@ static void process_buddy_im_text( struct qqclient* qq, qqpacket* p, qqmessage* 
 		break;
 	}
 //	DBG("buddy msg from %u:", msg->from );
-//	puts( msg->msg_content );
 	if( qq->auto_reply[0]!='\0' ){ //
 		prot_im_send_msg( qq, msg->from, qq->auto_reply );
 	}

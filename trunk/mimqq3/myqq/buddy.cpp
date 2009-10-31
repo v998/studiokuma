@@ -34,6 +34,7 @@ qqbuddy* buddy_get( qqclient* qq, uint number, int create )
 {
 	if( !number )
 		return NULL;
+//	if( create && number != qq->number ) return NULL;
 	qqbuddy* b;
 	b = (qqbuddy*)list_search( &qq->buddy_list, (void*)number, searcher );
 	//if not found, b must be NULL
@@ -81,7 +82,7 @@ void buddy_update_list( qqclient* qq )
 
 void buddy_update_info( qqclient* qq, qqbuddy* b )
 {
-	prot_user_get_info( qq, b->number );
+	prot_buddy_get_info( qq, b->number );
 }
 
 int buddy_send_message( qqclient* qq, uint number, char* msg )
@@ -128,7 +129,7 @@ void buddy_put_event( qqclient* qq )
 		b = (qqbuddy*)qq->buddy_list.items[i];
 		addr.s_addr = htonl( b->ip );
 		sprintf( temp, "%s%u\t%s\t%s\t%s\t%d\t%s\t%s\t%d^@", temp, b->number, buddy_status_string(b->status), b->nickname,
-			b->signiture, b->sex, inet_ntoa( addr ), b->alias, b->gid );
+			b->signature, b->sex, inet_ntoa( addr ), b->alias, b->gid );
 	}
 	pthread_mutex_unlock( &qq->buddy_list.mutex );
 	qqclient_put_event( qq, temp );

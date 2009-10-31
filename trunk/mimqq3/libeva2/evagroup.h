@@ -35,7 +35,7 @@
 class GroupNameOpPacket : public OutPacket {
 public:
 	GroupNameOpPacket();
-	GroupNameOpPacket(const char cmdType);
+	GroupNameOpPacket(const char cmdType, const int pos=0);
 	GroupNameOpPacket(const GroupNameOpPacket &rhs);
 	virtual ~GroupNameOpPacket() {};
 	
@@ -47,11 +47,15 @@ public:
 	
 	void setGroups(const std::list<std::string> &l) { groups = l; }	
 	void setType(const char type);
+
+	void setPosition(const int i) { position = i; }
+	const int getPosition() const { return position; }
 protected:
 	virtual int putBody(unsigned char* buf);
 private:
 	std::list<std::string> groups;
 	char type;
+	int position;
 };
 
 class GroupNameOpReplyPacket : public InPacket
@@ -68,11 +72,14 @@ public:
 	const std::list<std::string> getGroupNames() const { return groupNames; }
 	const char getType() const { return type; }
 	const bool isDownloadReply() const ;// otherwise, upload reply
+
+	const int getNextPosition() const { return nextPosition; }
 protected:	
 	virtual void parseBody();
 private:
 	std::list<std::string> groupNames;
 	char type;
+	int nextPosition;
 };
 
 class DownloadFriendEntry

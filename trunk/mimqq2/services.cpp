@@ -270,7 +270,7 @@ MIMPROC(OnPrebuildContactMenu) {
 		if (Packet::isClientKeySet()) {
 			if (READC_B2("IsQun")==1) {
 				//Qun* qun=m_qunList.getQun(READC_D2(UNIQUEIDSETTING));
-				config=0x1b4;
+				config=0x74; //0x1b4;
 				if (READC_D2("Creator")==m_myqq || READC_B2("IsAdmin")) { // Show "Add member to Qun"
 					config+=0x2;
 				}
@@ -2192,15 +2192,17 @@ extern "C" {
 #endif // UPGRADE_DISABLE
 	MIMPROC(QunSpace) {
 		HANDLE hContact=(HANDLE)wParam;
+		/*
 		CHAR szIE[MAX_PATH];
 		STARTUPINFOA si={sizeof(si)};
 		PROCESS_INFORMATION pi;
-		/*
+		
 		CHAR szUrl[MAX_PATH]="http://group.qq.com/group_index.shtml?groupid=";
 		itoa(READC_D2("ExternalID"),szUrl+strlen(szUrl),10);
 		*/
 		// http://ptlogin.qq.com/group?clientuin=85379868&clientkey=7C747509EF03FBC2C38A5125F9833DF7926625ABF72B7FE2555B57A528F1B9F7&gid=17834828&type=0
 
+		/*
 		CHAR szUrl[MAX_PATH]="http://ptlogin.qq.com/group?clientuin=";
 		itoa(m_myqq,szUrl+strlen(szUrl),10);
 		strcat(szUrl,"&clientkey=");
@@ -2208,17 +2210,23 @@ extern "C" {
 		strcat(szUrl,"&gid=");
 		itoa(READC_D2("ExternalID"),szUrl+strlen(szUrl),10);
 		strcat(szUrl,"&type=0");
+
 		strcat(strcat(strcpy(szIE,"\""),getenv("ProgramFiles")),"\\Internet Explorer\\iexplore.exe\" ");
 		strcat(szIE,szUrl);
 		CreateProcessA(NULL,szIE,NULL,NULL,FALSE,0,NULL,NULL,&si,&pi);
 		CloseHandle(pi.hThread);
 		CloseHandle(pi.hProcess);
 		//ShellExecuteA(NULL,NULL,"iexplore.exe",szUrl,NULL,SW_SHOWNORMAL);
+		*/
+		// http://qun.qq.com/air/2571213#2571213
+		CHAR szUrl[MAX_PATH];
+		DWORD dwExtID=READC_D2("ExternalID");
+		sprintf(szUrl,"http://qun.qq.com/air/%d#%d",dwExtID,dwExtID);
+		CallService(MS_UTILS_OPENURL,0,(LPARAM)szUrl);
 		return 0;
 	}
-#if 0 // UPGRADE_DISABLE
-
 #if 0 // Not Working
+
 	MIMPROC2(ChangeHeadImage) {
 		// http://face.qq.com/index.shtml?clientuin=85379868&clientkey=E357ACA2A1377164EECCBD5F68A0CE11804B3F1EA7F4573ECF538AE336D7
 		CHAR szUrl[MAX_PATH]="http://face.qq.com/index.shtml?clientuin=";
@@ -2228,7 +2236,6 @@ extern "C" {
 		ShellExecuteA(NULL,NULL,"iexplore.exe",szUrl,NULL,SW_SHOWNORMAL);
 		return 0;
 	}
-#endif
 #endif // UPGRADE_DISABLE
 	MIMPROC(QQMail) {
 		// http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=xxx&K=xxx

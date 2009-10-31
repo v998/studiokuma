@@ -23,7 +23,7 @@ bool CClientConnection::crashRecovery() {
 }
 
 CClientConnection::CClientConnection(LPSTR szName, int timeout): 
-m_name(szName), m_timeout(timeout), m_stopping(false), m_connection(NULL) {
+m_name(szName), m_timeout(timeout), m_stopping(false), m_connection(NULL), m_crashts(0) {
 	//m_hEvDisconnect=CreateEvent(NULL,TRUE,FALSE,NULL);
 }
 
@@ -84,9 +84,10 @@ void __cdecl CClientConnection::ThreadProc(void* secondcrash) {
 		CallService(MS_CLIST_SYSTRAY_NOTIFY,0,(LPARAM)&msn);
 		//DebugBreak();
 		if (!crashRecovery() && m_connection) {
-			if (!secondcrash) 
+			if (!secondcrash || time(NULL)-m_crashts>30) {
 				m_redirect=true;
-			else
+				m_crashts=time(NULL);
+			} else
 				MessageBox(NULL,TranslateT("MirandaQQ is forced to disconnect due to chained crash events. Please reconnect or restart Miranda."),NULL,NIIF_ERROR);
 
 			ThreadProc((LPVOID)1);

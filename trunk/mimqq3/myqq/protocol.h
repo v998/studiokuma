@@ -75,8 +75,8 @@ enum {
 	QQ_RECV_IM_CREATE_QUN = 0x0026,
 	QQ_RECV_IM_TEMP_QUN_IM = 0x002A,
 	QQ_RECV_IM_QUN_IM = 0x002B,
-	QQ_RECV_IM_QUN_IM_09 = 0x0052,
 	QQ_RECV_IM_SYS_NOTIFICATION = 0x0030,
+	QQ_RECV_IM_QUN_IM_09 = 0x0052,
 	QQ_RECV_IM_BUDDY_0802 = 0x0084,
 	QQ_RECV_IM_QUN_MEMBER_IM = 0x008C,
 	QQ_RECV_IM_WRITING = 0x0079,
@@ -133,9 +133,11 @@ enum QQ_CMD{
 	QQ_CMD_GET_BUDDY_LIST = 0x0126,
 	QQ_CMD_GET_BUDDY_ONLINE = 0x0027,
 	QQ_CMD_QUN_CMD = 0x0002,
+	QQ_CMD_BUDDY_INFO = 0x003c,
 	QQ_CMD_BUDDY_ALIAS = 0x003e,
 	QQ_CMD_GROUP_LABEL = 0x0001,
 	QQ_CMD_GET_LEVEL = 0x005C,
+	QQ_CMD_GET_BUDDY_EXTRA_INFO = 0x0065,
 	QQ_CMD_GET_BUDDY_SIGN = 0x0067,
 	QQ_CMD_BROADCAST = 0x0080,
 	QQ_CMD_BUDDY_STATUS = 0x0081,
@@ -155,7 +157,7 @@ struct qqclient;
 void prot_login_touch( struct qqclient* qq );
 void prot_login_touch_with_info( struct qqclient* qq, uchar* server_info, uchar len );
 void prot_login_touch_reply( struct qqclient* qq, qqpacket* p );
-void prot_login_request( struct qqclient* qq, token* tok, uint code, char png_data );
+void prot_login_request( struct qqclient* qq, token* tok, char* code, char png_data );
 void prot_login_request_reply( struct qqclient* qq, qqpacket* p );
 void prot_login_verify( struct qqclient* qq );
 void prot_login_verify_reply( struct qqclient* qq, qqpacket* p );
@@ -171,8 +173,6 @@ void prot_login_get_list_reply( struct qqclient* qq, qqpacket* p );
 //prot_misc.c
 void prot_misc_broadcast( struct qqclient* qq, qqpacket* p );
 //prot_user.c
-void prot_user_get_info( struct qqclient* qq, uint number );
-void prot_user_get_info_reply( struct qqclient* qq, qqpacket* p );
 void prot_user_change_status( struct qqclient* qq );
 void prot_user_change_status_reply( struct qqclient* qq, qqpacket* p );
 void prot_user_get_notice( struct qqclient* qq, uchar type );
@@ -185,13 +185,19 @@ void prot_user_keep_alive( struct qqclient* qq );
 void prot_user_keep_alive_reply( struct qqclient* qq, qqpacket* p );
 void prot_user_get_level( struct qqclient* qq );
 void prot_user_get_level_reply( struct qqclient* qq, qqpacket* p );
-void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, uint code );
+void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, char* code );
 void prot_user_request_token_reply( struct qqclient* qq, qqpacket* p );
 //prot_im.c
 void prot_im_ack_recv( struct qqclient* qq, qqpacket* pre );
 void prot_im_recv_msg( struct qqclient* qq, qqpacket* p );
 void prot_im_send_msg( struct qqclient* qq, uint to, char* msg );
+void prot_im_send_msg_ex( struct qqclient* qq, uint to, char* msg, int len,
+	ushort msg_id, uchar slice_count, uchar which_piece );
 //prot_buddy.c
+void prot_buddy_get_info( struct qqclient* qq, uint number );
+void prot_buddy_get_info_reply( struct qqclient* qq, qqpacket* p );
+void prot_buddy_get_extra_info( struct qqclient*, uint number );
+void prot_buddy_get_extra_info_reply( struct qqclient* qq, qqpacket* p );
 void prot_buddy_update_list( struct qqclient* qq, ushort pos );
 void prot_buddy_update_list_reply( struct qqclient* qq, qqpacket* p );
 void prot_buddy_update_online( struct qqclient* qq, uint next_number );
@@ -201,7 +207,7 @@ void prot_buddy_update_signiture( struct qqclient* qq, uint pos );
 void prot_buddy_update_signiture_reply( struct qqclient* qq, qqpacket* p );
 void prot_buddy_update_account( struct qqclient* qq, uint pos );
 void prot_buddy_update_account_reply( struct qqclient* qq, qqpacket* p );
-void prot_buddy_update_alias( struct qqclient* qq );
+void prot_buddy_update_alias( struct qqclient* qq, int index );
 void prot_buddy_update_alias_reply( struct qqclient* qq, qqpacket* p );
 void prot_buddy_request_addbuddy( struct qqclient* qq, uint number );
 void prot_buddy_request_addbuddy_reply( struct qqclient* qq, qqpacket* p );

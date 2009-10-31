@@ -21,7 +21,7 @@ extern void util_trimChatTags(char* szSrc, char* szTag);
 //extern void util_dispatchServer(const char* url, ThreadData* td);
 extern void util_fillClientKey(LPSTR pszDest);
 
-extern int util_group_name_exists(LPCWSTR name,int skipGroup);
+extern int util_group_name_exists(LPCSTR name,int skipGroup);
 /*
 extern void util_convertFromNative(LPSTR *szDest, LPCTSTR szSource);
 extern void util_convertToNative(LPTSTR *szDest, LPCSTR szSource, bool fGBK=TRUE);

@@ -2281,7 +2281,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 							_sysRejectJoinQunCallback(packet->getSender(),join.getExtID(),join.getSender(), join.getMessage().c_str());
 							break;
 						case QQ_RECV_IM_SET_QUN_ADMIN:
-							switch (join.getType()) {
+							switch (join.getCommander()) {
 								case QQ_QUN_SET_ADMIN:
 									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator assigned %d to be administrator."),join.getSender());
 									break;

@@ -3,7 +3,7 @@
 // Take care!
 #pragma warning(disable: 4003)
 
-#define PARSE2(packetType,action) packetType packet; packet.setQQClient(&m_client); packet.setInPacket(in); if (!packet.parse()) {action;return;}
+#define PARSE2(packetType,action) packetType packet; packet.setInPacket(in); if (!packet.parse()) {action;return;}
 #define HANDLE(cmd,handler) case cmd: handler(packet); break
 #define CB(subcmd,w,l) callbackHub(in->getCommand(),subcmd,(WPARAM)w,(LPARAM)l)
 #define DEFCB() callbackHub(in->getCommand(),0,(WPARAM)&packet,(LPARAM)0)
@@ -13,7 +13,7 @@ void callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);
 
 CNetwork::CNetwork(LPCSTR szModuleName, LPCTSTR szUserName):
 CClientConnection("CNETWORK",1000),
-m_userhead(NULL), m_qunimage(NULL), m_savedTempSessionMsg(NULL) {
+m_userhead(NULL), m_qunimage(NULL), m_savedTempSessionMsg(NULL), m_deferActionType(0) {
 	InitializeCriticalSection(&m_cs);
 	m_szModuleName=m_szProtoName=mir_strdup(szModuleName);
 	if (szUserName) {
@@ -183,16 +183,16 @@ DEFAULT_HANDLER(processGetLevelResponse,EvaGetLevelReplyPacket)
 #endif
 DEFAULT_HANDLER(processRecvMsgFriendChangeStatusResponse,FriendChangeStatusPacket)
 DEFAULT_HANDLER(processWeatherOpResponse,WeatherOpReplyPacket)
-#if 0
 DEFAULT_HANDLER(processSearchUserResponse,SearchUserReplyPacket)
 DEFAULT_HANDLER(processAddFriendResponse,EvaAddFriendExReplyPacket)
+#if 0
 DEFAULT_HANDLER(processAddFriendAuthResponse,AddFriendAuthReplyPacket)
 DEFAULT_HANDLER(processSystemMessageResponse,SystemNotificationPacket)
 DEFAULT_HANDLER(processDeleteMeResponse,DeleteMeReplyPacket)
+#endif
 DEFAULT_HANDLER(processGroupNameOpResponse,GroupNameOpReplyPacket)
 DEFAULT_HANDLER(processDeleteFriendResponse,DeleteFriendReplyPacket)
 DEFAULT_HANDLER(processAddFriendAuthInfoReply,EvaAddFriendGetAuthInfoReplyPacket)
-#endif
 DEFAULT_HANDLER(processRequestExtraInfoResponse,RequestExtraInfoReplyPacket)
 #if 0
 DEFAULT_HANDLER(processUploadGroupFriendResponse,UploadGroupFriendReplyPacket)
@@ -257,27 +257,31 @@ void CNetwork::processPacket(LPCBYTE lpData, const USHORT len)
 		HANDLE(QQ_CMD_RECV_IM_09, processIMResponse);
 		HANDLE(QQ_CMD_QUN_CMD, processQunResponse);
 		HANDLE(QQ_CMD_RECV_MSG_FRIEND_CHANGE_STATUS, processRecvMsgFriendChangeStatusResponse);
-		/*
 		HANDLE(QQ_CMD_SEARCH_USER, processSearchUserResponse);
+		/*
 		HANDLE(QQ_CMD_GET_LEVEL, processGetLevelResponse);
 		HANDLE(QQ_CMD_RECV_MSG_SYS, processSystemMessageResponse);
 		HANDLE(QQ_CMD_ADD_FRIEND_AUTH, processAddFriendAuthResponse);
+		*/
 		HANDLE(QQ_CMD_ADD_FRIEND_EX, processAddFriendResponse);
 		HANDLE(QQ_CMD_DELETE_FRIEND, processDeleteFriendResponse);
+		/*
 		HANDLE(QQ_CMD_DELETE_ME, processDeleteMeResponse);
-		HANDLE(QQ_CMD_GROUP_NAME_OP, processGroupNameOpResponse);
 		*/
+		HANDLE(QQ_CMD_GROUP_NAME_OP, processGroupNameOpResponse);
 		HANDLE(QQ_CMD_SEND_IM, processSendImResponse);
 		/*
 		HANDLE(QQ_CMD_TEMP_SESSION_OP, processTempSessionOpResponse);
 		*/
 		HANDLE(QQ_CMD_WEATHER, processWeatherOpResponse);
+		
+		HANDLE(QQ_CMD_ADD_FRIEND_AUTH_INFO, processAddFriendAuthInfoReply); /* QQ_CMD_REQUEST_TOKEN */
 		/*
-		HANDLE(QQ_CMD_ADD_FRIEND_AUTH_INFO, processAddFriendAuthInfoReply);
 		HANDLE(QQ_CMD_UPLOAD_GROUP_FRIEND, processUploadGroupFriendResponse);
 		default: util_log(0,"Received unknown packet %d",packet->getCommand()); break;
 		*/
 		HANDLE(QQ_CMD_LOGIN_GET_LIST, processDownloadGroupFriendResponse);
+#if 0
 		case QQ_CMD_REQUEST_TOKEN:
 			{
 				unsigned char* body=packet->getBody();
@@ -302,6 +306,7 @@ void CNetwork::processPacket(LPCBYTE lpData, const USHORT len)
 				*/
 			}
 			break;
+#endif
 	}
 	
 	// m_curmsg=NULL;

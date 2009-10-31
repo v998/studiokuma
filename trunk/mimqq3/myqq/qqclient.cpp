@@ -108,6 +108,7 @@ int qqclient_md5_create( qqclient* qq, uint num, uchar* md5_pass )
 	return 0;
 }
 
+// NOTE: This function is modified MirandaQQ3, so it is not in sync with myqq
 // #define INTERVAL 5
 void* qqclient_keepalive( void* data )
 {
@@ -144,7 +145,7 @@ void* qqclient_keepalive( void* data )
 							if (!buddyUpdated) {
 								buddyUpdated=true;
 								prot_buddy_update_online( qq, 0 );
-								qun_update_online_all( qq );
+								// qun_update_online_all( qq );
 							}
 						} else if (buddyUpdated)
 							buddyUpdated=false;
@@ -210,11 +211,7 @@ int qqclient_login( qqclient* qq )
 	*/
 		//send touch packet
 		// MIMQQ3: Next part is handled inside QQNetwork::connectionEstablished()
-	//	if( last_server_ip == 0 ){
 			prot_login_touch( qq );
-	//	}else{
-	//		prot_login_touch_with_info( qq, last_server_info, 15 );
-	//	}
 	// }
 	return 0;
 }
@@ -273,12 +270,13 @@ void qqclient_cleanup( qqclient* qq )
 	pthread_mutex_destroy( &qq->mutex_event );
 }
 
-int qqclient_verify( qqclient* qq, uint code )
+int qqclient_verify( qqclient* qq, char* code )
 {
 	if( qq->login_finish == 1 ){
+		qqclient_set_process( qq, P_LOGIN );	//原来漏了这个  20090709
 		prot_user_request_token( qq, qq->data.operating_number, qq->data.operation, 1, code );
 	}else{
-		qqclient_set_process( qq, P_LOGIN );
+		qqclient_set_process( qq, P_LOGGING );	//原来这个是P_LOGIN，错了。 20090709
 		prot_login_request( qq, &qq->data.verify_token, code, 0 );
 	}
 	DBG("verify code: %x", code );
