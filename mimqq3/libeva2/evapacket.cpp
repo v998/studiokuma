@@ -527,6 +527,7 @@ void InPacket::setInPacket( const InPacket * packet )
 	command = packet->getCommand();
         sequence = packet->getSequence();
 	bodyLength = packet->getLength();
+	qqClient=packet->getQQClient();
 	if(!decryptedBuf){
 		delete decryptedBuf;
 		decryptedBuf = new unsigned char[bodyLength];

@@ -269,15 +269,19 @@ private:
 	void _friendChangeStatusCallback(FriendChangeStatusPacket* packet);
 	/*
 	void _qunGetInfoCallback(QunReplyPacket* packet);
+	*/
 	void _searchUserCallback(SearchUserReplyPacket* packet);
+	/*
 	void _getLevelCallback(EvaGetLevelReplyPacket* packet);
 	void _systemMessageCallback(SystemNotificationPacket* packet);
+	*/
 	void _addFriendCallback(EvaAddFriendExReplyPacket* packet);
 	void _addFriendAuthInfoCallback(EvaAddFriendGetAuthInfoReplyPacket* packet);
 	void _deleteFriendCallback(DeleteFriendReplyPacket* packet);
+	/*
 	void _deleteMeCallback(DeleteMeReplyPacket* packet);
-	void _groupNameOpCallback(GroupNameOpReplyPacket* packet);
 	*/
+	void _groupNameOpCallback(GroupNameOpReplyPacket* packet);
 	void _sendImCallback(SendIMReplyPacket* packet,SendTextIMPacket* im);
 	/*
 	void _tempSessionOpCallback(TempSessionOpReplyPacket* packet);
@@ -287,10 +291,8 @@ private:
 	void _uploadGroupFriendCallback(UploadGroupFriendReplyPacket* packet);
 	*/
 	void __cdecl delayReport(LPVOID);
-	/*
 	void __cdecl _addFriendAuthGraphicalVerification(LPVOID adp);
 	void __cdecl _tempSessionGraphicalVerification(LPVOID adp);
-	*/
 public:
 	// myqq
 	void _buddyMsgCallback(qqclient* qq, uint uid, time_t t, char* msg);
@@ -348,10 +350,17 @@ private:
 	BOOL m_conservative;
 
 	// InPacket* m_curmsg;
+	time_t m_deferActionTS;
 
 public:
+	/*
 	int m_addUID;
 	int m_addQunNumber;
+	*/
+	char m_deferActionType;
+	DWORD m_deferActionData;
+	DWORD m_deferActionAux;
+
 	bool m_needAck;
 	HWND m_hwndModifySignatureDlg;
 	CodeVerifyWindow* m_codeVerifyWindow;

@@ -49,7 +49,7 @@ public:
 			Info_unknown4=0x4e29,   Info_unknown5=0x4e2a,  Info_email=0x4e2b,    Info_occupation=0x4e2c,Info_homepage=0x4e2d, 
 			Info_unknown9=0x4e2e,   Info_unknown10=0x4e2f, Info_mobile=0x4e30,   Info_visibility=0x4e31,Info_intro=0x4e33, 
 			Info_college=0x4e35,    Info_unknown15=0x4e36, Info_unknown16=0x4e37,Info_unknown17=0x4e38, Info_birth=0x4e3f,
-			Info_country=0x4e23,    Info_city=0x4e24,      Info_province=0x4e34 , Info_language1=0x4e41, Info_language2=0x4e42,
+			Info_country=0x4e23,    Info_province=0x4e24,  Info_city=0x4e34 , Info_language1=0x4e41, Info_language2=0x4e42,
 			Info_language3=0x4e43,  Info_age=0x4e45,       Info_subscr=0x520b,   Info_unknown27=0x520f};
 
 	const char* at(const Info_Index index); // const { return infos[index]; }

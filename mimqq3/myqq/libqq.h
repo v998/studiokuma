@@ -34,7 +34,9 @@ EXPORT uint libqq_refresh( struct qqclient* qq );
 EXPORT void libqq_getqunname( struct qqclient* qq, uint ext_id, char* buf );
 EXPORT void libqq_getqunmembername( struct qqclient* qq, uint ext_id, uint uid, char* buf );
 EXPORT void libqq_getbuddyname( struct qqclient* qq, uint uid, char* buf );
+EXPORT void libqq_getextrainfo( struct qqclient* qq, uint uid );
 EXPORT void libqq_addbuddy( struct qqclient* qq, uint uid, char* msg );
 EXPORT void libqq_delbuddy( struct qqclient* qq, uint uid );
+EXPORT void libqq_sethttpproxy( struct qqclient* qq, char* ip, ushort port );
 
 #endif

@@ -32,6 +32,9 @@ int handle_packet( qqclient* qq, qqpacket* p, uchar* data, int len );
 #include "libeva2/evagroup.h"
 #include "libeva2/evaextrainfo.h"
 #include "libeva2/evauserinfo.h"
+#include "libeva2/evasearchuser.h"
+#include "libeva2/evaaddfriend.h"
+#include "libeva2/evaaddfriendex.h"
 /*
 #pragma message("+ libeva")
 #pragma warning(disable:4520) // evalogin.h multiple default constructors

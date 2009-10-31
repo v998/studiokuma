@@ -308,21 +308,21 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_CMD_KEEP_ALIVE                         0x0002
 #endif
 #define QQ_CMD_MODIFY_INFO                        0x0004
-#if 0
 #define QQ_CMD_SEARCH_USER                        0x0005
-#endif
 #define QQ_CMD_GET_USER_INFO                      0x003C /*QQ2009*/
-#if 0
 #define QQ_CMD_ADD_FRIEND                         0x0009
 #define QQ_CMD_DELETE_FRIEND                      0x000A
 #define QQ_CMD_ADD_FRIEND_AUTH                    0x000B
+#if 0
 #define QQ_CMD_CHANGE_STATUS                      0x000D
 #define QQ_CMD_ACK_SYS_MSG                        0x0012
 #endif
 #define QQ_CMD_SEND_IM2006                        0x0016
 #if 0
 #define QQ_CMD_RECV_IM                            0x0017
+#endif
 #define QQ_CMD_DELETE_ME                          0x001C
+#if 0
 #define QQ_CMD_REQUEST_KEY                        0x001D
 #define QQ_CMD_CELL_PHONE_1                       0x0021
 #define QQ_CMD_LOGIN                              0x0022
@@ -334,11 +334,11 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_CMD_QUN_CMD                            0x0030
 #define QQ_CMD_TEST                               0x0031
 #endif
-#define QQ_CMD_GROUP_NAME_OP                      0x003C
+#define QQ_CMD_GROUP_NAME_OP                      QQ_CMD_GROUP_LABEL
 #define QQ_CMD_UPLOAD_GROUP_FRIEND                0x003D
 #define QQ_CMD_MEMO_OP                            QQ_CMD_BUDDY_ALIAS // 0x003e
 #if 0
-#define QQ_CMD_DOWNLOAD_GROUP_FRIEND              0x0058 // Warning! 0x0058 is now KEEPALIVE!
+#define QQ_CMD_DOWNLOAD_GROUP_FRIEND              QQ_CMD_GROUP_CMD // Warning! 0x0058 is now KEEPALIVE!
 #define QQ_CMD_GET_LEVEL                          0x005C
 #define QQ_CMD_ADVANCED_SEARCH                    0x0061
 #define QQ_CMD_REQUEST_LOGIN_TOKEN                0x0062
@@ -352,13 +352,13 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_CMD_RECV_MSG_FRIEND_CHANGE_STATUS      QQ_CMD_BUDDY_STATUS
 #define QQ_CMD_SERVER_DETECT                      QQ_CMD_TOUCH
 #define QQ_CMD_WEATHER                            0x00A6
-#if 0
 #define QQ_CMD_ADD_FRIEND_EX                      0x00A7
 #define QQ_CMD_ADD_FRIEND_AUTH_EX                 0x00A8
+
 #define QQ_CMD_ADD_FRIEND_AUTH_INFO               0x00AE
 #define QQ_CMD_VERIFY_ADDING_MSG                  0x00B5
 #define QQ_CMD_ADD_FRIEND_AUTH_QUESTION           0x00B7
-#endif
+
 #define QQ_CMD_REQUEST_LOGIN_TOKEN_EX             QQ_CMD_LOGIN_REQUEST
 #if 0
 #define QQ_CMD_LOGIN_LOCATION_CHECK               0x00DA
@@ -441,13 +441,11 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_QUN_JOIN_OK                        0x01
 #define QQ_QUN_JOIN_NEED_AUTH                 0x02
 #define QQ_QUN_JOIN_DENIED                    0x03
-#if 0
 #define QQ_SEARCH_QUN_BY_ID                   0x01
 #define QQ_SEARCH_DEMO_QUN                    0x02
 #define QQ_QUN_UNSET_ADMIN                    0x00
 #define QQ_QUN_SET_ADMIN                      0x01
 
-#endif
 /* group operation commands, unsigned char( 1 bytes) */
 #define QQ_UPLOAD_GROUP_NAME        0x02
 #define QQ_DOWNLOAD_GROUP_NAME  0x01
@@ -526,7 +524,6 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QUN_TYPE_ADMIN               0x01
 #define QUN_TYEP_SHAREHOLDER         0x02
 
-#if 0
 /** authorization, unsigned char ( 1 byte) */
 
 
@@ -598,6 +595,7 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_SEARCH_NICK       0x32
 #define QQ_SEARCH_QQ         0x33
 
+#if 0
 /** Memo , unsigned char ( 1 byte) **/
 #define QQ_MEMO_UPLOAD        0x01
 #define QQ_MEMO_REMOVE       0x02

@@ -22,6 +22,7 @@ extern "C" {
 #include "packetmgr.h"
 #include "protocol.h"
 #include "buddy.h"
+#include "config.h"
 
 void prot_buddy_update_list( struct qqclient* qq, ushort pos )
 {
@@ -50,6 +51,7 @@ void prot_buddy_update_list_reply( struct qqclient* qq, qqpacket* p )
 		b = buddy_get( qq, number, 1 );
 		if( b == NULL ){
 			DBG("Error: failed to allocate buddy.");
+			next_pos = 0xffff;
 			break;
 		}
 		b->face = get_word( buf );
@@ -68,7 +70,7 @@ void prot_buddy_update_list_reply( struct qqclient* qq, qqpacket* p )
 #ifndef NO_BUDDY_DETAIL_INFO
 		prot_buddy_update_signiture( qq, 0 );
 		prot_buddy_update_account( qq, 0 );
-		prot_buddy_update_alias( qq );
+		prot_buddy_update_alias( qq, 0 );
 #endif
 		buddy_put_event( qq );
 	}
@@ -99,6 +101,7 @@ void prot_buddy_update_online_reply( struct qqclient* qq, qqpacket* p )
 		b = buddy_get( qq, number, 0 );
 		if( !b ){
 			DBG("buddy_get(%d) failed.", number );
+			next_order = 0xff;
 			break;
 		}
 		get_byte( buf );
@@ -158,11 +161,10 @@ void prot_buddy_update_signiture( struct qqclient* qq, uint pos )
 	count = MIN( 50, qq->buddy_list.count-i );
 	if( count == 0 ){
 		pthread_mutex_unlock( &qq->buddy_list.mutex );
-		DBG("signiture finished.");
+		DBG("signature finished.");
 		packetmgr_del_packet( &qq->packetmgr, p );
 		return;
 	}
-	
 	put_byte( buf, count );
 	for( j=i; j<i+count; j++ ){
 		put_int( buf, ((qqbuddy*)qq->buddy_list.items[j])->number );	//
@@ -178,6 +180,7 @@ void prot_buddy_update_signiture_reply( struct qqclient* qq, qqpacket* p )
 	bytebuffer *buf = p->buf;
 	uchar cmd = get_byte( buf );
 	switch( cmd ){
+	case 0x03:
 	case 0x83:
 		{
 			uchar result = get_byte( buf );
@@ -197,8 +200,8 @@ void prot_buddy_update_signiture_reply( struct qqclient* qq, qqpacket* p )
 				b->sign_time = get_int( buf );
 				uchar len = get_byte( buf );
 			//	len = MIN( len, SIGNITURE_LEN-1 );
-				get_data( buf,  (uchar*)b->signiture, len );
-				b->signiture[len] = 0;
+				get_data( buf,  (uchar*)b->signature, len );
+				b->signature[len] = 0;
 			//	DBG("sign: %s  %s", b->nickname, b->signiture );
 			}
 			if( next_pos != 0 && next_pos != 0xffffffff ){
@@ -300,13 +303,13 @@ void prot_buddy_update_account_reply( struct qqclient* qq, qqpacket* p )
 }
 
 
-void prot_buddy_update_alias( struct qqclient* qq )
+void prot_buddy_update_alias( struct qqclient* qq, int index )
 {
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_BUDDY_ALIAS );
 	if( !p ) return;
 	bytebuffer *buf = p->buf;
 	put_byte( buf, 0x68 );	//command
-	put_byte( buf, 0x00 );
+	put_byte( buf, index );
 	post_packet( qq, p, SESSION_KEY );
 }
 
@@ -314,14 +317,11 @@ void prot_buddy_update_alias_reply( struct qqclient* qq, qqpacket* p )
 {
 	bytebuffer *buf = p->buf;
 	uchar cmd = get_byte( buf );
+	int count = 0;
 	switch( cmd ){
 	case 0x68:
 		{
 			uchar result = get_byte( buf );
-			if( result!=0x01 ){
-				DBG("reuslt = %d", result );
-				return;
-			}
 			while( buf->pos < buf->len ){
 				uint number = get_int( buf );
 				qqbuddy* b = buddy_get( qq, number, 0 );
@@ -333,7 +333,13 @@ void prot_buddy_update_alias_reply( struct qqclient* qq, qqpacket* p )
 				len = MIN( len, ALIAS_LEN-1 );
 				get_data( buf,  (uchar*)b->alias, len );
 				b->alias[len] = 0;
+				count ++;
 			//	DBG("alias: %s  %s", b->nickname, b->alias );
+			}
+			if( result!=0x01 ){
+				DBG("reuslt = %d", result );
+				prot_buddy_update_alias( qq, count );
+				return;
 			}
 			buddy_put_event( qq );
 		}
@@ -484,6 +490,145 @@ void prot_buddy_del_buddy_reply( struct qqclient* qq, qqpacket* p )
 		buddy_remove( qq, qq->data.operating_number );
 		sprintf( msg, "删除好友[%u]成功。", qq->data.operating_number );
 		buddy_msg_callback( qq, 100, time(NULL), msg );
+	}
+}
+
+//获取业务信息
+void prot_buddy_get_extra_info( struct qqclient* qq, uint number )
+{
+	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_GET_BUDDY_EXTRA_INFO );
+	if( !p ) return;
+	bytebuffer *buf = p->buf;
+	put_byte( buf, 0x03 );
+	put_int( buf, number );
+	post_packet( qq, p, SESSION_KEY );
+	prot_buddy_get_info( qq, number );
+}
+
+void prot_buddy_get_extra_info_reply( struct qqclient* qq, qqpacket* p )
+{
+	bytebuffer *buf = p->buf;
+	buf = NULL;
+}
+
+//获取好友详细资料 
+void prot_buddy_get_info( struct qqclient* qq, uint number )
+{
+	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_BUDDY_INFO );
+	if( !p ) return;
+	bytebuffer *buf = p->buf;
+	put_word( buf, 0x0001 );
+	put_int( buf, number );
+	buf->pos += 22;	//22 zeros
+	put_word( buf, 0x001A );	//entry count  4E和52是标记分隔符
+	put_word( buf, 0x4E22 );	//nickname
+	put_word( buf, 0x4E25 );	//邮政编码
+	put_word( buf, 0x4E26 );	//地址
+	put_word( buf, 0x4E27 );	//家庭电话
+	put_word( buf, 0x4E29 );	//
+	put_word( buf, 0x4E2A );	//
+	put_word( buf, 0x4E2B );	//email
+	put_word( buf, 0x4E2C );	//occupation
+	put_word( buf, 0x4E2D );	//主页
+	put_word( buf, 0x4E2E );	//
+	put_word( buf, 0x4E2F );	//
+	put_word( buf, 0x4E30 );	//手机
+	put_word( buf, 0x4E31 );	//资料可见度
+	put_word( buf, 0x4E33 );	//个人说明
+	put_word( buf, 0x4E35 );	//毕业学校
+	put_word( buf, 0x4E36 );	//
+	put_word( buf, 0x4E37 );	//
+	put_word( buf, 0x4E38 );	//
+	put_word( buf, 0x4E3F );	//
+	put_word( buf, 0x4E40 );	//
+	put_word( buf, 0x4E41 );	//第1语言
+	put_word( buf, 0x4E42 );	//第2语言
+	put_word( buf, 0x4E43 );	//第3语言
+	put_word( buf, 0x4E45 );	//年龄
+	put_word( buf, 0x520B );	//会员信息
+	put_word( buf, 0x520F );	//
+	post_packet( qq, p, SESSION_KEY );
+}
+
+void prot_buddy_get_info_reply( struct qqclient* qq, qqpacket* p )
+{
+	bytebuffer *buf = p->buf;
+	qqbuddy* b;
+	uint num, ret;
+	ushort len, type;
+	get_word(buf);	//0x0001
+	ret = get_byte(buf);	//result
+	if( ret!=00 )
+		return;
+	num = get_int(buf);
+	b = buddy_get( qq, num, 0 );
+	if( b==NULL )
+		return;
+	get_int(buf);
+	get_word(buf);	//entry count
+	while( buf->pos < buf->len ){
+		type = get_word(buf);
+		len = get_word(buf);
+		switch(type){
+		case 0x4E22://nickname
+			if( len<NICKNAME_LEN )
+				get_data(buf, (uchar*)b->nickname, len);
+			break;
+		case 0x4E25://post code
+			if( len<32 )
+				get_data(buf, (uchar*)b->post_code, len);
+			break;
+		case 0x4E26://address
+			if( len<64 )
+				get_data(buf, (uchar*)b->address, len);
+			break;
+		case 0x4E27://homephone
+			if( len<32 )
+				get_data(buf, (uchar*)b->homephone, len);
+			break;
+		case 0x4E28://email
+			if( len<32 )
+				get_data(buf, (uchar*)b->email, len);
+			break;
+		case 0x4E30://mobile
+			if( len<32 )
+				get_data(buf, (uchar*)b->mobilephone, len);
+			break;
+		case 0x4E2C://occupation
+			if( len<32 )
+				get_data(buf, (uchar*)b->occupation, len);
+			break;
+		case 0x4E2D://homepage
+			if( len<64 )
+				get_data(buf, (uchar*)b->homepage, len);
+			break;
+		case 0x4E33://brief
+			if( len<256 )
+				get_data(buf, (uchar*)b->brief, len);
+			break;
+		case 0x4E35://school
+			if( len<32 )
+				get_data(buf, (uchar*)b->school, len);
+			break;
+		case 0x4E3F://birth
+			if( len<16 )
+				get_data(buf, (uchar*)b->birth, len);
+			break;
+		case 0x4E23://country
+			if( len<16 )
+				get_data(buf, (uchar*)b->country, len);
+			break;
+		case 0x4E24://province
+			if( len<16 )
+				get_data(buf, (uchar*)b->province, len);
+			break;
+		case 0x4E34://city
+			if( len<16 )
+				get_data(buf, (uchar*)b->city, len);
+			break;
+		default:
+			buf->pos += len;
+		}
 	}
 }
 

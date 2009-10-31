@@ -286,7 +286,8 @@ void __cdecl CNetwork::ThreadMsgBox(void* szMsg) {
 }
 
 // copied from groups.c - horrible, but only possible as this is not available as service
-int util_group_name_exists(LPCWSTR name,int skipGroup)
+// NOTE: This function is in UTF8 as in MirandaQQ3
+int util_group_name_exists(LPCSTR name,int skipGroup)
 {
   char idstr[33];
   DBVARIANT dbv;
@@ -297,8 +298,8 @@ int util_group_name_exists(LPCWSTR name,int skipGroup)
   {
     if(i==skipGroup) continue;
     itoa(i,idstr,10);
-    if(DBGetContactSettingTString(NULL,"CListGroups",idstr,&dbv)) break;
-    if(!wcscmp(dbv.ptszVal+1,name)) 
+	if(DBGetContactSettingUTF8String(NULL,"CListGroups",idstr,&dbv)) break;
+	if(!strcmp(dbv.pszVal+1,name)) 
     {
       DBFreeVariant(&dbv);
       return i;

@@ -66,6 +66,7 @@ public:
 	static const int getClientKeyLength() { return clientKeyLength; }
 #endif
 	void setQQClient(qqclient* client) { this->qqClient=client; };
+	qqclient* getQQClient() const { return qqClient; }
 	const unsigned int getQQ() { return qqClient->number; }
 	
 	bool isUDP() { return qqClient->network==UDP; };

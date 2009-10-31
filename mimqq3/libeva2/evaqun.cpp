@@ -1319,9 +1319,6 @@ int QunSendIMPacket::putBody( unsigned char * buf )
 	return pos;
 }
 
-#if 0
-
-
 /***************************************************************************************************************/
 
 QunSearchPacket::QunSearchPacket()
@@ -1369,7 +1366,6 @@ int QunSearchPacket::putBody( unsigned char * buf )
 }
 
 
-
 /***************************************************************************************************************/
  
 QunJoinPacket::QunJoinPacket(const unsigned int id)
@@ -1395,7 +1391,7 @@ int QunJoinPacket::putBody(unsigned char *buf)
 }
 
 
-
+#if 0
 /***************************************************************************************************************/
  
 QunModifyPacket::QunModifyPacket( const QunInfo & inf )
@@ -1458,7 +1454,7 @@ int QunModifyPacket::putBody( unsigned char * buf )
 	return pos;
 }
 
-
+#endif
 
 /***************************************************************************************************************/
  
@@ -1528,7 +1524,7 @@ int QunModifyCardPacket::putBody( unsigned char * buf )
 	return pos;
 }
 
-
+#if 0
 
 /***************************************************************************************************************/
  
@@ -1794,7 +1790,7 @@ int QunRequestCardPacket::putBody( unsigned char * buf )
 	return pos;
 }
 
-
+#endif
 
 /***************************************************************************************************************/
 
@@ -1827,7 +1823,7 @@ int QunExitPacket::putBody( unsigned char * buf )
 	return pos;
 }
 
-
+#if 0
 
 /***************************************************************************************************************/
 

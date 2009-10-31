@@ -22,15 +22,39 @@ typedef struct qqbuddy{
 	uint		sign_time;
 	uchar		account_flag;
 #ifndef NO_BUDDY_DETAIL_INFO
-	char		signiture[SIGNITURE_LEN];
+	char		signature[SIGNITURE_LEN];
 	char		account[ACCOUNT_LEN];	//email account
 	char		alias[ALIAS_LEN];
-	char		info_string[MAX_USER_INFO][USER_INFO_LEN];
+	char		post_code[32];
+	char		address[64];
+	char		homephone[32];
+	char		mobilephone[32];
+	char		email[32];
+	char		occupation[32];
+	char		homepage[64];
+	char		brief[256];
+	char		school[32];
+	char		birth[16];
+	char		province[16];
+	char		city[16];
+	char		country[16];
 #else
 	char		signiture[1];
 	char		account[1];
 	char		alias[1];
-	char		info_string[1][1];
+	char		post_code[1];
+	char		address[1];
+	char		homephone[1];
+	char		mobilephone[1];
+	char		email[1];
+	char		occupation[1];
+	char		homepage[1];
+	char		brief[1];
+	char		school[1];
+	char		birth[1];
+	char		province[1];
+	char		city[1];
+	char		country[1];
 #endif
 
 }qqbuddy;

@@ -260,9 +260,6 @@ int process_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 		prot_user_check_ip_reply( qq, p );
 		break;
 #ifndef NO_BUDDY_DETAIL_INFO
-	case QQ_CMD_GET_USER_INFO:
-		prot_user_get_info_reply( qq, p );
-		break;
 	case QQ_CMD_GET_BUDDY_SIGN:
 		prot_buddy_update_signiture_reply( qq, p );
 		break;
@@ -271,6 +268,12 @@ int process_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 		break;
 	case QQ_CMD_BUDDY_ALIAS:
 		prot_buddy_update_alias_reply( qq, p );
+		break;
+	case QQ_CMD_GET_BUDDY_EXTRA_INFO:
+		prot_buddy_get_extra_info_reply( qq, p );
+		break;
+	case QQ_CMD_BUDDY_INFO:
+		prot_buddy_get_info_reply( qq, p );
 		break;
 #endif
 #ifndef NO_GROUP_INFO

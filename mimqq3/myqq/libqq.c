@@ -36,10 +36,20 @@
 #include "group.h"
 #include "config.h"
 #include "qqsocket.h"
+#include "utf8.h"
 
 #define MAX_USERS 1000
 
 static int if_init = 0;
+
+static void* login_ex( void* data )
+{
+	qqclient* qq = (qqclient*) data;
+	pthread_detach(pthread_self());
+	DBG("login: %u", qq->number );
+	qqclient_login( qq );
+	return NULL;
+}
 
 EXPORT void libqq_init()
 {
@@ -71,7 +81,13 @@ EXPORT qqclient* libqq_create( uint number, char* pass )
 
 EXPORT int libqq_login( qqclient* qq )
 {
-	return qqclient_login( qq );
+	int ret;
+	pthread_t ptr;
+	ret = pthread_create( &ptr, NULL, login_ex, (void*)qq );
+	if(	ret != 0 ){
+		DBG("thread creation failed. ret=%d", ret );
+	}
+	return ret;
 }
 
 EXPORT int libqq_logout( qqclient* qq )
@@ -92,19 +108,26 @@ EXPORT int libqq_getmessage( qqclient* qq, char* buf, int size, int wait )
 {
 	int ret;
 	ret = qqclient_get_event( qq, buf, size, wait );
+	utf8_to_gb( buf, buf, size );
 	return ret;
 }
 
 EXPORT int libqq_sendmessage( qqclient* qq, uint to, char* buf, char qun_msg )
 {
+	char* tmp;
+	int len = strlen(buf);
+	if( len<1 ) return -2;
+	NEW( tmp, len*2 );
+	gb_to_utf8( buf, tmp, len*2-1 );
 	if( qun_msg ){
 		qqqun* q = qun_get_by_ext( qq, to );
 		if( q )
-			return qun_send_message( qq, q->number, buf );
+			qun_send_message( qq, q->number, tmp );
 	}else{
-		return buddy_send_message( qq, to, buf );
+		buddy_send_message( qq, to, tmp );
 	}
-	return -1;
+	DEL( tmp );
+	return 0;
 }
 
 EXPORT void libqq_updatelist( qqclient* qq )
@@ -228,8 +251,6 @@ EXPORT void libqq_getqunmembername( qqclient* qq, uint ext_id, uint uid, char* b
 
 EXPORT void libqq_getbuddyname( qqclient* qq, uint uid, char* buf )
 {
-	strcpy ( buf, "helloworld.");
-	return;
 	qqbuddy* b = buddy_get( qq, uid, 0 );
 	if( b ){
 		strncpy( buf, b->nickname, 15 );
@@ -238,4 +259,20 @@ EXPORT void libqq_getbuddyname( qqclient* qq, uint uid, char* buf )
 			sprintf( buf, "%u" , uid );
 		}
 	}
+}
+
+// 090706 by HG
+EXPORT void libqq_sethttpproxy( struct qqclient* qq, char* ip, ushort port )
+{
+	struct sockaddr_in addr;
+	qq->network = PROXY_HTTP;
+	netaddr_set( ip, &addr );
+	qq->proxy_server_ip = ntohl( addr.sin_addr.s_addr );
+	qq->proxy_server_port = port;
+}
+
+
+EXPORT void libqq_getextrainfo( struct qqclient* qq, uint uid )
+{
+	prot_buddy_get_extra_info( qq, uid );
 }

@@ -118,7 +118,7 @@ void prot_login_touch_reply( struct qqclient* qq, qqpacket* p )
 	}
 }
 
-void prot_login_request( struct qqclient* qq, token* tok, uint code, char png_data )
+void prot_login_request( struct qqclient* qq, token* tok, char* code, char png_data )
 {
 	
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_LOGIN_REQUEST );
@@ -140,7 +140,8 @@ void prot_login_request( struct qqclient* qq, token* tok, uint code, char png_da
 	put_byte( buf, png_data );
 	if( code && tok ){
 		put_byte( buf, 4 );
-		put_int( buf, htonl( code ) );
+		//put_int( buf, htonl( code ) );
+		put_data(buf,(uchar*)code,4);
 		//answer token
 		put_word( buf, tok->len );
 		put_data( buf, tok->data, tok->len );
@@ -179,6 +180,7 @@ void prot_login_request_reply( struct qqclient* qq, qqpacket* p )
 		next = get_byte( buf );
 		char path[PATH_LEN];
 		sprintf( path, "%s/%u.png", qq->verify_dir, qq->number );
+
 		FILE *fp;
 		if( next ){
 			fp = fopen( path, "wb" );
@@ -227,7 +229,7 @@ void prot_login_verify( struct qqclient* qq )
 	put_int( verify_data, qq->number );
 	put_data( verify_data, qq->data.version_spec, sizeof(qq->data.version_spec) );
 	put_byte( verify_data, 00 );
-	put_word( verify_data, 0x0001 );
+	put_word( verify_data, 00 );	//0x0001 什么来的？
 	put_data( verify_data, qq->md5_pass1, sizeof(qq->md5_pass1) );
 	put_int( verify_data, qq->server_time );
 	verify_data->pos += 13;
@@ -362,8 +364,8 @@ void prot_login_get_info_reply( struct qqclient* qq, qqpacket* p )
 	get_data( buf, (uchar*)qq->self->nickname, len );
 	qq->self->nickname[len] = 0;
 	DBG("Hello, %s", qq->self->nickname );
-	prot_login_a4( qq );
-//	prot_login_send_info( qq );
+//	prot_login_a4( qq );
+	prot_login_get_list( qq, 0 );
 }
 
 void prot_login_a4( struct qqclient* qq )
@@ -449,11 +451,11 @@ void prot_login_get_list_reply( struct qqclient* qq, qqpacket* p )
 		}else if( type == 0x01 ){
 #ifndef NO_BUDDY_INFO
 			qqbuddy* b = buddy_get( qq, number, 1 );
-//			DBG("QQ: %d", number );
 			if( b )
 				b->gid = gid / 4;
 #endif
 		}
+		number = type = gid = 0;
 	}
 }
 
@@ -494,7 +496,7 @@ void prot_login_send_info( struct qqclient* qq )
 	put_data( buf, qq->data.token_c.data, qq->data.token_c.len );
 	put_int( buf, 0x00000007 );
 	put_int( buf, 0x00000000 );
-	put_int( buf, 0x08041001 );
+	put_int( buf, 0x08041801 );
 	put_byte( buf, 0x40 );	//length of the following
 	put_byte( buf, 0x01 );
 	put_int( buf, rand()  );

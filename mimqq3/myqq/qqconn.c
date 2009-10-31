@@ -61,6 +61,8 @@ static void read_server_addr( server_item* srv, char* s, int* count  )
 			}
 			if( *p=='\0' )
 				break;
+		}else if(*p==' '){
+			continue;
 		}else{
 			if( read_name ){
 				if( j<31 )	ip[j++] = *p;
@@ -105,11 +107,13 @@ void qqconn_get_server(qqclient* qq)
 			qq->server_port = tcp_servers[i].port;
 		}else if( qq->network == PROXY_HTTP && tcp_server_count>0 && proxyhttp_server_count>0 ){
 			//Setup Proxy Server
-			i = rand()%proxyhttp_server_count;
-			netaddr_set( proxyhttp_servers[i].ip, &addr );
-			qq->proxy_server_ip = ntohl( addr.sin_addr.s_addr );
-			qq->proxy_server_port = proxyhttp_servers[i].port;
-			//Setup TCP Server
+			if( !qq->proxy_server_ip || !qq->proxy_server_port ){
+				i = rand()%proxyhttp_server_count;
+				netaddr_set( proxyhttp_servers[i].ip, &addr );
+				qq->proxy_server_ip = ntohl( addr.sin_addr.s_addr );
+				qq->proxy_server_port = proxyhttp_servers[i].port;
+			}
+			//Setup QQ TCP Server
 			i = rand()%tcp_server_count;
 			netaddr_set( tcp_servers[i].ip, &addr );
 			qq->server_ip = ntohl( addr.sin_addr.s_addr );

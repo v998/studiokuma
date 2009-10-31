@@ -117,6 +117,7 @@ void CQunImage::doProcessEvent() {
 	}
 	currentIndex = -1;
 	if(!*(LPDWORD)m_network->m_client.data.file_key) {
+		util_log(0,"[CQunImage] doProcessEvent -- file key not set!!!, return");
 		clearManager();
 		return;
 	}
@@ -198,6 +199,7 @@ void CQunImage::doProcessOutEvent() {
 void CQunImage::waitTimedOut() {
 	if(isAppending || isRemoving ) return;
 
+	/*
 	util_log(0,"[CQunImage] waitTimedOut, outPool.size=%d",outPool.size());
 	for (list<EvaPicOutPacket*>::iterator iter=outPool.begin(); iter!=outPool.end(); iter++) {
 		if ((*iter)->needResend()) {
@@ -210,10 +212,10 @@ void CQunImage::waitTimedOut() {
 		}
 		if(isAppending || isRemoving ) break;
 	}
-
+	*/
 	m_timeoutCount++;
 
-	if (m_timeoutCount>=20) {
+	if (m_timeoutCount>=1) {
 		util_log(0,"[CQunImage] connection holds for too long, disconnect");
 		disconnect();
 	}

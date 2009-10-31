@@ -777,7 +777,8 @@ ReceivedQunIMJoinRequest::ReceivedQunIMJoinRequest(const unsigned short imType, 
 
 	int pos=0;
 	unsigned char exttype=0;
-	externalID = ntohl(*(unsigned int*)buf);
+	pos+=4; // Changed in QQ2009
+	externalID = ntohl(*(unsigned int*)(buf+pos));
 	pos+=4;
 	
 	type = buf[pos++];
@@ -836,18 +837,20 @@ ReceivedQunIMJoinRequest::ReceivedQunIMJoinRequest(const unsigned short imType, 
 		pos += length;
 	}
 
-	m_CodeLen = READ16(buf + pos);
-	pos +=2;
-
-	setCode(buf+pos, m_CodeLen);
-	pos += m_CodeLen;
-
-	if(imType == QQ_RECV_IM_REQUEST_JOIN_QUN){
-		m_TokenLen = READ16(buf + pos);
+	if (len>pos) {
+		m_CodeLen = READ16(buf + pos);
 		pos +=2;
-	
-		setToken(buf+pos, m_TokenLen);
-		pos += m_TokenLen;
+
+		setCode(buf+pos, m_CodeLen);
+		pos += m_CodeLen;
+
+		if(imType == QQ_RECV_IM_REQUEST_JOIN_QUN){
+			m_TokenLen = READ16(buf + pos);
+			pos +=2;
+		
+			setToken(buf+pos, m_TokenLen);
+			pos += m_TokenLen;
+		}
 	}
 }
 

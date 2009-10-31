@@ -6,6 +6,7 @@
  *  Copyright (C) 2008  Huang Guan
  *
  *  2008-7-9 15:40:05 Created.
+ *  2009-7-5 23:32:00 Patched a chars memory bug in parse().
  *
  *  Description: This file mainly includes the functions about 
  *  reading configuration file.
@@ -42,7 +43,7 @@ static void add( config* c, char* name, char* value )
 	c->items[i] = (config_item*)malloc( sizeof(config_item) );
 	strncpy( c->items[i]->name, name, CONFIG_NAME_LEN );
 	strncpy( c->items[i]->value, value, CONFIG_VALUE_LEN );
-//	DBG("added item '%s':'%s'", name, value );
+//	printf("added item '%s':'%s'\n", name, value );
 }
 
 static void parse( config*conf, char* buf, int len )
@@ -51,7 +52,7 @@ static void parse( config*conf, char* buf, int len )
 	state = NAME;
 	int i, j;
 	char c;
-	char name[CONFIG_NAME_LEN], value[CONFIG_VALUE_LEN];
+	char name[CONFIG_NAME_LEN+1], value[CONFIG_VALUE_LEN+1];
 	i = j = 0;
 	buf[len] = '\0';
 	while( i <= len ){
@@ -73,7 +74,8 @@ static void parse( config*conf, char* buf, int len )
 			}else{
 				if( j==0 && c == ' ' )	//do not add front space
 					break;
-				name[j++] = c;
+				if( j<CONFIG_NAME_LEN )
+					name[j++] = c;
 			}
 			break;
 		case VALUE:
@@ -93,7 +95,8 @@ static void parse( config*conf, char* buf, int len )
 			}else{
 				if( j==0 && c == ' ' )	//do not add front space
 					break;
-				value[j++] = c;
+				if( j<CONFIG_VALUE_LEN )
+					value[j++] = c;
 			}
 			break;
 		default:
@@ -110,7 +113,7 @@ static char default_configs[]="### Default Configuration ###\n"
 "QQLogDir = ./log\n"
 "# 验证码目录\n"
 "QQVerifyDir = ./verify\n"
-"# 登录方式\n"
+"# 登录方式 UDP or TCP or PROXY_HTTP\n"
 "QQNetwork = UDP\n"
 "# QQNetwork = TCP\n"
 "NO_COLOR = false\n"
@@ -120,6 +123,7 @@ static char default_configs[]="### Default Configuration ###\n"
 "最多允许添加16个\n"
 "QQTcpServerList = 219.133.60.173:443|219.133.49.125:443|58.60.15.33:443\n"
 "QQUdpServerList = 219.133.49.171:8000|58.60.14.37:8000|219.133.60.36:8000|58.60.15.39:8000|sz6.tencent.com:8000|sz7.tencent.com:8000\n"
+"QQHttpProxyServerList = \n"
 ;
 
 int config_open( config* c, char* filename )
@@ -148,6 +152,7 @@ int config_open( config* c, char* filename )
 		fclose( fp );
 		return -2;
 	}
+	free( buf );
 	fclose( fp );
 	return 0;
 }
