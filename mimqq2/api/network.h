@@ -101,6 +101,7 @@ private:
 	bool m_loggedIn;
 	//bool m_invisible;
 	INT m_clockSkew;
+	onlineList m_tempOnlineList;
 
 	std::map<short, pcMsg> pcMsgCache;
 
