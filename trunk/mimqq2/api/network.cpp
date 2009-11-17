@@ -488,10 +488,19 @@ void CNetwork::processGetFriendListResponse(InPacket* in) {
 
 void CNetwork::processGetFriendOnlineResponse(InPacket* in) {
 	PARSE2(GetOnlineFriendReplyPacket);
-	DEFCB();
+	onlineList l=packet.getOnlineFriendList();
 
-	if(packet.getPosition() != QQ_FRIEND_ONLINE_LIST_POSITION_END){
-		append(new GetOnlineFriendsPacket(packet.getPosition()));
+	for (onlineList::iterator iter=l.begin(); iter!=l.end(); iter++)
+		m_tempOnlineList.push_back(*iter);
+
+	util_log(0,"ASSERT: packet.getPosition()=%d",packet.getPosition());
+	/*if (packet.getPosition()==0) {
+		util_log(0,"ASSERT: online friend response packet.getPosition()==0!");
+	} else */if(packet.getPosition() != QQ_FRIEND_ONLINE_LIST_POSITION_END){
+		util_log(0,"ASSERT: continue send");
+		append(new GetOnlineFriendsPacket(packet.getPosition()+packet.getOnlineFriendList().size()));
+	} else {
+		DEFCB();
 	}
 }
 

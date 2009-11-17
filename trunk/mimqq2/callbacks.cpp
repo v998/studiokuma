@@ -1287,8 +1287,10 @@ void CNetwork::_writeVersion(HANDLE hContact, int version, const char* iniFile) 
 }
 
 void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
-	onlineList list = packet->getOnlineFriendList();
+	//onlineList list = packet->getOnlineFriendList();
 	char szPluginPath[MAX_PATH];
+
+	util_log(0,"ASSERT: Online friend list size=%d",m_tempOnlineList.size());
 
 	map<unsigned int, unsigned int> qqlist;
 	CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
@@ -1307,7 +1309,7 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
 	}
 
-	for(onlineList::iterator iter = list.begin(); iter!=list.end(); ++iter){
+	for(onlineList::iterator iter = m_tempOnlineList.begin(); iter!=m_tempOnlineList.end(); ++iter){
 		unhandledqqlist[iter->getQQ()]=1;
 		if (hContact=FindContact(iter->getQQ())) {
 			oldStatus=READC_W2("Status");
@@ -1345,6 +1347,8 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 		} else
 			util_log(98,"%s(): Warning: Cannot find contact with QQ=%d! Possibly removed?",__FUNCTION__,iter->getQQ());
 	}
+
+	m_tempOnlineList.clear();
 
 	for (map<DWORD,UCHAR>::iterator iter=unhandledqqlist.begin(); iter!=unhandledqqlist.end(); iter++) {
 		if (iter->second==0) {
