@@ -108,9 +108,9 @@ int Weather::parseBean(unsigned char* buf) {
 	delete[] pszTemp;
 	pos+=len;
 
-	lowTemperature = htons(*(short*)(buf+pos));
+	lowTemperature = (short)htons(*(short*)(buf+pos));
 	pos+=2;
-	highTemperature = htons(*(short*)(buf+pos));
+	highTemperature = (short)htons(*(short*)(buf+pos));
 	pos+=2;
 
 	pos++;

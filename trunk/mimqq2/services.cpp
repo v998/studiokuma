@@ -2899,7 +2899,7 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 
 		if (file[1]==0) {
 			// Miranda IM 0.9: ppszFiles maybe in Unicode
-			afile=mir_u2a((LPWSTR)file);
+			afile=mir_u2a_cp((LPWSTR)file,GetACP());
 			file=afile;
 		}
 

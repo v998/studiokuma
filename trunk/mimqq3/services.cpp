@@ -1174,7 +1174,7 @@ extern "C" {
 	}
 
 	MIMPROC(GetWeather) {
-		if (m_client.login_finish==1)
+		if (m_client.login_finish!=1)
 			MessageBox(NULL,TranslateT("You are not connected to QQ Network!"),NULL,MB_ICONERROR);
 		else {
 			/*
@@ -3051,7 +3051,7 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 
 		if (file[1]==0) {
 			// Miranda IM 0.9: ppszFiles maybe in Unicode
-			afile=mir_u2a((LPWSTR)file);
+			afile=mir_u2a_cp((LPWSTR)file,GetACP());
 			file=afile;
 		}
 
