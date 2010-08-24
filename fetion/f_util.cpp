@@ -68,6 +68,22 @@ unsigned char* string2hex(LPSTR szString, unsigned char* szOutput) {
 	return szOutput;
 }
 
+LPSTR fetion_ssi_calcuate_digest(LPCSTR password) {
+	// SHA-1 hash is 20 bytes long
+	unsigned char digest[24];
+	char temp[55];
+
+	// memcpy(temp,SALT_BIN,4);
+	memcpy(temp,"wzm\x03",4);
+	mir_sha1_hash((mir_sha1_byte_t*)password,strlen(password),(unsigned char*)temp+4);
+	mir_sha1_hash((mir_sha1_byte_t*)temp,24,(unsigned char*)digest);
+	// strcpy(temp,SALT);
+	strcpy(temp,"777A6D03");
+	hex2string(digest,20,temp+8);
+	return mir_strdup(temp);
+}
+
+
 LPSTR fetion_cipher_digest_calculate_response(
 		LPCSTR sid,
 		LPCSTR domain,

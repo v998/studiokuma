@@ -4,7 +4,7 @@ LoginToSsiPortal -> Ssi_cb -> read_cookie -> srvresolved
 */
 
 #define UNIQUEIDSETTING					"UID"
-#define FETION_VERSION "3.2.0540" //"2.3.0230"
+#define FETION_VERSION "3.5.2560" // "3.6.1900" // "3.2.0540" //"2.3.0230"
 #define FETION_USER_AGENT "IIC2.0/PC " FETION_VERSION
 #define SALT "13010501"
 #define SALT_BIN "\x13\x01\x05\x01"
