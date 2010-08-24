@@ -17,4 +17,7 @@ LPSTR auth_header(CNetwork *sip,
 LPSTR parse_attribute(LPCSTR attrname, LPCSTR source);
  void fill_auth(CNetwork *sip, LPCSTR hdr, struct sip_auth *auth);
 LPSTR parse_from(LPCSTR hdr);
+LPSTR fetion_ssi_calcuate_digest(LPCSTR password);
+
 #endif
+
