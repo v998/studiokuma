@@ -183,7 +183,7 @@ extern "C" {
 
 		fid.deffontsettings.charset = GB2312_CHARSET;
 		fid.deffontsettings.colour = RGB(0, 0, 0);
-		fid.deffontsettings.size = 12;
+		fid.deffontsettings.size = 16;
 		fid.deffontsettings.style = 0;
 		strncpy(fid.deffontsettings.szFace, "SimSun", LF_FACESIZE);
 		CallService(MS_FONT_REGISTER, (WPARAM)&fid, 0);

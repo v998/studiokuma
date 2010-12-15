@@ -546,9 +546,21 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_SEARCH_QQ         0x33
 
 /** Memo , unsigned char ( 1 byte) **/
-#define QQ_MEMO_UPLOAD        0x01
-#define QQ_MEMO_REMOVE       0x02
-#define QQ_MEMO_DOWNLOAD  0x03
+#define QQ_MEMO_BATCH_DOWNLOAD 0x00
+#define QQ_MEMO_UPLOAD         0x01
+#define QQ_MEMO_REMOVE         0x02
+#define QQ_MEMO_DOWNLOAD       0x03
+
+/** Redirection of usage of ContactInfo in QQ_MEMO_BATCH_DOWNLOAD **/
+#define QQ_MEMO_DATA_QQ      0
+#define QQ_MEMO_DATA_NAME    1
+#define QQ_MEMO_DATA_MOBILE  2
+#define QQ_MEMO_DATA_PHONE   3
+#define QQ_MEMO_DATA_ADDRESS 4
+#define QQ_MEMO_DATA_EMAIL   5
+#define QQ_MEMO_DATA_ZIPCODE 6
+#define QQ_MEMO_DATA_NOTE    7
+#define QQ_MEMO_DATA_END     8
 
 /** sub-command of  QQ_CMD_REQUEST_LOGIN_TOKEN_EX */
 #define QQ_LOGIN_TOKEN_REQUEST     0x01

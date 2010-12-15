@@ -81,6 +81,7 @@ private:
 	void processGroupNameOpResponse(InPacket* in);
 	void processDeleteFriendResponse(InPacket* in);
 	void processAddFriendAuthInfoReply(InPacket* in);
+	void processMemoOpResponse(InPacket* in);
 
 	void removeOutRequests(const short cmd);
 	void packetException(const short cmd);
@@ -122,7 +123,7 @@ private:
 
 	virtual	HANDLE __cdecl ChangeInfo( int iInfoType, void* pInfoData );
 
-	virtual	int    __cdecl FileAllow( HANDLE hContact, HANDLE hTransfer, const char* szPath );
+	virtual	HANDLE __cdecl FileAllow( HANDLE hContact, HANDLE hTransfer, const PROTOCHAR* szPath );
 	virtual	int    __cdecl FileCancel( HANDLE hContact, HANDLE hTransfer );
 	virtual	int    __cdecl FileDeny( HANDLE hContact, HANDLE hTransfer, const char* szReason );
 	virtual	int    __cdecl FileResume( HANDLE hTransfer, int* action, const char** szFilename );
@@ -143,14 +144,14 @@ private:
 	virtual	int    __cdecl RecvUrl( HANDLE hContact, PROTORECVEVENT* );
 
 	virtual	int    __cdecl SendContacts( HANDLE hContact, int flags, int nContacts, HANDLE* hContactsList );
-	virtual	int    __cdecl SendFile( HANDLE hContact, const char* szDescription, char** ppszFiles );
+	virtual	HANDLE __cdecl SendFile( HANDLE hContact, const PROTOCHAR* szDescription, PROTOCHAR** ppszFiles );
 	virtual	int    __cdecl SendMsg( HANDLE hContact, int flags, const char* msg );
 	virtual	int    __cdecl SendUrl( HANDLE hContact, int flags, const char* url );
 
 	virtual	int    __cdecl SetApparentMode( HANDLE hContact, int mode );
 	virtual	int    __cdecl SetStatus( int iNewStatus );
 
-	virtual	int    __cdecl GetAwayMsg( HANDLE hContact );
+	virtual	HANDLE __cdecl GetAwayMsg( HANDLE hContact );
 	virtual	int    __cdecl RecvAwayMsg( HANDLE hContact, int mode, PROTORECVEVENT* evt );
 	virtual	int    __cdecl SendAwayMsg( HANDLE hContact, HANDLE hProcess, const char* msg );
 	virtual	int    __cdecl SetAwayMsg( int m_iStatus, const char* msg );
@@ -271,6 +272,7 @@ private:
 	void _tempSessionOpCallback(TempSessionOpReplyPacket* packet);
 	void _weatherOpCallback(WeatherOpReplyPacket* packet);
 	void _uploadGroupFriendCallback(UploadGroupFriendReplyPacket* packet);
+	void _memoOpCallback(EvaMemoReplyPacket* packet);
 	void __cdecl delayReport(LPVOID);
 	void __cdecl _addFriendAuthGraphicalVerification(LPVOID adp);
 	void __cdecl _tempSessionGraphicalVerification(LPVOID adp);
@@ -317,6 +319,7 @@ private:
 	int m_qqusers;
 	bool m_downloadGroup;
 	int m_myqq;
+	int m_memoPage;
 	HANDLE m_hMenuRoot;
 
 	InPacket* m_curmsg;

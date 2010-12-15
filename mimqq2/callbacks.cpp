@@ -1503,6 +1503,9 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 			ShowNotification(szTemp,NIIF_INFO);
 			m_hGroupList.clear();
 			m_downloadGroup=false;
+
+			m_memoPage=0;
+			append(new EvaMemoPacket(0,QQ_MEMO_BATCH_DOWNLOAD));
 		}
 	}
 }
@@ -2911,6 +2914,34 @@ void CNetwork::_addFriendAuthInfoCallback(EvaAddFriendGetAuthInfoReplyPacket* pa
 	}
 }
 
+void CNetwork::_memoOpCallback(EvaMemoReplyPacket* packet) {
+	stringStringList ssl=packet->getMemos();
+	HANDLE hContact;
+	LPCSTR pszRemarkName;
+	LPSTR pszRemarkNameUTF;
+
+	util_log(0,__FUNCTION__"(): Received %d memos",ssl.size());
+
+	for (stringStringList::iterator iter=ssl.begin(); iter!=ssl.end(); iter++) {
+		if (hContact=FindContact(strtoul(iter->at(QQ_MEMO_DATA_QQ).c_str(),NULL,10))) {
+			pszRemarkName=iter->at(QQ_MEMO_DATA_NAME).c_str();
+			if (*pszRemarkName && strcmp(pszRemarkName," ")) {
+				pszRemarkNameUTF=mir_utf8encodecp(pszRemarkName,936);
+				DBWriteContactSettingUTF8String(hContact,"CList","MyHandle",pszRemarkNameUTF);
+				mir_free(pszRemarkNameUTF);
+			} else
+				DBDeleteContactSetting(hContact,"CList","MyHandle");
+		} else
+			util_log(0,__FUNCTION__"(): cannot find contact with QQID %u!",iter->at(QQ_MEMO_DATA_QQ).c_str());
+	}
+
+	if (packet->getReplyCode()!=1) {
+		EvaMemoPacket* emp=new EvaMemoPacket(0,QQ_MEMO_BATCH_DOWNLOAD);
+		emp->setPage(++m_memoPage);
+		append(emp);
+	}
+}
+
 void CNetwork::callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam) {
 	switch (command) {
 		case QQ_CMD_REQUEST_LOGIN_TOKEN_EX: _requestLoginTokenExCallback((RequestLoginTokenExReplyPacket*)wParam);
@@ -2938,6 +2969,7 @@ void CNetwork::callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lP
 		case QQ_CMD_TEMP_SESSION_OP: _tempSessionOpCallback((TempSessionOpReplyPacket*)wParam); break;
 		case QQ_CMD_WEATHER: _weatherOpCallback((WeatherOpReplyPacket*)wParam); break;
 		case QQ_CMD_UPLOAD_GROUP_FRIEND: _uploadGroupFriendCallback((UploadGroupFriendReplyPacket*)wParam); break;
+		case QQ_CMD_MEMO_OP: _memoOpCallback((EvaMemoReplyPacket*)wParam); break;
 	}
 }
 

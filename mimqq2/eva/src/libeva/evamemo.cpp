@@ -22,7 +22,7 @@
 #include <cstring>
 
 EvaMemoPacket::EvaMemoPacket( const int id, const unsigned char type )
-	:OutPacket( QQ_CMD_MEMO_OP, true ), m_Id( id ), m_Type( type )
+	:OutPacket( QQ_CMD_MEMO_OP, true ), m_Id( id ), m_Type( type ), m_Page(0)
 {
 }
 
@@ -58,6 +58,11 @@ int EvaMemoPacket::putBody( unsigned char *buf )
 	int len = 0;
 	setDetails(m_Memo);
 	switch(m_Type){
+	case 0x00:{
+		buf[pos++] = QQ_MEMO_BATCH_DOWNLOAD;
+		buf[pos++] = m_Page;
+		}
+		break;
 	case 0x01:{
 		buf[pos++] = QQ_MEMO_UPLOAD; //0x01 is the upload memo option
 		buf[pos++] = 0x00; //unknow byte
@@ -124,6 +129,33 @@ void EvaMemoReplyPacket::parseBody()
 	int pos = 0;
 	int len = 0;
 	switch(decryptedBuf[pos++]){
+	case 0x00:{
+			char qqid[16];
+			stringList sl;
+			unsigned char len;
+			m_Type = QQ_MEMO_BATCH_DOWNLOAD;
+			m_ReplyCode = decryptedBuf[pos++];
+			
+			while (pos<bodyLength) {
+				sl.clear();
+				itoa(EvaUtil::read32(decryptedBuf+pos),qqid,10);
+				sl.push_back(qqid);
+				pos += 5;
+
+				for (int infoidx=QQ_MEMO_DATA_QQ; infoidx<QQ_MEMO_DATA_END; infoidx++) {
+					len = decryptedBuf[pos++];
+					char* str = new char[len+1];
+					memcpy(str,decryptedBuf+pos,len);
+					str[len] = 0x00;
+					sl.push_back(str);
+					pos += len;
+					delete[] str;
+				}
+
+				m_RemarkInfos.push_back(sl);
+			}
+		}
+		break;
 	case 0x01:
 		
 		m_Type = QQ_MEMO_UPLOAD;
