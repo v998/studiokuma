@@ -158,7 +158,10 @@ typedef struct {
 	int         cbSize;            //Set to sizeof(GCREGISTER);
 	DWORD       dwFlags;           //Use GC_* flags above to indicate features supported
 	const char* pszModule;         //This MUST be the protocol name as registered with Miranda IM
-	const char* pszModuleDispName; //This is the protocol's real name as it will be displayed to the user
+	union {
+		const char* pszModuleDispName; //This is the protocol's real name as it will be displayed to the user
+		const TCHAR* ptszModuleDispName; // used if GC_TCHAR flag is passed
+	};
 	int         iMaxText;          //Max message length the protocol supports. Will limit the typing area input. 0 = no limit
 	int         nColors;           //Number of colors in the colorchooser menu for the color buttons. Max = 100
 	COLORREF*   pColors;           //pointer to the first item in a static COLORREF array containing the colors
@@ -499,7 +502,7 @@ typedef struct {
 	DWORD dwFlags;						// event flags: GCEF_ADDTOLOG, GC_UNICODE
 
                                  // FALSE any other time than when initializing the window (before sending SESSION_INITDONE)
-	DWORD		dwItemData;          // User specified data.
+	DWORD_PTR dwItemData;          // User specified data.
 	DWORD   time;                // Timestamp of the event
 }
 	GCEVENT;
@@ -553,7 +556,7 @@ typedef struct {
 	char*		pszModule;			// the module name as registered in MS_GC_REGISTER
 	TCHAR*	pszID;				// unique ID of the session
 	TCHAR*	pszName;			// display name of the session
-	DWORD    dwItemData;			// user specified data.
+	DWORD_PTR   dwItemData;			// user specified data.
 	int		iCount;				// count of users in the nicklist
 	char*		pszUsers;			// space separated string containing the UID's of the users in the user list.
 									// NOTE. Use Mirandas mmi_free() on the returned string.
@@ -597,7 +600,7 @@ typedef struct {
 		char*   pszUID;   // unique identifier, usage depends on type of event
 		TCHAR*  ptszUID;
 	};
-	DWORD   dwData;    // user defined data, usage depends on type of event
+	DWORD_PTR dwData;    // user defined data, usage depends on type of event
 }
 	GCHOOK;
 

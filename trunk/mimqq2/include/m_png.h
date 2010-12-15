@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 File name      : $Source: /cvsroot/miranda/miranda/include/m_png.h,v $
 Revision       : $Revision: 2876 $
 Last change on : $Date: 2006-05-17 05:56:03 +0800 $
-Last change by : $Author: ghazan $
+Last change by : $Author: rainwater $
 
 */
 

@@ -2725,10 +2725,10 @@ HANDLE __cdecl CNetwork::ChangeInfo(int iInfoType, void* pInfoData) {
 	return 0;
 }
 
-int __cdecl CNetwork::FileAllow(HANDLE hContact, HANDLE hTransfer, const char* szPath) {
+HANDLE __cdecl CNetwork::FileAllow(HANDLE hContact, HANDLE hTransfer, const char* szPath) {
 	MessageBox(NULL,TranslateW(L"This build of MirandaQQ2 does not support file transfer."),NULL,NIIF_ERROR);
 	FileDeny(hContact,hTransfer,"Client Software does not support file transfer.");
-	return 1;
+	return (HANDLE)1;
 }
 
 int __cdecl CNetwork::FileCancel(HANDLE hContact, HANDLE hTransfer) {
@@ -2885,7 +2885,7 @@ int __cdecl CNetwork::SendContacts(HANDLE hContact, int flags, int nContacts, HA
 	return 1;
 }
 
-int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char** ppszFiles) {
+HANDLE __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char** ppszFiles) {
 	char* file=*ppszFiles;
 	char* afile=NULL;
 	if (ppszFiles[1]!=NULL) {
@@ -2913,7 +2913,7 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 		//if (GetFileAttributesA(file)==INVALID_FILE_ATTRIBUTES) {
 		if (hFile==INVALID_HANDLE_VALUE) {
 			ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(TranslateT("Failed sending qun image because the file is inaccessible")));
-			return 0;
+			return NULL;
 		} else if (GetFileSize(hFile,NULL)>61440) {
 			CloseHandle(hFile);
 			ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(TranslateT("You can only send qun images that are less than or equals to 61440 bytes.")));
@@ -2970,7 +2970,7 @@ int __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, char*
 		return (int)ft;
 #endif
 	}
-	return 0;
+	return NULL;
 }
 
 int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
@@ -3465,9 +3465,9 @@ int __cdecl CNetwork::SetStatus(int iNewStatus) {
 
 }
 
-int __cdecl CNetwork::GetAwayMsg(HANDLE hContact) {
+HANDLE __cdecl CNetwork::GetAwayMsg(HANDLE hContact) {
 	ForkThread((ThreadFunc)&CNetwork::GetAwayMsgThread,hContact);
-	return 1;
+	return (HANDLE)1;
 }
 
 int __cdecl CNetwork::RecvAwayMsg(HANDLE hContact, int mode, PROTORECVEVENT* evt) {

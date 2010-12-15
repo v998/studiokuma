@@ -141,7 +141,7 @@ wParam=0, lParam = (LPARAM) &MM_INTERFACE
 
 struct MM_INTERFACE
 {
-	int cbSize;
+	size_t cbSize;
 	void* (*mmi_malloc) (size_t);
 	void* (*mmi_realloc) (void*, size_t);
 	void  (*mmi_free) (void*);
@@ -166,7 +166,7 @@ struct MM_INTERFACE
 
 #define MS_SYSTEM_GET_MMI  "Miranda/System/GetMMI"
 
-__forceinline int mir_getMMI( struct MM_INTERFACE* dest )
+__forceinline INT_PTR mir_getMMI( struct MM_INTERFACE* dest )
 {
 	dest->cbSize = sizeof(*dest);
 	return CallService( MS_SYSTEM_GET_MMI, 0, (LPARAM)dest );
@@ -222,8 +222,9 @@ If the sortFunc member of the list gets assigned, the list becomes sorted
 wParam=0, lParam = (LPARAM)LIST_INTERFACE*
 */
 
-#define LIST_INTERFACE_V1_SIZE  (sizeof(int)+7*sizeof(void*))
-#define LIST_INTERFACE_V2_SIZE  (sizeof(int)+9*sizeof(void*))
+#define LIST_INTERFACE_V1_SIZE  (sizeof(size_t)+7*sizeof(void*))
+#define LIST_INTERFACE_V2_SIZE  (sizeof(size_t)+9*sizeof(void*))
+#define LIST_INTERFACE_V3_SIZE  (sizeof(size_t)+11*sizeof(void*))
 
 typedef int ( *FSortFunc )( void*, void* );
 
@@ -240,13 +241,13 @@ typedef struct
 
 struct LIST_INTERFACE
 {
-	int    cbSize;
+	size_t    cbSize;
 
-   SortedList* ( *List_Create )( int, int );
+	SortedList* ( *List_Create )( int, int );
 	void        ( *List_Destroy )( SortedList* );
 
-	void*	( *List_Find )( SortedList*, void* );
-	int	( *List_GetIndex )( SortedList*, void*, int* );
+	void* ( *List_Find )( SortedList*, void* );
+	int   ( *List_GetIndex )( SortedList*, void*, int* );
 	int   ( *List_Insert )( SortedList*, void*, int );
 	int   ( *List_Remove )( SortedList*, int );
 	int   ( *List_IndexOf )( SortedList*, void* );
@@ -255,11 +256,16 @@ struct LIST_INTERFACE
 	int   ( *List_InsertPtr)( SortedList* list, void* p );
 	int   ( *List_RemovePtr)( SortedList* list, void* p );
 	#endif
+
+	#if MIRANDA_VER >= 0x0800
+	void  ( *List_Copy )( SortedList* src, SortedList* dst, size_t );
+	void  ( *List_ObjCopy )( SortedList* src, SortedList* dst, size_t );
+	#endif
 };
 
 #define MS_SYSTEM_GET_LI  "Miranda/System/GetLI"
 
-__forceinline int mir_getLI( struct LIST_INTERFACE* dest )
+__forceinline INT_PTR mir_getLI( struct LIST_INTERFACE* dest )
 {
 	dest->cbSize = sizeof(*dest);
 	return CallService( MS_SYSTEM_GET_LI, 0, (LPARAM)dest );
@@ -271,10 +277,10 @@ __forceinline int mir_getLI( struct LIST_INTERFACE* dest )
 	Contains functions for utf8-strings encoding & decoding
 */
 
-#define UTF8_INTERFACE_SIZEOF_V1 24
+#define UTF8_INTERFACE_SIZEOF_V1 (sizeof(size_t)+5*sizeof(void*))
 struct UTF8_INTERFACE
 {
-	int cbSize;
+	size_t cbSize;
 
 	// decodes utf8 and places the result back into the same buffer.
 	// if the second parameter is present, the additional wchar_t* string gets allocated,
@@ -299,7 +305,7 @@ struct UTF8_INTERFACE
 
 #define MS_SYSTEM_GET_UTFI  "Miranda/System/GetUTFI"
 
-__forceinline int mir_getUTFI( struct UTF8_INTERFACE* dest )
+__forceinline INT_PTR mir_getUTFI( struct UTF8_INTERFACE* dest )
 {
 	dest->cbSize = sizeof(*dest);
 	return CallService( MS_SYSTEM_GET_UTFI, 0, (LPARAM)dest );
@@ -309,7 +315,7 @@ extern struct UTF8_INTERFACE utfi;
 
 #define mir_utf8decode(A,B)     utfi.utf8_decode(A,B)
 #define mir_utf8decodecp(A,B,C) utfi.utf8_decodecp(A,B,C)
-#define mir_utf8decodeW(A)		utfi.utf8_decodeW(A)
+#define mir_utf8decodeW(A)	     utfi.utf8_decodeW(A)
 #define mir_utf8encode(A)       utfi.utf8_encode(A)
 #define mir_utf8encodecp(A,B)   utfi.utf8_encodecp(A,B)
 #define mir_utf8encodeW(A)      utfi.utf8_encodeW(A)
@@ -428,9 +434,9 @@ typedef void (__cdecl *pThreadFunc)(void*);
 
 #define MS_SYSTEM_FORK_THREAD    "Miranda/Thread/Fork"
 
-__forceinline int mir_forkthread( pThreadFunc aFunc, void* arg )
+__forceinline HANDLE mir_forkthread( pThreadFunc aFunc, void* arg )
 {
-	return CallService( MS_SYSTEM_FORK_THREAD, (WPARAM)aFunc, (LPARAM)arg );
+	return (HANDLE)CallService( MS_SYSTEM_FORK_THREAD, (WPARAM)aFunc, (LPARAM)arg );
 }
 
 /* 0.5.2+
@@ -456,14 +462,14 @@ typedef struct
 
 #define MS_SYSTEM_FORK_THREAD_EX    "Miranda/Thread/ForkEx"
 
-static __inline int mir_forkthreadex( pThreadFuncEx aFunc, void* arg, int stackSize, unsigned* pThreadID )
+static __inline HANDLE mir_forkthreadex( pThreadFuncEx aFunc, void* arg, int stackSize, unsigned* pThreadID )
 {
 	FORK_THREADEX_PARAMS params;
 	params.pFunc      = aFunc;
 	params.arg        = arg;
 	params.iStackSize = stackSize;
 	params.threadID   = pThreadID;
-	return CallService( MS_SYSTEM_FORK_THREAD_EX, 0, (LPARAM)&params );
+	return (HANDLE)CallService( MS_SYSTEM_FORK_THREAD_EX, 0, (LPARAM)&params );
 }
 
 /* 0.8.0+
@@ -475,14 +481,14 @@ passes the owner info and extended parameters info and returns the thread id
 
 */
 
-static __inline int mir_forkthreadowner( pThreadFuncOwner aFunc, void* owner, void* arg, unsigned* pThreadID )
+static __inline HANDLE mir_forkthreadowner( pThreadFuncOwner aFunc, void* owner, void* arg, unsigned* pThreadID )
 {
 	FORK_THREADEX_PARAMS params;
 	params.pFunc      = ( pThreadFuncEx )aFunc;
 	params.arg        = arg;
 	params.iStackSize = 0;
 	params.threadID   = pThreadID;
-	return CallService( MS_SYSTEM_FORK_THREAD_EX, (WPARAM)owner, (LPARAM)&params );
+	return (HANDLE)CallService( MS_SYSTEM_FORK_THREAD_EX, (WPARAM)owner, (LPARAM)&params );
 }
 
 
@@ -566,10 +572,19 @@ of shutting down
 */
 #define MS_SYSTEM_GETBUILDSTRING "Miranda/GetBuildString"
 
-__inline static int Miranda_Terminated(void)
+#ifdef _STATIC
+INT_PTR MirandaIsTerminated(WPARAM, LPARAM);
+
+__inline static INT_PTR Miranda_Terminated(void)
+{
+	return MirandaIsTerminated(0, 0);
+}
+#else
+__inline static INT_PTR Miranda_Terminated(void)
 {
 	return CallService(MS_SYSTEM_TERMINATED,0,0);
 }
+#endif
 
 /* Missing service catcher
 Is being called when one calls the non-existent service.

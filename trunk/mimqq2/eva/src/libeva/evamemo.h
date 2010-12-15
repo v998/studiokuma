@@ -26,6 +26,7 @@
 #include <vector>
 
 typedef std::vector<std::string> stringList;
+typedef std::vector<stringList> stringStringList;
 
 typedef struct MemoItem{
 	std::string address;
@@ -50,10 +51,12 @@ public:
 	void setType( const unsigned char type ) { m_Type = type; }
 	void setMemo( const MemoItem &memo ) { m_Memo = memo; }
 	void setQQ( const int qq ) { m_Id = qq; } 
+	void setPage( const int page ) { m_Page = page; }
 	
 	const unsigned char  getType() const { return m_Type; }
 	const MemoItem getMemo() const { return m_Memo; }
 	const int getQQ() const { return m_Id; }
+	const int getPage() const { return m_Page; }
 	
 	void setDetails( const MemoItem &memo);
 	void setDetails( const stringList infos ) { m_Infos = infos; }
@@ -66,6 +69,7 @@ private:
 	unsigned char m_Type;
 	MemoItem m_Memo;
 	stringList m_Infos;
+	int m_Page;
 };
 
 class EvaMemoReplyPacket : public InPacket
@@ -83,6 +87,7 @@ public:
 	const MemoItem &getMemo() const { return m_Memo; }
 	const int getQQ() const { return m_Id; }
 	const stringList &getDetails() const { return m_Infos; }
+	const stringStringList &getMemos() const { return m_RemarkInfos; }
 	
 	void setType( const unsigned char type ) { m_Type = type; }
 	void setReplyCode( const unsigned char replyCode ) { m_ReplyCode = replyCode; }
@@ -101,6 +106,7 @@ private:
 	MemoItem m_Memo;
 	int m_Id;
 	stringList m_Infos;
+	stringStringList m_RemarkInfos;
 };
 
 #endif

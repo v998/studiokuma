@@ -33,11 +33,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //nice function to wrap this:
 __inline static HICON LoadSkinnedIcon(int id) {return (HICON)CallService(MS_SKIN_LOADICON,id,0);}
 __inline static HANDLE LoadSkinnedIconHandle(int id) {return (HANDLE)CallService(MS_SKIN_LOADICON,id,1);}
+__inline static HICON LoadSkinnedIconBig(int id) {return (HICON)CallService(MS_SKIN_LOADICON,id,2);}
 
 //event icons
 #define SKINICON_EVENT_MESSAGE      100
 #define SKINICON_EVENT_URL          101
 #define SKINICON_EVENT_FILE         102
+
 //other icons
 #define SKINICON_OTHER_MIRANDA      200
 #define SKINICON_OTHER_EXIT         201
@@ -79,6 +81,8 @@ __inline static HANDLE LoadSkinnedIconHandle(int id) {return (HANDLE)CallService
 #define SKINICON_CHAT_LEAVE         237     //v0.8.0.27+
 #define SKINICON_OTHER_STATUS_LOCKED 238    //v0.8.0.28+
 #define SKINICON_OTHER_GROUP        239     //v0.8.0.29+
+#define SKINICON_OTHER_ON           240     //v0.9.0.9+
+#define SKINICON_OTHER_OFF          241     //v0.9.0.9+
 
 //menu icons are owned by the module that uses them so are not and should not
 //be skinnable. Except exit and show/hide
@@ -103,8 +107,10 @@ __inline static HANDLE LoadSkinnedIconHandle(int id) {return (HANDLE)CallService
 //if szProto is NULL the function will load the user's selected 'all protocols'
 //status icon.
 #define MS_SKIN_LOADPROTOICON     "Skin/Icons/LoadProto"
+#define MS_SKIN_LOADPROTOICONBIG  "Skin/Icons/LoadProtoBig"
 //nice function to wrap this:
 __inline static HICON LoadSkinnedProtoIcon(const char *szProto,int status) {return (HICON)CallService(MS_SKIN_LOADPROTOICON,(WPARAM)szProto,status);}
+__inline static HICON LoadSkinnedProtoIconBig(const char *szProto,int status) {return (HICON)CallService(MS_SKIN_LOADPROTOICONBIG,(WPARAM)szProto,status);}
 
 //add a new sound so it has a default and can be changed in the options dialog
 //wParam=0
@@ -113,21 +119,21 @@ __inline static HICON LoadSkinnedProtoIcon(const char *szProto,int status) {retu
 typedef struct {
 	int cbSize;
 	const char *pszName;		   //name to refer to sound when playing and in db
-	const char *pszDescription;	   //description for options dialog
+	const char *pszDescription;	   //[TRANSLATED-BY-CORE] description for options dialog
     const char *pszDefaultFile;    //default sound file to use
-    const char *pszSection;        //section name used to group sounds (NULL is acceptable) (added during 0.3.4+ (2004/10/*))
+    const char *pszSection;        //[TRANSLATED-BY-CORE] section name used to group sounds (NULL is acceptable) (added during 0.3.4+ (2004/10/*))
 } SKINSOUNDDESCEX;
 // Old struct pre 0.3.4
 typedef struct {
 	int cbSize;
 	const char *pszName;		   //name to refer to sound when playing and in db
-	const char *pszDescription;	   //description for options dialog
+	const char *pszDescription;	   //[TRANSLATED-BY-CORE] description for options dialog
 	const char *pszDefaultFile;	   //default sound file to use
 } SKINSOUNDDESC;
 #define MS_SKIN_ADDNEWSOUND      "Skin/Sounds/AddNew"
 
 // inline only works after 0.3.4+ (2004/10/*)
-__inline static int SkinAddNewSoundEx(const char *name,const char *section,const char *description)
+__inline static INT_PTR SkinAddNewSoundEx(const char *name,const char *section,const char *description)
 {
 	SKINSOUNDDESCEX ssd;
 	ZeroMemory(&ssd,sizeof(ssd));
@@ -135,10 +141,10 @@ __inline static int SkinAddNewSoundEx(const char *name,const char *section,const
 	ssd.pszName=name;
 	ssd.pszSection=section;
 	ssd.pszDescription=description;
-	return (int)CallService(MS_SKIN_ADDNEWSOUND, 0, (LPARAM)&ssd);
+	return CallService(MS_SKIN_ADDNEWSOUND, 0, (LPARAM)&ssd);
 }
 
-__inline static int SkinAddNewSound(const char *name,const char *description,const char *defaultFile)
+__inline static INT_PTR SkinAddNewSound(const char *name,const char *description,const char *defaultFile)
 {
 	SKINSOUNDDESC ssd;
 	ZeroMemory(&ssd,sizeof(ssd));
@@ -146,7 +152,7 @@ __inline static int SkinAddNewSound(const char *name,const char *description,con
 	ssd.pszName=name;
 	ssd.pszDescription=description;
 	ssd.pszDefaultFile=defaultFile;
-	return (int)CallService(MS_SKIN_ADDNEWSOUND, 0, (LPARAM)&ssd);
+	return CallService(MS_SKIN_ADDNEWSOUND, 0, (LPARAM)&ssd);
 }
 
 //play a named sound event
@@ -155,7 +161,7 @@ __inline static int SkinAddNewSound(const char *name,const char *description,con
 //pszName should have been added with Skin/Sounds/AddNew, but if not the
 //function will not fail, it will play the Windows default sound instead.
 #define MS_SKIN_PLAYSOUND        "Skin/Sounds/Play"
-__inline static int SkinPlaySound(const char *name) {return (int)CallService(MS_SKIN_PLAYSOUND,0,(LPARAM)name);}
+__inline static INT_PTR SkinPlaySound(const char *name) {return CallService(MS_SKIN_PLAYSOUND,0,(LPARAM)name);}
 
 //sent when the icons DLL has been changed in the options dialog, and everyone
 //should re-make their image lists

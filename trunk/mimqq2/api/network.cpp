@@ -245,6 +245,7 @@ DEFAULT_HANDLER(processDeleteFriendResponse,DeleteFriendReplyPacket)
 DEFAULT_HANDLER(processAddFriendAuthInfoReply,EvaAddFriendGetAuthInfoReplyPacket)
 DEFAULT_HANDLER(processRequestExtraInfoResponse,RequestExtraInfoReplyPacket)
 DEFAULT_HANDLER(processUploadGroupFriendResponse,UploadGroupFriendReplyPacket)
+DEFAULT_HANDLER(processMemoOpResponse,EvaMemoReplyPacket)
 
 void CNetwork::processPacket(LPCBYTE lpData, const USHORT len)
 {
@@ -309,6 +310,7 @@ void CNetwork::processPacket(LPCBYTE lpData, const USHORT len)
 		HANDLE(QQ_CMD_WEATHER, processWeatherOpResponse);
 		HANDLE(QQ_CMD_ADD_FRIEND_AUTH_INFO, processAddFriendAuthInfoReply);
 		HANDLE(QQ_CMD_UPLOAD_GROUP_FRIEND, processUploadGroupFriendResponse);
+		HANDLE(QQ_CMD_MEMO_OP, processMemoOpResponse);
 		default: util_log(0,"Received unknown packet %d",packet->getCommand()); break;
 	}
 	

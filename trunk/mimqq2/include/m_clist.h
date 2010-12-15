@@ -152,6 +152,9 @@ typedef struct {
 #define MS_CLIST_ADDCONTACTMENUITEM     "CList/AddContactMenuItem"
 #define MS_CLIST_ADDSTATUSMENUITEM      "CList/AddStatusMenuItem"
 
+//adds a protocol menu item        v0.9+
+#define MS_CLIST_ADDPROTOMENUITEM        "CList/AddProtoMenuItem"
+
 //modify an existing menu item     v0.1.0.1+
 //wParam=(WPARAM)(HANDLE)hMenuItem
 //lParam=(LPARAM)(CLISTMENUITEM*)&clmi
@@ -607,7 +610,7 @@ typedef struct {
 #define SETTING_CLIENTDRAG_DEFAULT   1
 #define SETTING_ONTOP_DEFAULT        0
 #define SETTING_MIN2TRAY_DEFAULT     1
-#define SETTING_TRAY1CLICK_DEFAULT   0
+#define SETTING_TRAY1CLICK_DEFAULT   (IsWinVer7Plus()?1:0)
 #define SETTING_HIDEOFFLINE_DEFAULT  0
 #define SETTING_HIDEEMPTYGROUPS_DEFAULT  0
 #define SETTING_USEGROUPS_DEFAULT    1

@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 __inline static INT_PTR CallProtoService(const char *szModule,const char *szService,WPARAM wParam,LPARAM lParam)
 {
 	char str[MAXMODULELABELLENGTH];
-	strcpy(str,szModule);
-	strcat(str,szService);
+	_snprintf(str, sizeof(str), "%s%s", szModule, szService);
+    str[MAXMODULELABELLENGTH-1] = 0;
 	return CallService(str,wParam,lParam);
 }
 #endif
@@ -109,7 +109,7 @@ typedef struct {
 #define ACKRESULT_NEXTFILE     105  //file transfer went to next file
 #define ACKRESULT_FILERESUME   106  //a file is about to be received, see PS_FILERESUME
 #define ACKRESULT_DENIED       107  //a file send has been denied
-#define ACKRESULT_STATUS	    108  //an ack or a series of acks to do with a task have a status change
+#define ACKRESULT_STATUS	   108  //an ack or a series of acks to do with a task have a status change
 #define ACKRESULT_LISTENING    109  //waiting for connection
 #define ACKRESULT_CONNECTPROXY 110 //connecting to file proxy
 #define ACKRESULT_SEARCHRESULT 111 //result of extended search
@@ -123,21 +123,84 @@ typedef struct {
 
 //when type==ACKTYPE_FILE && (result==ACKRESULT_DATA || result==ACKRESULT_FILERESUME),
 //lParam points to this
-typedef struct {
-	int cbSize;
+
+#if MIRANDA_VER >= 0x0900
+	#define FNAMECHAR TCHAR
+#else
+	#define FNAMECHAR char
+#endif
+
+#define PFTS_RECEIVING 0
+#define PFTS_SENDING   1
+#define PFTS_UNICODE   2
+#define PFTS_UTF       4
+
+#if defined( _UNICODE )
+	#define PFTS_TCHAR  PFTS_UNICODE
+#else
+	#define PFTS_TCHAR  0
+#endif
+
+typedef struct tagPROTOFILETRANSFERSTATUS_V1 
+{
+	size_t cbSize;
 	HANDLE hContact;
-	int sending;	//true if sending, false if receiving
-	char **files;
+	int    sending;
+    char **files;
 	int totalFiles;
 	int currentFileNumber;
 	unsigned long totalBytes;
 	unsigned long totalProgress;
-	char *workingDir;
-	char *currentFile;
+    char *workingDir;
+    char *currentFile;
 	unsigned long currentFileSize;
 	unsigned long currentFileProgress;
 	unsigned long currentFileTime;  //as seconds since 1970
-} PROTOFILETRANSFERSTATUS;
+} 
+PROTOFILETRANSFERSTATUS_V1;
+
+#if MIRANDA_VER < 0x0900
+
+typedef PROTOFILETRANSFERSTATUS_V1 PROTOFILETRANSFERSTATUS;
+
+#else
+
+typedef struct tagPROTOFILETRANSFERSTATUS 
+{
+	size_t cbSize;
+	HANDLE hContact;
+	DWORD  flags;      // one of PFTS_* constants
+
+    union {
+  	  char **pszFiles;
+      TCHAR **ptszFiles;
+      WCHAR **pwszFiles;
+    };
+
+    int totalFiles;
+	int currentFileNumber;
+	unsigned __int64 totalBytes;
+	unsigned __int64 totalProgress;
+
+    union {
+	   char *szWorkingDir;
+      TCHAR *tszWorkingDir;
+      WCHAR *wszWorkingDir;
+    };
+
+    union {
+  	  char *szCurrentFile;
+      TCHAR *tszCurrentFile;
+      WCHAR *wszCurrentFile;
+    };
+
+	unsigned __int64 currentFileSize;
+	unsigned __int64 currentFileProgress;
+	unsigned __int64 currentFileTime;  //as seconds since 1970
+} 
+PROTOFILETRANSFERSTATUS;
+
+#endif
 
 //Enumerate the currently running protocols
 //wParam=(WPARAM)(int*)&numberOfProtocols
@@ -160,7 +223,7 @@ typedef struct {
 //And yes, before you ask, that is triple indirection. Deal with it.
 //Access members using ppProtocolDescriptors[index]->element
 
-#define PROTOCOLDESCRIPTOR_V3_SIZE (sizeof(int)*2+sizeof(char*))
+#define PROTOCOLDESCRIPTOR_V3_SIZE (sizeof(size_t)+sizeof(INT_PTR)+sizeof(char*))
 
  // initializes an empty account
 typedef struct tagPROTO_INTERFACE* ( *pfnInitProto )( const char* szModuleName, const TCHAR* szUserName );
@@ -172,7 +235,7 @@ typedef int ( *pfnUninitProto )( struct tagPROTO_INTERFACE* );
 typedef int ( *pfnDestroyProto )( struct tagPROTO_INTERFACE* );
 
 typedef struct {
-	int   cbSize;
+	size_t cbSize;
 	char *szName;        // unique name of the module
 	int   type;          // module type, see PROTOTYPE_ constants
 
@@ -201,6 +264,7 @@ typedef struct {
 #define PROTOTYPE_FILTER      3000
 #define PROTOTYPE_TRANSLATION 4000
 #define PROTOTYPE_OTHER       10000   //avoid using this if at all possible
+#define PROTOTYPE_DISPROTO    20000
 
 #if MIRANDA_VER >= 0x800
 	#define MS_PROTO_ENUMPROTOS        "Proto/EnumProtos"
@@ -228,7 +292,7 @@ typedef struct {
 //determines whether the specified contact has the given protocol in its chain
 //wParam=(WPARAM)(HANDLE)hContact
 //lParam=(LPARAM)(const char*)szName
-//Returns nonzero if it does and 0 if it doesn't
+//Returns -1 if it is base protocol, positive number if it is filter and 0 if it doesn't
 #define MS_PROTO_ISPROTOONCONTACT  "Proto/IsProtoOnContact"
 
 #define PROTOTYPE_SELFTYPING_OFF      0
@@ -288,8 +352,8 @@ typedef struct tagACCOUNT
 //lParam=(LPARAM)(PROTOACCOUNT**)paAccounts
 #define MS_PROTO_ENUMACCOUNTS "Proto/EnumAccounts"
 
-__inline static int ProtoEnumAccounts( int* accNumber, PROTOACCOUNT*** accArray )
-{	return (int)CallService( MS_PROTO_ENUMACCOUNTS, ( WPARAM )accNumber, (LPARAM)accArray );
+__inline static INT_PTR ProtoEnumAccounts( int* accNumber, PROTOACCOUNT*** accArray )
+{	return CallService( MS_PROTO_ENUMACCOUNTS, ( WPARAM )accNumber, (LPARAM)accArray );
 }
 
 //retrieves an account's interface by its physical name (database module)
@@ -312,12 +376,44 @@ __inline static PROTOACCOUNT* ProtoGetAccount( const char* accName )
 #define PRAC_UPGRADED 4
 #define PRAC_CHECKED  5
 
+
 #define ME_PROTO_ACCLISTCHANGED "Proto/AccListChanged"
 
 //displays the Account Manager
 //wParam=0
 //lParam=0
 #define MS_PROTO_SHOWACCMGR "Protos/ShowAccountManager" 
+
+//determines if an account is enabled or not
+//wParam = 0
+//lParam = (LPARAM)(PROTOACCOUNT*)
+//Returns 1 if an account is valid and enabled, 0 otherwise
+#define MS_PROTO_ISACCOUNTENABLED "Proto/IsAccountEnabled"
+
+__inline static int IsAccountEnabled( const PROTOACCOUNT* pa )
+{
+#if MIRANDA_VER < 0x0900
+	return pa && (( pa->bIsEnabled && !pa->bDynDisabled ) || pa->bOldProto );
+#else
+  return (int)CallService( MS_PROTO_ISACCOUNTENABLED, 0, (LPARAM)pa );
+#endif
+}
+
+//determines if an account is locked or not
+//wParam = 0
+//lParam = (LPARAM)(char*)szAccountName
+//Returns 1 if an account is locked and not supposed to change status, 0 otherwise
+#define MS_PROTO_ISACCOUNTLOCKED "Proto/IsAccountLocked"
+
+
+//gets the account associated with a contact
+//wParam=(WPARAM)(HANDLE)hContact
+//lParam=0
+//Returns a char* pointing to the asciiz name of the protocol or NULL if the
+//contact has no protocol. There is no need to mir_free() it or anything.
+//This is the name of the module that actually accesses the network for that
+//contact.
+#define MS_PROTO_GETCONTACTBASEACCOUNT  "Proto/GetContactBaseAccount"
 
 /* -------------- avatar support ---------------------
 
