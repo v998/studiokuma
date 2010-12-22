@@ -28,7 +28,7 @@
 #include <cstring>
 
 EvaRequestStartPacket::EvaRequestStartPacket()
-	: EvaPicOutPacket(QQ_05_CMD_REQUEST_START, true), requestSend(true)
+	: EvaPicOutPacket(QQ_05_CMD_REQUEST_START, true), requestSend(true), transferType(1100)
 {
 	cryptPosition = 12;
 }
@@ -56,6 +56,14 @@ void EvaRequestStartPacket::setMd5(const unsigned char *value)
 int EvaRequestStartPacket::putBody(unsigned char *buf)
 {
 	int pos=0;
+	// requestSend must be true
+
+	*(unsigned int*)(buf+pos)=htonl(0x01000000); pos+=4;
+	*(unsigned int*)(buf+pos)=0; pos+=4;
+	*(unsigned int*)(buf+pos)=htonl(sessionID); pos+=4;
+	*(unsigned short*)(buf+pos)=htons(transferType); pos+=2;
+
+	/*
 	unsigned int tmp4_1=1, tmp4_2=0;
 	if(requestSend){
 		buf[pos++] = 0x01;
@@ -74,6 +82,7 @@ int EvaRequestStartPacket::putBody(unsigned char *buf)
 	}else{
 		memset(buf+pos, 0, 2);pos+=2;
 	}
+	*/
 	
 	return pos;
 }
@@ -104,8 +113,13 @@ void EvaRequestStartReplyPacket::parseBody()
 {
 	int pos = 0;
 	pos+=8;
+
+	sessionID=htonl(*(unsigned int*)(decryptedBuf+pos)); pos+=4; // m_sessionId
+	transferType=htons(*(unsigned short*)(decryptedBuf+pos)); pos+=2; // m_agentTransferType
+	/*
 	unsigned int tmp4;
 	memcpy(&tmp4, decryptedBuf+pos, 4);
 	sessionID = ntohl(tmp4);
+	*/
 }
 

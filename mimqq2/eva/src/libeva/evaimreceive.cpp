@@ -447,16 +447,21 @@ void ReceivedQunIM::parseData( const unsigned char * buf, const int len )
 // 			printf("\n");
 	int pos=0;
 
-	externalID = ntohl(*(int*)buf); // the external Qun ID
-	pos+=4;
-	
-	type = buf[pos++];  // type of the Qun
-
-	if(source == QQ_RECV_IM_TEMP_QUN_IM){ // internal ID of temporary Qun
-		qunID = ntohl( *(int*)(buf+pos) );
+	if (source == QQ_RECV_IM_TEMP_QUN_IM) {
+		qunID = ntohl(*(int*)buf);
 		pos+=4;
+
+		type = buf[pos++];
+
+		externalID = ntohl(*(int*)(buf+pos)); // actually m_internalid
+		pos+=4;
+	} else {
+		externalID = ntohl(*(int*)buf); // the external Qun ID
+		pos+=4;
+		
+		type = buf[pos++];  // type of the Qun
 	}
-	
+
 	sender = ntohl(*(int*)(buf+pos) );       // the sender
 	pos+=4;
 	

@@ -28,7 +28,7 @@
 #endif
 #include <cstring>
 EvaPicTransferPacket::EvaPicTransferPacket() 
-	: EvaPicOutPacket(QQ_05_CMD_TRANSFER, false), fragment(NULL)
+	: EvaPicOutPacket(QQ_05_CMD_TRANSFER, false), fragment(NULL), imageLength(0)
 {
 	cryptPosition = NO_CRYPTOGRAPH;
         requestSend = false;
@@ -92,6 +92,39 @@ void EvaPicTransferPacket::setFragment(const unsigned char *data, const unsigned
 int EvaPicTransferPacket::putBody(unsigned char *buf)
 {
 	int pos=0;
+
+	*(unsigned int*)(buf+pos)=htonl(0x01000000); pos+=4;
+	*(unsigned int*)(buf+pos)=htonl(0x1); pos+=4;
+	*(unsigned int*)(buf+pos)=htonl(sessionID); pos+=4; // m_sessionId
+	*(unsigned int*)(buf+pos)=0; pos+=4;
+
+	if (!requestSend && dataReply) { // kTransferModeReplyData
+		*(unsigned short*)(buf+pos)=htons(1); pos+=2;
+		buf[pos++]=2;
+	} else if (!requestSend && !dataReply) { // kTransferModeRequestData
+		*(unsigned short*)(buf+pos)=htons(4); pos+=2;
+		*(unsigned int*)(buf+pos)=htonl(imageLength); pos+=4; // imageLength is borrowed to store it
+	} else if (requestSend && isData) { // kTransferImageData
+		*(unsigned short*)(buf+pos)=htons(fragLength); pos+=2; // [m_fileFragmentData length]		
+		memcpy(buf+pos, fragment, fragLength); pos+=fragLength; // m_fileFragmentData
+	} else if (requestSend && !isData) {
+		int offset=pos;
+		*(unsigned short*)(buf+pos)=0; pos+=2;
+		*(unsigned short*)(buf+pos)=0; pos+=2;
+		memcpy(buf+pos, md5, 16); pos+=16; // m_fileMd5
+		memcpy(buf+pos, EvaUtil::doMd5((char *)fileName.c_str(), fileName.length()), 16); pos+=16; // m_filenameMd5
+		*(unsigned int*)(buf+pos)=htonl(imageLength); pos+=4; // m_imageSize
+		*(unsigned short*)(buf+pos)=htons(fileName.length()); pos+=2; // [m_filename length]
+		memcpy(buf+pos, fileName.c_str(), fileName.length()); pos+=fileName.length(); // m_filename
+		*(unsigned int*)(buf+pos)=0; pos+=4;
+		*(unsigned int*)(buf+pos)=0; pos+=4;
+		
+		int len=pos-offset;
+		*(unsigned short*)(buf+offset)=htons(len);
+		*(unsigned short*)(buf+offset+2)=htons(len);
+	}
+
+	/*
 	unsigned int tmp4_1 = htonl(0x01000000), tmp4_2 = 0;
 	if(!requestSend){
 		memcpy(buf+pos, &tmp4_1, 4);
@@ -175,6 +208,7 @@ int EvaPicTransferPacket::putBody(unsigned char *buf)
 			memcpy(buf+start, &tmp2, 2);
 		}
 	}
+	*/
 	return pos;
 }
 
@@ -183,7 +217,7 @@ int EvaPicTransferPacket::putBody(unsigned char *buf)
 
 
 EvaPicTransferReplyPacket::EvaPicTransferReplyPacket(unsigned char *buf, int len)
-	: EvaPicInPacket(buf, len, NO_CRYPTOGRAPH), data(NULL)
+	: EvaPicInPacket(buf, len, NO_CRYPTOGRAPH), data(NULL), restartPoint(0)
 {
 }
 
@@ -224,6 +258,45 @@ void EvaPicTransferReplyPacket::parseBody()
 // 	printf("\n---------=======================---------\n\n");
 
 	int pos=0;
+
+	pos+=8;
+	sessionID=htonl(*(unsigned int*)(decryptedBuf+pos)); pos+=4; // m_sessionId;
+	pos+=4;
+
+	if (source!=QQ_CLIENT_VERSION) {
+		switch(sequence) {
+			case 0:
+				{
+					pos+=4;
+					memcpy(md5, decryptedBuf+pos, 16); pos+=16; // m_imageMd5
+					memcpy(fileNameMd5, decryptedBuf+pos, 16); pos+=16; // m_imageFileNameMd5
+					imageLength=htonl(*(unsigned int*)(decryptedBuf+pos)); pos+=4; // m_imageSize
+					unsigned short len=htons(*(unsigned short*)(decryptedBuf+pos)); pos+=2;
+					
+					char *str = new char[len + 1];
+					memcpy(str, decryptedBuf+pos, len); pos+= len;
+					str[len] = 0x00;
+					fileName.assign(str);
+					delete str;
+				}
+				break;
+			default:
+				dataLength=htons(*(unsigned short*)(decryptedBuf+pos)); pos+=2;
+				data = new unsigned char[dataLength];
+				memcpy(data, decryptedBuf+pos, dataLength); pos+= dataLength;
+				break;
+		}
+	} else {
+		int len=htons(*(unsigned short*)(decryptedBuf+pos)); pos+=2;
+		if (len == 4) {
+			restartPoint = htonl(*(unsigned int*)(decryptedBuf+pos)); // m_restartPoint
+		} else
+			restartPoint = -1; // currently we use restart point to flag what the packet is
+		data=new unsigned char[len];
+		memcpy(data, decryptedBuf+pos, len); pos+=len;
+	}
+
+	/*
 	pos+=8; // ignore unknown 8 bytes
 	
 	unsigned int tmp4;
@@ -260,6 +333,7 @@ void EvaPicTransferReplyPacket::parseBody()
 		
 		memcpy(data, decryptedBuf+pos, len); pos+= len;
 	}
+	*/
 }
 
 

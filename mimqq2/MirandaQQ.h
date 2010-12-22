@@ -55,6 +55,7 @@
 #define QQ_MENU_TOGGLEQUNLIST			"/ToggleQunList"
 #define QQ_MENU_CHANGEHEADIMAGE			"/ChangeHeadImage"
 #define QQ_MENU_QQMAIL					"/QQMail"
+#define QQ_MENU_LOGINQUNINFOEXT			"/LoginQunInfoExt"
 
 #define QQ_CNXTMENU_REMOVEME			"/CnxtRemoveMe"
 #define QQ_CNXTMENU_ADDQUNMEMBER		"/CnxtAddQunMember"
@@ -67,11 +68,13 @@
 #define QQ_CNXTMENU_CHANGEEIP			"/ChangeEIP"
 
 #define WRITE_S(c,k,v) DBWriteContactSettingString(c,m_szModuleName,k,v)
+#define WRITE_U8S(c,k,v) DBWriteContactSettingUTF8String(c,m_szModuleName,k,v)
 #define WRITE_TS(c,k,v) DBWriteContactSettingTString(c,m_szModuleName,k,v)
 #define WRITE_B(c,k,v) DBWriteContactSettingByte(c,m_szModuleName,k,v)
 #define WRITE_W(c,k,v) DBWriteContactSettingWord(c,m_szModuleName,k,v)
 #define WRITE_D(c,k,v) DBWriteContactSettingDword(c,m_szModuleName,k,v)
 #define WRITEC_S(k,v) WRITE_S(hContact,k,v)
+#define WRITEC_U8S(k,v) WRITE_U8S(hContact,k,v)
 #define WRITEC_TS(k,v) WRITE_TS(hContact,k,v)
 #define WRITEC_B(k,v) WRITE_B(hContact,k,v)
 #define WRITEC_W(k,v) WRITE_W(hContact,k,v)

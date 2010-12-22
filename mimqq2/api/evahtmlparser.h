@@ -38,6 +38,9 @@ typedef struct CustomizedPic{
 typedef struct OutCustomizedPic{
 	unsigned int imageLength;
 	unsigned char md5[16];
+	unsigned int ip;
+	unsigned short port;
+	unsigned short transferType;
 	string fileName;
 } OutCustomizedPic;
 

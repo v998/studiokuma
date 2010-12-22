@@ -639,4 +639,51 @@ private:
 	unsigned int m_StartIndex;
 };
 
+class QunGetTempInfoPacket : public QunPacket {
+public:
+	QunGetTempInfoPacket() {}
+	QunGetTempInfoPacket(const char tempType, const unsigned int parentID, const int id);  
+	QunGetTempInfoPacket(const QunGetTempInfoPacket &rhs);
+	virtual ~QunGetTempInfoPacket();
+protected:
+	virtual int putBody(unsigned char *buf);
+
+private:
+	char m_tempType;
+	unsigned int m_parentID;
+};
+
+class QunSendTempIMPacket : public QunSendIMPacket {
+public:
+	QunSendTempIMPacket() {}
+	QunSendTempIMPacket(const char tempType, const unsigned int parentID, const int id);  
+	QunSendTempIMPacket(const QunSendTempIMPacket &rhs);
+	virtual ~QunSendTempIMPacket() {};
+	OutPacket * copy() { return new QunSendTempIMPacket(*this);}
+	QunSendTempIMPacket &operator=(const QunSendTempIMPacket &rhs);
+	
+	const unsigned char getNumFragments() const { return numFragments; }
+	const unsigned char getSeqOfFragments() const { return seqFragments; }
+	const short getMessageID() const { return messageID; }
+	const char getTempType() const { return m_tempType; }
+	const unsigned int getParentID() const { return m_parentID; }
+	
+	void setNumFragments(const unsigned char num) { numFragments = num; }
+	void setSeqOfFragments( const unsigned char seq) { seqFragments = seq; }
+	void setMessageID(const short id) { messageID = id; }
+
+protected:
+	virtual int putBody(unsigned char *buf);
+private:
+	unsigned char numFragments;
+	unsigned char seqFragments;
+	static short messageID;
+	char m_tempType;
+	unsigned int m_parentID;
+
+// EvaAccountSwitcher
+public:
+	static void _EAS_SwitchAccount(bool save);
+};
+
 #endif

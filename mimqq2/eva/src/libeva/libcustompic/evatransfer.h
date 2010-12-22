@@ -37,6 +37,7 @@ public:
 	const unsigned char *getMD5() const { return md5;}
 	const std::string &getFileName() const { return fileName; }
 	const unsigned int getImageLength() const { return imageLength; }
+	const unsigned int getRestartPoint() const { return imageLength; }
 	
 	const unsigned char *getFragment() const { return fragment; }
 	const unsigned short getFragmentLength() const { return fragLength; }
@@ -50,7 +51,8 @@ public:
 	void setSessionID(const unsigned int id) { sessionID=id;}
 	
 	void setMd5(const unsigned char *value);
-	void setImageLength(const unsigned short len) { imageLength = len; }
+	void setImageLength(const unsigned int len) { imageLength = len; }
+	void setRestartPoint(const unsigned int point) { imageLength = point; }
 	void setFileName( const std::string &name) { fileName = name ;}
 	
 	void setFragment(const unsigned char *data, const unsigned int len);
@@ -94,6 +96,7 @@ public:
 	const unsigned char *getFileNameMd5() const { return fileNameMd5; }
 	const std::string &getFileName() const { return fileName; }
 	const unsigned int getImageLength() const { return imageLength; }
+	const unsigned int getRestartPoint() const { return restartPoint; }
 	
 	const unsigned char *getData() const { return data; }
 	const unsigned int getDataLength() const { return dataLength; }
@@ -110,6 +113,7 @@ private:
 	// data packet
 	unsigned char *data;
 	unsigned int dataLength;
+	unsigned int restartPoint;
 };
 
 #endif

@@ -1965,4 +1965,131 @@ int QunRequestAllRealNames::putBody( unsigned char * buf )
 }
 
 
+/***************************************************************************************************************/
+ 
 
+QunGetTempInfoPacket::QunGetTempInfoPacket(const char tempType, const unsigned int parentID, const int id)
+: QunPacket(QQ_QUN_CMD_GET_TEMP_QUN_INFO, id),
+m_tempType(tempType), m_parentID(parentID)
+{
+}
+
+QunGetTempInfoPacket::QunGetTempInfoPacket(const QunGetTempInfoPacket &rhs)
+	: QunPacket(rhs)
+{
+}
+
+QunGetTempInfoPacket::~QunGetTempInfoPacket()
+{
+}
+
+int QunGetTempInfoPacket::putBody(unsigned char *buf)
+{
+	int pos=0;
+	buf[pos++] = qunCommand;
+	buf[pos++] = m_tempType;
+	*(unsigned int*)(buf+pos)=htonl(m_parentID);
+	pos+=4;
+	*(unsigned int*)(buf+pos)=htonl(qunID);
+	pos+=4;
+
+	return pos;
+}
+
+
+
+/***************************************************************************************************************/
+short QunSendTempIMPacket::messageID = 0;
+
+QunSendTempIMPacket::QunSendTempIMPacket(const char tempType, const unsigned int parentID, const int id)
+: QunSendIMPacket(id),
+m_tempType(tempType), m_parentID(parentID)
+{
+	qunCommand = QQ_QUN_CMD_SEND_TEMP_QUN_IM;
+	numFragments = 1;
+	seqFragments = 0;
+	messageID++;
+}
+
+QunSendTempIMPacket::QunSendTempIMPacket(const QunSendTempIMPacket &rhs)
+	: QunSendIMPacket(rhs)
+{
+}
+
+
+QunSendTempIMPacket & QunSendTempIMPacket::operator =( const QunSendTempIMPacket & rhs )
+{
+	*((QunSendIMPacket *)this) = (QunSendIMPacket)rhs;
+	numFragments = rhs.getNumFragments();
+	seqFragments = rhs.getSeqOfFragments();
+	messageID = rhs.getMessageID();
+	m_parentID = rhs.getParentID();
+	m_tempType = rhs.getTempType();
+	return *this;
+}
+
+int QunSendTempIMPacket::putBody( unsigned char * buf )
+{
+	int pos=0;
+	buf[pos++] = qunCommand; // qun command
+	buf[pos++] = m_tempType;
+	*(unsigned int*)(buf+pos)=htonl(m_parentID);
+	pos+=4;
+	*(unsigned int*)(buf+pos)=htonl(qunID);
+	pos+=4;
+
+	int lenPos = pos;  // we record the index of the length of following contents, it takes 2 bytes
+	pos+=2; 
+	
+	unsigned short tmp2 = htons(1); // luma said 0001 means pure text, 0002 represents text with customized picture
+	memcpy(buf+pos, &tmp2, 2); pos+=2;
+	
+	buf[pos++] = numFragments;
+	buf[pos++] = seqFragments;
+	
+	tmp2 = htons(messageID);
+	memcpy(buf+pos, &tmp2, 2); pos+=2;
+	
+	memset(buf+pos, 0, 4); pos+=4;  // 4 unknown bytes
+	
+	std::string str2send = EvaUtil::convertToSend(message);
+	memcpy(buf+pos, str2send.c_str(), str2send.length());
+	pos += str2send.length();
+	
+	if(numFragments == seqFragments + 1){
+		//now we can set the length of message and font name;
+		unsigned short tmp2 = htons((short)(pos - lenPos -2 + fontName.length() + 10));
+		memcpy(buf + lenPos, &tmp2, 2);
+		
+		buf[pos++] = 0x20; //  a space
+		buf[pos++] = 0x00;    //  C style string terminator
+		
+		buf[pos++] = fontFlag;
+		buf[pos++] = red;
+		buf[pos++] = green;
+		buf[pos++] = blue;
+		
+		buf[pos++] = 0;
+		
+		unsigned short tmpEncoding = htons(encoding);  // encoding for text
+		memcpy(buf+pos,&tmpEncoding, 2);
+		pos+=2;
+		
+		int len = fontName.length();     // font name
+		memcpy(buf+pos, fontName.c_str(), len);
+		pos+=len;
+		
+		buf[pos++] = (unsigned char)(len + 9); 
+	}else{
+		short tmp2 = htons((short)(10 + str2send.length()));
+		memcpy(buf + lenPos, &tmp2, 2); pos+=2;
+	}
+// 	printf("before encrypted\n");
+// 	for(int i=0; i<pos; i++){
+// 		if(!(i%8)) printf("\n%d: ",i);
+// 		char t = buf[i];
+// 		printf("%2x ", (uint8_t)t);
+// 	}
+// 	printf("\n");
+	return pos;
+}

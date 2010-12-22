@@ -34,16 +34,20 @@ public:
 	void setSessionID(const unsigned int id) { sessionID= id;}
 	void setMd5(const unsigned char *value);
 	void setRequestSend( const bool ok) { requestSend = ok; }
+	void setTransferType( const unsigned short type) { transferType = type; }
 	
 	const unsigned int getSessionID() const { return sessionID; }
 	const unsigned char *getMd5() const { return md5; }
 	const bool isRequestSend() const { return requestSend; }
+	const unsigned short getTransferType() const { return transferType; }
 protected:
 	virtual int putBody(unsigned char *buf);
 private:
 	unsigned int sessionID;
 	unsigned char md5[16];
 	bool requestSend;
+
+	unsigned short transferType;
 };
 
 class EvaRequestStartReplyPacket: public EvaPicInPacket {
@@ -56,10 +60,12 @@ public:
 	EvaRequestStartReplyPacket &operator=(const EvaRequestStartReplyPacket &rhs);
 	
 	const unsigned int getSessionID() const { return sessionID; }
+	const unsigned short getTransferType() const { return transferType; }
 protected:
 	virtual void parseBody();
 private:
 	unsigned int sessionID;
+	unsigned short transferType;
 };
 
 #endif

@@ -179,7 +179,9 @@ void EvaUHFile::save(string &dir)
 	return;
 	}
 	*/
-	string filePrefix = dir + "\\" + getMd5String() + ".bmp";
+	char szQQ[16];
+	ultoa(getQQ(),szQQ,10);
+	string filePrefix = dir + "\\" + szQQ + ".bmp";
 
 	ofstream file;
 	file.open(filePrefix.c_str(),ios_base::out | ios_base::trunc | ios_base::binary);
@@ -242,6 +244,7 @@ CUserHead::~CUserHead() {
 	cleanUp();
 	util_log(0,"[CUserHead] Wait for connection to close");
 	while (isConnected()) Sleep(100);
+	if (m_hWndPopup) PUChangeTextW(m_hWndPopup,TranslateT("Downloading Qun avatars..."));
 	m_network->uhCallbackHub(-1,0,NULL,0);
 	if (m_hWndPopup) PUDeletePopUp(m_hWndPopup);
 	util_log(0,"[CUserHead] Instance Destruction");
@@ -326,6 +329,7 @@ void CUserHead::processAllInfoReply() {
 		AllInfoGotCounter += list.size();
 		std::list<UHInfoItem>::iterator it = list.begin();
 		UHInfoItem uhii;
+		util_log(0,"[CUserHead] Received %d UH reply",list.size());
 
 		while(it!=list.end()){
 			if (m_network->uhCallbackHub(Buddy_Info, it->id, (char*)EvaHelper::md5ToString(it->md5).c_str(), it->sessionId)) {
@@ -346,8 +350,10 @@ void CUserHead::processAllInfoReply() {
 			if(!doInfoRequest())    // return false means all done
 				mAskForStop = true;
 		}
-	} else
+	} else {
 		util_log(0,"EvaUHInfoReply parse failed");
+		mAskForStop = true;
+	}
 }
 
 bool CUserHead::doInfoRequest() {

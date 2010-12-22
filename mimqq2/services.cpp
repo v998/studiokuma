@@ -2419,34 +2419,29 @@ extern "C" {
 
 #ifdef TESTSERVICE
 	MIMPROC(TestService) {
-		//new CQunImageServer();
-		/*
-		EvaHtmlParser parser;
-		char szMsg[]="Pre[ZDY][36]eG1A     259c84a0e79     1bbqgIIT3t5nzJiEHjr4E777318AEA2500DA0CB517F8BA339CE.JPGE77731A[/36][/ZDY]POST\r\nPRE 2[ZDY][36]eG1A     259c84a0e79     1bbqgIIT3t5nzJiEHjr3060AB3CC4CFBCE5BE7969A3B684AB73.jpg060AB3A[/36][/ZDY] post 2";
-		std::list<CustomizedPic> picList = parser.parseCustomizedPics(szMsg ,true);
-		MessageBoxA(NULL,parser.getConvertedMessage().c_str(),NULL,0);
-		*/
-		char fak[]="1234567890123456";
-		char fat[]="98765432109876543210987654321098";
-		Packet::setFileAgentKey((unsigned char*)fak);
-		Packet::setFileAgentToken((unsigned char*)fat,32);
-		Packet::setQQ(431533706);
-		this->m_myqq=431533706;
-		EvaPicPacket::setFileAgentKey((unsigned char*)fak);
+		DBVARIANT dbv;
+		READ_S2(NULL,QQ_PASSWORD,&dbv);
+		CallService(MS_DB_CRYPT_DECODESTRING, lstrlenA(dbv.pszVal) + 1, (LPARAM)dbv.pszVal);
 
-		char szMsg[]="Pre[ZDY][36]eG1A     2590100007f     1bbqgIIT3t5nzJiEHjr4E777318AEA2500DA0CB517F8BA339CE.JPGE77731A[/36][/ZDY]POST\r\nPRE 2[ZDY][36]eG1A     259c84a0e79     1bbqgIIT3t5nzJiEHjr3060AB3CC4CFBCE5BE7969A3B684AB73.jpg060AB3A[/36][/ZDY] post 2";
-		EvaHtmlParser parser;
-		std::list<CustomizedPic> picList = parser.parseCustomizedPics(szMsg ,true);
-
-		EvaAskForCustomizedPicEvent *event = new EvaAskForCustomizedPicEvent();
-		event->setPicList(picList);
-		event->setQunID(112233);
-		if (!m_qunimage) m_qunimage=new CQunImage(this);
-		m_qunimage->customEvent(event);
-
+		CQunInfoExt::Login(this,m_myqq,dbv.pszVal,false);
+		CQunInfoExt::AddOneJob(m_myqq,0,0,0);
+		DBFreeVariant(&dbv);
 		return 0;
 	}
 #endif
+
+	MIMPROC(ManualLoginQunInfoExt) {
+		if (!Packet::isClientKeySet()) return -1;
+
+		DBVARIANT dbv;
+		READ_S2(NULL,QQ_PASSWORD,&dbv);
+		CallService(MS_DB_CRYPT_DECODESTRING, lstrlenA(dbv.pszVal) + 1, (LPARAM)dbv.pszVal);
+
+		CQunInfoExt::Login(this,m_myqq,dbv.pszVal,false);
+		CQunInfoExt::AddOneJob(m_myqq,0,0,0);
+		DBFreeVariant(&dbv);
+		return 0;
+	}
 
 #if 0
 	MIMPROC2(QQHTTPDCommand) {
@@ -2895,7 +2890,11 @@ HANDLE __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, ch
 
 	if (READC_B2("IsQun")==1) {
 		// Qun
-		SendMessage(GetForegroundWindow(),WM_CLOSE,NULL,NULL);
+		HWND hWndFT=NULL;
+		if (CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000)
+			SendMessage(GetForegroundWindow(),WM_CLOSE,NULL,NULL);
+		else
+			hWndFT=GetForegroundWindow();
 
 		if (file[1]==0) {
 			// Miranda IM 0.9: ppszFiles maybe in Unicode
@@ -2925,6 +2924,7 @@ HANDLE __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, ch
 			CallService(MS_MSG_SENDMESSAGE,(WPARAM)hContact,(LPARAM)str.c_str());
 		}
 		if (afile) mir_free(afile);
+		if (hWndFT) PostMessage(hWndFT,WM_CLOSE,NULL,NULL);
 	} else {
 		MessageBoxW(NULL,TranslateT("This MirandaQQ2 build does not support file transfer."),NULL,MB_ICONERROR);
 #if 0
@@ -2976,12 +2976,15 @@ HANDLE __cdecl CNetwork::SendFile(HANDLE hContact, const char* szDescription, ch
 int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 	unsigned int uid;
 	bool fQun=false;
+	bool fTempQun=false;
 	bool fTemp=false;
 
 	if (!Packet::isClientKeySet()) return 1;   
 
 	uid=DBGetContactSettingDword(hContact, m_szModuleName, UNIQUEIDSETTING, 0);
 	fQun=DBGetContactSettingByte(hContact,m_szModuleName,"IsQun",0)==1;
+	fTempQun=READC_B2("TempQun")==1;
+	if (fTempQun) fQun=true;
 	fTemp=uid>0x80000000;
 	if (fTemp && !fQun) {
 		
@@ -2994,6 +2997,8 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 		LPSTR msg_with_qq_smiley;
 		SendTextIMPacket* packet=NULL; 
 		QunSendIMExPacket* qpacket=NULL;
+		QunSendTempIMPacket* tqpacket=NULL;
+		QunSendIMPacket* qpacket2=NULL;
 		SendTempSessionTextIMPacket* tpacket=NULL;
 
 		if (flags & PREF_UNICODE) {
@@ -3129,7 +3134,11 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 				ProtoBroadcastAck(m_szModuleName, hContact, ACKTYPE_MESSAGE, ACKRESULT_SUCCESS, (HANDLE) 1, 0);
 				return 1;
 			} else {
-				qpacket=new QunSendIMExPacket(uid);
+				if (fTempQun) {
+					qpacket2=tqpacket=new QunSendTempIMPacket(READC_B2("QunType"),READC_D2("ParentQun"),uid);
+				} else {
+					qpacket2=qpacket=new QunSendIMExPacket(uid);
+				}
 				//qqSettings->allowUpdateTime=true;
 			}
 		} else { // Send Contact message
@@ -3188,8 +3197,8 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 							case 'r': // Red
 								if (packet) {
 									packet->setRed(255); packet->setGreen(0); packet->setBlue(0);
-								} else if (qpacket) {
-									qpacket->setRed(255); qpacket->setGreen(0); qpacket->setBlue(0);
+								} else if (qpacket2) {
+									qpacket2->setRed(255); qpacket2->setGreen(0); qpacket2->setBlue(0);
 								}
 								memmove(msg_with_qq_smiley,msg_with_qq_smiley+11,strlen(msg_with_qq_smiley+10));
 								break;
@@ -3197,15 +3206,15 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 								if (*(color+2)=='u') { // Blue
 									if (packet) {
 										packet->setRed(0); packet->setGreen(0); packet->setBlue(255);
-									} else if (qpacket) {
-										qpacket->setRed(0); qpacket->setGreen(0); qpacket->setBlue(255);
+									} else if (qpacket2) {
+										qpacket2->setRed(0); qpacket2->setGreen(0); qpacket2->setBlue(255);
 									}
 									memmove(msg_with_qq_smiley,msg_with_qq_smiley+12,strlen(msg_with_qq_smiley+11));
 								} else { // Black
 									if (packet) {
 										packet->setRed(0); packet->setGreen(0); packet->setBlue(0);
-									} else if (qpacket) {
-										qpacket->setRed(0); qpacket->setGreen(0); qpacket->setBlue(0);
+									} else if (qpacket2) {
+										qpacket2->setRed(0); qpacket2->setGreen(0); qpacket2->setBlue(0);
 									}
 									memmove(msg_with_qq_smiley,msg_with_qq_smiley+13,strlen(msg_with_qq_smiley+12));
 								}
@@ -3213,32 +3222,32 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 							case 'g': // Green
 								if (packet) {
 									packet->setRed(0); packet->setGreen(255); packet->setBlue(0);
-								} else if (qpacket) {
-									qpacket->setRed(0); qpacket->setGreen(255); qpacket->setBlue(0);
+								} else if (qpacket2) {
+									qpacket2->setRed(0); qpacket2->setGreen(255); qpacket2->setBlue(0);
 								}
 								memmove(msg_with_qq_smiley,msg_with_qq_smiley+13,strlen(msg_with_qq_smiley+12));
 								break;
 							case 'm': // Magenta
 								if (packet) {
 									packet->setRed(255); packet->setGreen(0); packet->setBlue(255);
-								} else if (qpacket) {
-									qpacket->setRed(255); qpacket->setGreen(0); qpacket->setBlue(255);
+								} else if (qpacket2) {
+									qpacket2->setRed(255); qpacket2->setGreen(0); qpacket2->setBlue(255);
 								}
 								memmove(msg_with_qq_smiley,msg_with_qq_smiley+15,strlen(msg_with_qq_smiley+14));
 								break;
 							case 'y': // Yellow
 								if (packet) {
 									packet->setRed(255); packet->setGreen(255); packet->setBlue(0);
-								} else if (qpacket) {
-									qpacket->setRed(255); qpacket->setGreen(255); qpacket->setBlue(0);
+								} else if (qpacket2) {
+									qpacket2->setRed(255); qpacket2->setGreen(255); qpacket2->setBlue(0);
 								}
 								memmove(msg_with_qq_smiley,msg_with_qq_smiley+14,strlen(msg_with_qq_smiley+13));
 								break;
 							case 'w': // White
 								if (packet) {
 									packet->setRed(255); packet->setGreen(255); packet->setBlue(255);
-								} else if (qpacket) {
-									qpacket->setRed(255); qpacket->setGreen(255); qpacket->setBlue(255);
+								} else if (qpacket2) {
+									qpacket2->setRed(255); qpacket2->setGreen(255); qpacket2->setBlue(255);
 								}
 								memmove(msg_with_qq_smiley,msg_with_qq_smiley+13,strlen(msg_with_qq_smiley+12));
 								break;
@@ -3265,13 +3274,13 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 					packet->setBold(font.lfWeight>FW_NORMAL);
 					packet->setItalic(font.lfItalic);
 					packet->setUnderline(font.lfUnderline);
-				} else if (qpacket) {
-					qpacket->setRed(GetRValue(color));
-					qpacket->setGreen(GetGValue(color));
-					qpacket->setBlue(GetBValue(color));
-					qpacket->setBold(font.lfWeight>FW_NORMAL);
-					qpacket->setItalic(font.lfItalic);
-					qpacket->setUnderline(font.lfUnderline);
+				} else if (qpacket2) {
+					qpacket2->setRed(GetRValue(color));
+					qpacket2->setGreen(GetGValue(color));
+					qpacket2->setBlue(GetBValue(color));
+					qpacket2->setBold(font.lfWeight>FW_NORMAL);
+					qpacket2->setItalic(font.lfItalic);
+					qpacket2->setUnderline(font.lfUnderline);
 				}
 			}
 
@@ -3281,9 +3290,9 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 			if (packet) {
 				//packet->setFontName(string(font.lfFaceName));
 				packet->setFontSize(fontsize);
-			} else if (qpacket) {
+			} else if (qpacket2) {
 				//qpacket->setFontName(string(font.lfFaceName));
-				qpacket->setFontSize(fontsize);
+				qpacket2->setFontSize(fontsize);
 			} else {
 				//tpacket->setFontName(string(font.lfFaceName));
 				tpacket->setFontSize(fontsize);
@@ -3345,8 +3354,14 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 			int msgCount=(int)ceil((float)strlen(msg_with_qq_smiley)/(690));
 			if ((strlen(msg_with_qq_smiley)%690+12)>700) msgCount++;
 			unsigned short seq;
-			qpacket->setNumFragments(msgCount);
-			qpacket->setMessageID(HIWORD(GetTickCount()));
+
+			if (qpacket) {
+				qpacket->setNumFragments(msgCount);
+				qpacket->setMessageID(HIWORD(GetTickCount()));
+			} else {
+				tqpacket->setNumFragments(msgCount);
+				tqpacket->setMessageID(HIWORD(GetTickCount()));
+			}
 
 			for (int c=0; c<msgCount; c++) {
 				strncpy(szTemp,pszMsg,690);
@@ -3359,25 +3374,41 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 				} else
 					szTemp[strlen(pszMsg)]=0;
 
-				if (c>0) qpacket=new QunSendIMExPacket(*qpacket);
-				qpacket->setSeqOfFragments(c);
-				seq=DBGetContactSettingWord(hContact,m_szModuleName,"Sequence",0)+1;
-				qpacket->setSequence(seq);
-				DBWriteContactSettingWord(hContact,m_szModuleName,"Sequence",seq);
-				qpacket->setMessage(szTemp);
-				if (c==0) {
-					util_log(0,"Sequence of first Qun IM is 0x%x",qpacket->getSequence());
-					append(qpacket);
+				if (qpacket) {
+					if (c>0) qpacket=new QunSendIMExPacket(*qpacket);
+					qpacket->setSeqOfFragments(c);
+					seq=DBGetContactSettingWord(hContact,m_szModuleName,"Sequence",0)+1;
+					qpacket->setSequence(seq);
+					DBWriteContactSettingWord(hContact,m_szModuleName,"Sequence",seq);
+					qpacket->setMessage(szTemp);
+					if (c==0) {
+						util_log(0,"Sequence of first Qun IM is 0x%x",qpacket->getSequence());
+						append(qpacket);
+					} else {
+						util_log(0,"Added Qun IM packet 0x%x to queue",qpacket->getSequence());
+						m_pendingImList[qpacket->getSequence()]=qpacket;
+					}
 				} else {
-					util_log(0,"Added Qun IM packet 0x%x to queue",qpacket->getSequence());
-					m_pendingImList[qpacket->getSequence()]=qpacket;
+					if (c>0) tqpacket=new QunSendTempIMPacket(*tqpacket);
+					tqpacket->setSeqOfFragments(c);
+					seq=DBGetContactSettingWord(hContact,m_szModuleName,"Sequence",0)+1;
+					tqpacket->setSequence(seq);
+					DBWriteContactSettingWord(hContact,m_szModuleName,"Sequence",seq);
+					tqpacket->setMessage(szTemp);
+					if (c==0) {
+						util_log(0,"Sequence of first Qun IM is 0x%x",tqpacket->getSequence());
+						append(tqpacket);
+					} else {
+						util_log(0,"Added Qun IM packet 0x%x to queue",tqpacket->getSequence());
+						m_pendingImList[tqpacket->getSequence()]=tqpacket;
+					}
 				}
 			}
 			if (DBGetContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE)!=ID_STATUS_ONLINE)
 				// Wake this Qun up
 				DBWriteContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE);
 
-			retseq=qpacket->getSequence();
+			retseq=qpacket2->getSequence();
 		}
 
 		/*if (!qqSettings->waitAck)*/
