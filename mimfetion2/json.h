@@ -1,0 +1,3 @@
+typedef struct JSONNODE_T {
+	
+} JSONNODE, *PJSONNODE, *LPJSONNODE;

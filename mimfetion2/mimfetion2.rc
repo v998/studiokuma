@@ -1,0 +1,161 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// ì˙ñ{åÍ resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "fetion.ico"
+#endif    // ì˙ñ{åÍ resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// íÜçëåÍ (ë‰òp) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHT)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
+#pragma code_page(950)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ACCMGRUI DIALOGEX 0, 0, 186, 134
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Fetion ID/Tel:",IDC_STATIC,7,7,45,8
+    EDITTEXT        IDC_LOGIN,54,7,54,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "&Password:",IDC_STATIC,7,24,47,8
+    EDITTEXT        IDC_PASSWORD,54,24,54,12,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "Force &Invisible",IDC_FORCEINVISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,116,24,63,10
+    LTEXT           "Add Tail:",IDC_STATIC,7,78,47,8,NOT WS_VISIBLE
+    CONTROL         "  Disabled",IDC_NOSIGNATURE,"Button",BS_AUTORADIOBUTTON | NOT WS_VISIBLE,54,78,54,10
+    CONTROL         "",IDC_WITHSIGNATURE,"Button",BS_AUTORADIOBUTTON | NOT WS_VISIBLE,54,90,16,10
+    EDITTEXT        IDC_SIGNATURE,68,90,111,14,ES_AUTOHSCROLL | NOT WS_VISIBLE
+END
+
+IDD_CODEVERIFY DIALOGEX 0, 0, 196, 130
+STYLE DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Code Verification"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_CODE,67,72,57,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,35,109,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,107,109,50,14
+    LTEXT           "Your action requires graphical code verification. \nPlease enter the code as shown in following picture:",IDC_TITLE,7,7,182,20
+    RTEXT           "Code:",IDC_STATIC,35,72,32,8
+    PUSHBUTTON      "",IDC_CODEIMAGE,52,31,87,34,BS_BITMAP
+    CTEXT           "You can click on the image to reload it.",IDC_STATIC,7,96,182,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ACCMGRUI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        VERTGUIDE, 54
+        VERTGUIDE, 108
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 124
+        HORZGUIDE, 24
+        HORZGUIDE, 42
+        HORZGUIDE, 60
+        HORZGUIDE, 78
+        HORZGUIDE, 90
+    END
+
+    IDD_CODEVERIFY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 189
+        VERTGUIDE, 67
+        VERTGUIDE, 124
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 123
+        HORZGUIDE, 31
+        HORZGUIDE, 51
+        HORZGUIDE, 65
+        HORZGUIDE, 72
+        HORZGUIDE, 96
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // íÜçëåÍ (ë‰òp) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
