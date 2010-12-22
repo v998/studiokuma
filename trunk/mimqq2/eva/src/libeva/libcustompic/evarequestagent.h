@@ -36,12 +36,13 @@ public:
 	const unsigned char *getMD5() const { return md5;}
 	const std::string &getFileName() const { return fileName; }
 	const unsigned int getImageLength() const { return imageLength; }
-
+	const unsigned short getTransferType() const { return transferType; }
 	
 	void setQunID(const unsigned int id) { qunID=id;}
 	void setMd5(const unsigned char *value);
 	void setImageLength(const unsigned short len) { imageLength = len; }
 	void setFileName( const std::string &name) { fileName = name ;}
+	void setTransferType( const unsigned short type) { transferType = type; }
 	
 	const unsigned char *getFileAgentToken() const { return fileAgentKey; }
 	const unsigned short getTokenLength() const { return tokenLength; }
@@ -57,6 +58,8 @@ private:
 	
 	unsigned char *fileAgentToken;
 	unsigned short tokenLength;
+
+	unsigned short transferType;
 };
 
 
@@ -74,12 +77,16 @@ public:
 	const unsigned int getRedirectIP() const { return redirectIP; }
 	const unsigned short getRedirectPort() const { return redirectPort; }
 	const std::string &getMessage() const { return message; }
+	const unsigned int getServerIP() const { return serverIP; }
+	const unsigned short getServerPort() const { return serverPort; }
 protected:
 	void parseBody();
 private:
 	unsigned short replyCode;
 	unsigned int sessionID;
 	
+	unsigned int serverIP;
+	unsigned short serverPort;
 	unsigned int redirectIP;
 	unsigned short redirectPort;
 	std::string message;

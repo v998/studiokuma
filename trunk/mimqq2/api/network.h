@@ -49,6 +49,7 @@ public:
 	void LoadAccount();
 	void UnloadAccount();
 	static void RemoveQunPics();
+	int ShowNotification(LPCWSTR info, DWORD flags);
 
 private:
 	void processPacket(LPCBYTE lpData, const USHORT len);
@@ -219,6 +220,7 @@ private:
 	INT __cdecl IPCService(WPARAM,LPARAM);
 	INT __cdecl RecvAuth(WPARAM,LPARAM);
 	INT __cdecl TestService(WPARAM,LPARAM);
+	INT __cdecl ManualLoginQunInfoExt(WPARAM,LPARAM);
 
 	void _CopyAndPost(HANDLE hContact, LPCWSTR szFile);
 	void __cdecl FetchQunAvatar(LPVOID data);
@@ -231,7 +233,6 @@ private:
 	void BroadcastStatus(int newStatus);
 	void SetContactsOffline();
 	//int ShowNotification(const char *info, DWORD flags);
-	int ShowNotification(LPCWSTR info, DWORD flags);
 	void ForkThread(ThreadFunc func, void* arg=NULL);
 	void __cdecl ThreadMsgBox(void* szMsg);
 	void RemoveAllCardNames(HANDLE hContact);

@@ -19,6 +19,7 @@
 #include "qunimageserver.h"
 #include "qunimage.h"
 #include "EvaAccountSwitcher.h"
+#include "quninfoext.h"
 
 /*
 #pragma message("qqapi.evafiledownloader")

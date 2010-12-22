@@ -460,6 +460,8 @@ void CQunImage::processRequestAgentReply(const EvaPicInPacket *in) {
 	case QQ_REQUEST_AGENT_REPLY_OK:
 		{
 			sessionID = packet->getSessionID();
+			currentOutPic.ip=packet->getServerIP();
+			currentOutPic.port=packet->getServerPort();
 			//printf("EvaPicManager::processRequestAgentReply -- \n\tmessage:%s\n", packet->getMessage().c_str());
 			if(currentIndex == -1)
 				doRequestStart();
@@ -496,7 +498,7 @@ void CQunImage::processTransferReply(const EvaPicInPacket *in) {
 		return;
 	}
 	if(packet->getData()){
-		if(!isSend){
+		if(!isSend){ // handleImageDataAcknowledged
 			if(currentFile.lastPacketSeq!=0xffff && currentFile.lastPacketSeq >= packet->getSequence()){
 				delete packet;
 				return;
@@ -521,10 +523,10 @@ void CQunImage::processTransferReply(const EvaPicInPacket *in) {
 				return;
 			}
 			doRequestData(currentPic, true);
-		} else {
+		} else { // handleImageInfoAcknowledged
 			doSendNextFragment();
 		}
-	} else{
+	} else if (packet->getFileName().length()>0) {
 		currentFile.filename = packet->getFileName().c_str();
 		currentFile.length = packet->getImageLength();
 		currentFile.buf = new unsigned char [ currentFile.length ];
@@ -562,6 +564,7 @@ void CQunImage::doRequestAgent() {
 	packet->setMd5(currentOutPic.md5);
 	packet->setImageLength(currentOutPic.imageLength);
 	packet->setFileName(currentOutPic.fileName);
+	packet->setTransferType(currentOutPic.transferType=/*currentOutPic.imageLength>61440?1000:*/1100);
 	expectedSequence = packet->getSequence();
 	append(packet);
 }
@@ -596,7 +599,13 @@ void CQunImage::doSendFileInfo() {
 	packet->setImageLength(currentFile.length);
 	packet->setFileName(currentFile.filename.c_str());
 	expectedSequence = packet->getSequence();
+
+	// EvaPicTransferPacket *packet2 = new EvaPicTransferPacket(packet);
 	append(packet);
+	/*
+	expectedSequence = packet2->getSequence();
+	append(packet2);
+	*/
 }
 
 void CQunImage::doRequestStart() {
@@ -607,6 +616,7 @@ void CQunImage::doRequestStart() {
 	}
 	packet->setSessionID(sessionID);
 	packet->setMd5(currentOutPic.md5);
+	packet->setTransferType(currentOutPic.transferType);
 	append(packet);
 }
 

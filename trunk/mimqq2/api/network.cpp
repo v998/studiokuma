@@ -388,6 +388,8 @@ void CNetwork::processRequestLoginTokenExResponse(InPacket* in) {
 			CallService(MS_DB_CRYPT_DECODESTRING, lstrlenA(dbv.pszVal) + 1, (LPARAM)dbv.pszVal);
 
 			Packet::setPasswordKey((const unsigned char*)EvaUtil::doMd5Md5(dbv.pszVal,strlen(dbv.pszVal)));
+
+			CQunInfoExt::Login(this,m_myqq,dbv.pszVal,true);
 			DBFreeVariant(&dbv);
 
 			packet->setNumProcess(1); // we simple set it to 1 for now
@@ -495,11 +497,9 @@ void CNetwork::processGetFriendOnlineResponse(InPacket* in) {
 	for (onlineList::iterator iter=l.begin(); iter!=l.end(); iter++)
 		m_tempOnlineList.push_back(*iter);
 
-	util_log(0,"ASSERT: packet.getPosition()=%d",packet.getPosition());
 	/*if (packet.getPosition()==0) {
 		util_log(0,"ASSERT: online friend response packet.getPosition()==0!");
 	} else */if(packet.getPosition() != QQ_FRIEND_ONLINE_LIST_POSITION_END){
-		util_log(0,"ASSERT: continue send");
 		append(new GetOnlineFriendsPacket(packet.getPosition()+packet.getOnlineFriendList().size()));
 	} else {
 		DEFCB();

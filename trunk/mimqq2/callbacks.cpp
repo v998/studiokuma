@@ -12,6 +12,7 @@ Copyright (C) 2000-5  Richard Hughes, Roland Rabien & Tristan Van de Vreede
 */
 #include "StdAfx.h"
 #include <math.h>
+#pragma comment(lib,"Urlmon")
 
 //extern void __cdecl _get_infothread(HANDLE hContact);
 extern "C" BOOL CALLBACK ModifySignatureDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -96,14 +97,36 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 	}
 
 	itoa(senderQQ,szUID,10);
-	char* pszMsg;
+	char* pszMsg=NULL;
 	DBVARIANT dbv;
 	bool hideMessage=false;
 
 	if (DBGetContactSetting(hContact,m_szModuleName,szUID,&dbv)) {
 		// No Nick
-		pszMsg=(char*)mir_alloc((strlen(szUID)+message.length()+60)*3);
-		sprintf(pszMsg,"%s:\n",szUID);
+		if (READC_B2("TempQun")) {
+			// Try to find the guy in all quns
+			HANDLE hContact2=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+			while (hContact2) {
+				if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+					DBGetContactSettingByte(hContact2,m_szModuleName,"IsQun",0)) {
+						if (!DBGetContactSetting(hContact2,m_szModuleName,szUID,&dbv)) {
+							DBWriteContactSettingString(hContact,m_szModuleName,szUID,dbv.pszVal);
+							pszMsg=(char*)mir_alloc((strlen(dbv.pszVal)+strlen(szUID)+3+message.length()+60)*3);
+							sprintf(pszMsg,"%s (%s):\n",dbv.pszVal,szUID);
+							DBFreeVariant(&dbv);
+							break;
+						}
+				}
+
+				hContact2=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact2, (LPARAM)NULL);
+			}
+
+			if (hContact2==NULL) DBWriteContactSettingString(hContact,m_szModuleName,szUID,szUID);
+		}
+		if (!pszMsg) {
+			pszMsg=(char*)mir_alloc((strlen(szUID)+message.length()+60)*3);
+			sprintf(pszMsg,"%s:\n",szUID);
+		}
 	} else {
 		// With Nick
 		pszMsg=(char*)mir_alloc((strlen(dbv.pszVal)+strlen(szUID)+3+message.length()+60)*3);
@@ -512,9 +535,14 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 
 	if (hContact && qun) { // The qun is initialized, proceed
 		char szEmail[MAX_PATH];
+		bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
 
-		reason_utf8=mir_strdup(msg);
-		util_convertFromGBK(reason_utf8);
+		if (fUTF8)
+			reason_utf8=mir_utf8encodecp(msg,936);
+		else {
+			reason_utf8=mir_strdup(msg);
+			util_convertFromGBK(reason_utf8);
+		}
 
 		sprintf(szEmail,"%s (%d)",qun->getDetails().getName().c_str(),qunid);
 		util_convertFromGBK(szEmail);
@@ -557,7 +585,7 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		dbei.cbSize=sizeof(dbei);
 		dbei.szModule=m_szModuleName;
 		dbei.timestamp=(DWORD)time(NULL);
-		dbei.flags=0;
+		dbei.flags=fUTF8?0:PREF_UTF;
 		dbei.eventType=EVENTTYPE_AUTHREQUEST;
 		dbei.cbBlob=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(reason_utf8)+strlen(szEmail)+5+tokenLen+2;;
 
@@ -1229,8 +1257,11 @@ void CNetwork::_requestExtraInfoCallback(RequestExtraInfoReplyPacket* packet) {
 			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
 				if (READC_W2("ExtraInfo") & QQ_EXTAR_INFO_USER_HEAD)
 					list.push_back(READC_D2(UNIQUEIDSETTING));
+				// No longer work
+				/*
 				else if (READC_B2("IsQun")==1)
 					quns.push_back(READC_D2(UNIQUEIDSETTING));
+					*/
 			}
 
 			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
@@ -1290,8 +1321,6 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 	//onlineList list = packet->getOnlineFriendList();
 	char szPluginPath[MAX_PATH];
 
-	util_log(0,"ASSERT: Online friend list size=%d",m_tempOnlineList.size());
-
 	map<unsigned int, unsigned int> qqlist;
 	CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
 
@@ -1303,7 +1332,7 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 
 	while (hContact) {
 		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
-			if (qqid=READC_D2(UNIQUEIDSETTING)) if (!READC_B2("IsQun") && qqid<0x80000000) unhandledqqlist[qqid]=0;
+			if (qqid=READC_D2(UNIQUEIDSETTING)) if (!READC_B2("IsQun") && !READC_B2("TempQun") && qqid<0x80000000) unhandledqqlist[qqid]=0;
 		}
 
 		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
@@ -1507,6 +1536,8 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 			m_memoPage=0;
 			append(new EvaMemoPacket(0,QQ_MEMO_BATCH_DOWNLOAD));
 		}
+
+		CQunInfoExt::AddOneJob(m_myqq,0,0,0);
 	}
 }
 
@@ -1563,17 +1594,28 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 		TCHAR szNick[MAX_PATH];
 		LPTSTR pszTemp;
 
-		szInfo=mir_a2u_cp(info.getName().c_str(),936);
-		_stprintf(szNick,TranslateT("(QQ Qun) %s"),szInfo);
-		WRITEC_TS("Nick",szNick);
-		mir_free(szInfo);
+		if (packet->getQunCommand()==QQ_QUN_CMD_GET_TEMP_QUN_INFO) {
+			szInfo=mir_a2u_cp(info.getName().c_str(),936);
+			_stprintf(szNick,TranslateT("(Discusson Group) %s"),szInfo);
+			WRITEC_TS("Nick",szNick);
+			mir_free(szInfo);
 
-		LPSTR pszInfo2;
-		pszInfo2=mir_utf8encodecp(info.getNotice().c_str(),936);
-		DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszInfo2);
-		mir_free(pszInfo2);
+			WRITEC_D("ParentQun",packet->getParentQunID());
+		} else {
+			if (!READC_B2("QunInfoExt")) {
+				szInfo=mir_a2u_cp(info.getName().c_str(),936);
+				_stprintf(szNick,TranslateT("(QQ Qun) %s"),szInfo);
+				WRITEC_TS("Nick",szNick);
+				mir_free(szInfo);
 
-		if (!READC_B2("HelperControlled")) DBDeleteContactSetting(hContact,"CList","Hidden");
+				LPSTR pszInfo2;
+				pszInfo2=mir_utf8encodecp(info.getNotice().c_str(),936);
+				DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszInfo2);
+				mir_free(pszInfo2);
+			}
+
+			if (!READC_B2("HelperControlled")) DBDeleteContactSetting(hContact,"CList","Hidden");
+		}
 		//DWORD dwQunIgnore;
 
 		if (READC_W2("Status")==ID_STATUS_OFFLINE) {
@@ -1594,7 +1636,9 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 		WRITEC_B("AuthType",info.getAuthType());
 		WRITEC_W("Category",info.getCategory());
 		WRITEC_D("Creator",info.getCreator());
-		WRITEQUNINFO_TS("Description",info.getDescription());
+		if (!READC_B2("QunInfoExt")) {
+			WRITEQUNINFO_TS("Description",info.getDescription());
+		}
 		WRITEC_D("ExternalID",info.getExtID());
 		WRITEC_B("Type",info.getType());
 		WRITEC_B("IsAdmin",qun->isAdmin(m_myqq));
@@ -1660,7 +1704,10 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 	int qunid=packet->getQunID();
 
 	switch (packet->getQunCommand()) {
-		case QQ_QUN_CMD_GET_QUN_INFO: _qunGetInfoCallback(packet); break;
+		case QQ_QUN_CMD_GET_QUN_INFO:
+		case QQ_QUN_CMD_GET_TEMP_QUN_INFO:
+			_qunGetInfoCallback(packet); 
+			break;
 		case QQ_QUN_CMD_SEND_IM:
 		case QQ_QUN_CMD_SEND_IM_EX:
 		case QQ_QUN_CMD_SEND_TEMP_QUN_IM:
@@ -1873,19 +1920,31 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 					list<QunInfo> lst=packet->getQunInfoList();
 					list<QunInfo>::iterator iter=lst.begin();
 					PROTOSEARCHRESULT psr;
-					char uid[32];
+					bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
+					union {
+						char uid[32];
+						wchar_t wuid[32];
+					};
 
 					if (lst.size()) {
-						sprintf(uid,"%d (%d)",iter->getExtID(),iter->getQunID());
-
 						ZeroMemory(&psr, sizeof(psr));
 						psr.cbSize = sizeof(psr);
 						psr.nick = uid;
-						psr.firstName=mir_strdup(iter->getName().c_str());
-						util_convertFromGBK(psr.firstName);
-						psr.lastName=mir_strdup(iter->getDescription().c_str());
-						util_convertFromGBK(psr.lastName);
-						psr.email=mir_u2a(iter->getAuthType()==QQ_QUN_NEED_AUTH?TranslateT("Authentication Required"):iter->getAuthType()==QQ_QUN_NO_AUTH?TranslateT("Authentication Not Required"):TranslateT("No Add"));
+
+						if (fUTF8) {
+							psr.flags=PSR_UNICODE;
+							swprintf(wuid,L"%d (%d)",iter->getExtID(),iter->getQunID());
+							psr.firstName=(LPSTR)mir_a2u_cp(iter->getName().c_str(),936);
+							psr.lastName=(LPSTR)mir_a2u_cp(iter->getDescription().c_str(),936);
+							psr.email=(LPSTR)(iter->getAuthType()==QQ_QUN_NEED_AUTH?TranslateT("Authentication Required"):iter->getAuthType()==QQ_QUN_NO_AUTH?TranslateT("Authentication Not Required"):TranslateT("No Add"));
+						} else {
+							sprintf(uid,"%d (%d)",iter->getExtID(),iter->getQunID());
+							psr.firstName=mir_strdup(iter->getName().c_str());
+							util_convertFromGBK(psr.firstName);
+							psr.lastName=mir_strdup(iter->getDescription().c_str());
+							util_convertFromGBK(psr.lastName);
+							psr.email=mir_u2a(iter->getAuthType()==QQ_QUN_NEED_AUTH?TranslateT("Authentication Required"):iter->getAuthType()==QQ_QUN_NO_AUTH?TranslateT("Authentication Not Required"):TranslateT("No Add"));
+						}
 
 						ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);			
 						mir_free(psr.firstName);
@@ -1924,6 +1983,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 					ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
 
 					fUpdate=false;
+					if (READC_D2("ExtCardVersion")!=packet->getCardVersion()) CQunInfoExt::AddOneJob(m_myqq,1,READC_D2("ExternalID"),packet->getCardVersion());
 				}
 
 				if (fUpdate) {
@@ -1956,6 +2016,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 						WRITEC_D("CardVersion",packet->getCardVersion());
 
 						util_log(0,"Writing names for Qun %d",qunid);
+						if (READC_D2("ExtCardVersion")!=packet->getCardVersion()) CQunInfoExt::AddOneJob(m_myqq,1,READC_D2("ExternalID"),packet->getCardVersion());
 
 #ifdef MIRANDAQQ_IPC
 						unsigned int creator=qun->getDetails().getCreator();
@@ -2152,18 +2213,28 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 				{
 					HANDLE hContact;
 					ReceivedQunIM* im=(ReceivedQunIM*)auxpacket;
-					int qunID=packet->getSender();
+					bool fTemp=packet->getIMType()==QQ_RECV_IM_TEMP_QUN_IM;
+
+					int qunID=fTemp?im->getExtID():packet->getSender();
+					util_log(0,"_imCallback(): sender1=%u parent=%u intid=%u, sender2=%u",packet->getSender(),im->getQunID(),im->getExtID(),im->getSenderQQ());
 					
-					_qunImCallback2(qunID,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
-					hContact=FindContact(qunID);
+					hContact=AddContact(qunID,fTemp,false);
 					if (READC_D2("QunVersion")!=im->getVersionID()) {
 						WRITEC_D("QunVersion",im->getVersionID());
 						WRITEC_D("QunCardUpdate",-1);
-						append(new QunGetInfoPacket(qunID));
+
+						if (fTemp) {
+							WRITEC_B("TempQun",1);
+							WRITEC_D("ParentQun",im->getQunID());
+							WRITEC_B("QunType",im->getType());
+							append(new QunGetTempInfoPacket(im->getType(),im->getQunID(),im->getExtID()));
+						} else
+							append(new QunGetInfoPacket(qunID));
 					} else {
 						util_log(0,"qunImCallback(): QunVersion=%d, versionID=%d",READC_D2("QunVersion"),im->getVersionID());
 						_updateQunCard(hContact, qunID);
 					}
+					_qunImCallback2(qunID,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
 
 				}
 				break;
@@ -2592,18 +2663,28 @@ void CNetwork::_searchUserCallback(SearchUserReplyPacket* packet) {
 	std::list<OnlineUser>::iterator iter;
 
 	PROTOSEARCHRESULT psr;
-	char uid[16];
+	union {
+		char uid[16];
+		wchar_t wuid[16];
+	};
+	bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
 
 	for(iter = list.begin(); iter!=list.end(); ++iter) {
-		sprintf(uid,"%d",iter->getQQ());
-
 		ZeroMemory(&psr, sizeof(psr));
 		psr.cbSize = sizeof(psr);
 		psr.nick = uid;
-		psr.firstName=mir_strdup(iter->getNick().c_str());
-		util_convertFromGBK(psr.firstName);
-		psr.lastName=mir_strdup(iter->getProvince().c_str());
-		util_convertFromGBK(psr.lastName);
+		if (fUTF8) {
+			_ultow(iter->getQQ(),wuid,10);
+			psr.firstName=(LPSTR)mir_a2u_cp(iter->getNick().c_str(),936);
+			psr.lastName=(LPSTR)mir_a2u_cp(iter->getProvince().c_str(),936);
+			psr.flags=PSR_UNICODE;
+		} else {
+			_ultoa(iter->getQQ(),uid,10);
+			psr.firstName=mir_strdup(iter->getNick().c_str());
+			util_convertFromGBK(psr.firstName);
+			psr.lastName=mir_strdup(iter->getProvince().c_str());
+			util_convertFromGBK(psr.lastName);
+		}
 
 		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);
 		mir_free(psr.firstName);
@@ -2710,9 +2791,10 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 			if (READ_B2(NULL,QQ_BLOCKEMPTYREQUESTS)==0) {
 				CCSDATA ccs;
 				PROTORECVEVENT pre;
+				pre.flags=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000?0:PREF_UTF;
 				int qqid=packet->getFromQQ();
 				HANDLE hContact=FindContact(qqid);
-				char* msg=mir_strdup(packet->getMessage().c_str());
+				char* msg=(pre.flags&PREF_UTF)?mir_utf8encodecp(packet->getMessage().c_str(),936):mir_strdup(packet->getMessage().c_str());
 				char* szBlob;
 				char* pCurBlob;
 
@@ -2726,8 +2808,8 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 				ccs.hContact=hContact;
 				ccs.wParam=0;
 				ccs.lParam=(LPARAM)&pre;
-				pre.flags=0;
 				pre.timestamp=(DWORD)time(NULL);
+
 				pre.lParam=sizeof(DWORD)+4+sizeof(HANDLE)+strlen(msg)+5;
 
 				/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
@@ -2741,7 +2823,9 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 				strcpy((char *)pCurBlob," "); pCurBlob+=2;
 				//strcpy((char *)pCurBlob,szMsg);
 				strcpy((char *)pCurBlob,msg);
-				util_convertFromGBK(pCurBlob);
+				if (!(pre.flags&PREF_UTF)) {
+					util_convertFromGBK(pCurBlob);
+				}
 				pre.szMessage=(char *)szBlob;
 
 				util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,pCurBlob);
@@ -2986,9 +3070,12 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 						char szFileName[MAX_PATH];
 						// CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"QQ\\",(LPARAM)szFileName);
 						FoldersGetCustomPath(m_avatarFolder,szFileName,MAX_PATH,"QQ");
+						sprintf(szFileName+strlen(szFileName),"\\%u.bmp",qqid);
+						/*
 						strcat(szFileName,"\\");
-						strcat(szFileName,dbv.pszVal);
+						strcat(szFileName,qqid);
 						strcat(szFileName,".bmp");
+						*/
 
 						if (GetFileAttributesA(szFileName)!=INVALID_FILE_ATTRIBUTES) {
 							PROTO_AVATAR_INFORMATION pai={sizeof(pai)};
@@ -3017,9 +3104,12 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 						char szFileName[MAX_PATH];
 						// CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"QQ\\",(LPARAM)szFileName);
 						FoldersGetCustomPath(m_avatarFolder,szFileName,MAX_PATH,"QQ");
+						/*
 						strcat(szFileName,"\\");
 						strcat(szFileName,md5);
 						strcat(szFileName,".bmp");
+						*/
+						sprintf(szFileName+strlen(szFileName),"\\%u.bmp",qqid);
 
 						// Old MD5 avail
 						if (!strcmp(dbv.pszVal,md5) && GetFileAttributesA(szFileName)!=INVALID_FILE_ATTRIBUTES) {
@@ -3033,13 +3123,55 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 
 					WRITEC_S("UserHeadMD5",md5);
 					DELC("UserHeadCurrent");
-				}
-				return true;
+					return true;
+				} else
+					util_log(0,"I don't know who is %u!",qqid);
+
+				return false;
 
 			}
 			break;
 		case -1:
-			m_userhead=NULL;
+			{
+				m_userhead=NULL;
+
+				HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+
+				while (hContact) {
+					if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+						if (READC_B2("IsQun")) {
+							DWORD dwExtID=READC_D2("ExternalID");
+							DWORD dwVer;
+							qqid=READC_D2(UNIQUEIDSETTING);
+
+							if (dwExtID && (READC_D2("StoredQunVersion")!=(dwVer=READC_D2("AvatarVersion")) || dwVer==0)) {
+								char szFileName[MAX_PATH];
+								char szURL[MAX_PATH];
+								sprintf(szURL,"http://face10.qun.qq.com/cgi/svr/face/getface?type=4&fid=2001&uin=%u",dwExtID);
+
+								util_log(0,"Force alternative download");
+								FoldersGetCustomPath(m_avatarFolder,szFileName,MAX_PATH,"QQ");
+								sprintf(szFileName+strlen(szFileName),"\\%u.bmp",qqid);
+
+								if (URLDownloadToFileA(NULL,szURL,szFileName,0,NULL)==S_OK) {
+									PROTO_AVATAR_INFORMATION pai={sizeof(pai)};
+									strcpy(pai.filename,szFileName);
+									pai.format=PA_FORMAT_BMP;
+									pai.hContact=hContact;
+									WRITEC_D("AvatarUpdateTS",DBGetContactSettingDword(NULL,m_szModuleName,"LoginTS",0));
+									WRITEC_B("UserHeadCurrent",1);
+									WRITEC_D("AvatarVersion",READC_D2("StoredQunVersion"));
+									if (READ_B2(NULL,QQ_AVATARTYPE)==0)
+										ProtoBroadcastAck(m_szModuleName, (HANDLE)hContact, ACKTYPE_AVATAR, ACKRESULT_SUCCESS, (HANDLE)&pai, (LPARAM)0);
+								}
+							} else
+								util_log(0,"Skipped update avatar of Qun %u: same version",qqid);
+						}
+					}
+
+					hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
+				}
+			}
 			break;
 	}
 

@@ -35,6 +35,8 @@ EvaRequestAgentPacket::EvaRequestAgentPacket( const unsigned char *token, const 
 	cryptPosition = 14 + tokenLength;
 	fileAgentToken = new unsigned char [ tokenLength ];
 	memcpy(fileAgentToken, token, length);
+
+	transferType=1100; // 1000=screenshot 1100=customemot
 }
 
 EvaRequestAgentPacket::EvaRequestAgentPacket( const EvaRequestAgentPacket &rhs )
@@ -68,6 +70,22 @@ void EvaRequestAgentPacket::setMd5(const unsigned char *value)
 int EvaRequestAgentPacket::putBody(unsigned char *buf)
 {
 	int pos=0;
+	*(unsigned int*)(buf+pos)=htonl(0x10000000); pos+=4;
+	*(unsigned int*)(buf+pos)=0; pos+=4;
+	*(unsigned int*)(buf+pos)=0; pos+=4;
+	*(unsigned short*)(buf+pos)=htons(tokenLength); pos+=2;
+	memcpy(buf+pos, fileAgentToken, tokenLength); pos+=tokenLength;
+	// m_unencryptedBodyLength = [buf position] - offset;
+
+	*(unsigned short*)(buf+pos)=htons(transferType); pos+=2; // m_agentTransferType
+	*(unsigned int*)(buf+pos)=htonl(qunID); pos+=4; // m_owner
+	*(unsigned int*)(buf+pos)=htonl(imageLength); pos+=4; // m_imageSize
+	memcpy(buf+pos, md5, 16); pos+=4; // m_imageMd5
+	memcpy(buf+pos, EvaUtil::doMd5((char*)fileName.c_str(), fileName.length()), 16); pos+=16; // m_imageFileName
+	*(unsigned short*)(buf+pos)=0; pos+=2;
+
+	/*
+
 	unsigned int tmp4_1 = htonl(0x01000000), tmp4_2 = 0;
 	memcpy(buf+pos, &tmp4_1, 4);
 	pos+=4;
@@ -82,8 +100,13 @@ int EvaRequestAgentPacket::putBody(unsigned char *buf)
 	
 	memcpy(buf+pos, fileAgentToken, tokenLength); pos+=tokenLength;
 	
-	buf[pos++] = 0x04;
-	buf[pos++] = 0x4c;
+	if (imageLength<=61440) {
+		buf[pos++] = 0x04;
+		buf[pos++] = 0x4c;
+	} else {
+		buf[pos++] = 0x03;
+		buf[pos++] = 0xe8;
+	}
 	
 	tmp4_1 = htonl(qunID);
 	memcpy(buf+pos, &tmp4_1, 4); pos+=4;
@@ -96,7 +119,7 @@ int EvaRequestAgentPacket::putBody(unsigned char *buf)
 	memcpy(buf+pos, EvaUtil::doMd5((char*)fileName.c_str(), fileName.length()), 16); pos+=16;
 	
 	memset(buf+pos, 0, 2); pos+=2;
-	
+	*/
 	return pos;
 }
 
@@ -131,6 +154,21 @@ void RequestAgentReplyPacket::parseBody()
 	
 	pos+=8; // ignore 8 bytes;
 	
+	replyCode=ntohs(*(unsigned short*)(decryptedBuf+pos)); pos+=2; // m_reply
+	serverIP=*(unsigned int*)(decryptedBuf+pos); pos+=4; // m_serverIp
+	serverPort=ntohs(*(unsigned short*)(decryptedBuf+pos)); pos+=2; // m_serverPort
+	sessionID=ntohl(*(unsigned int*)(decryptedBuf+pos)); pos+=4; // m_sessionId
+	redirectIP=*(unsigned int*)(decryptedBuf+pos); pos+=4; // m_redirectServerIp
+	redirectPort=ntohs(*(unsigned short*)(decryptedBuf+pos)); pos+=2; // m_redirectServerPort
+	unsigned short len = ntohs(*(unsigned short*)(decryptedBuf+pos)); pos+=2; // len
+
+	char *str = new char [len + 1];
+	memcpy(str, decryptedBuf+pos, len); pos += len;
+	str[len] = 0x00;
+	message.assign(str);
+	delete str;
+
+	/*
 	unsigned short tmp2;
 	memcpy(&tmp2, decryptedBuf+pos, 2); pos+=2;
 	replyCode = ntohs(tmp2);
@@ -156,4 +194,5 @@ void RequestAgentReplyPacket::parseBody()
 	str[len] = 0x00;
 	message.assign(str);
 	delete str;
+	*/
 }

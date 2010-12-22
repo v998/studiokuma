@@ -30,6 +30,9 @@ void CNetwork::SetContactsOffline() {
 				if (READC_B2("IsQun")==1) {
 					WRITEC_B("QunInit",0);
 					WRITEC_B("ServerQun",0);
+					WRITEC_B("QunInfoExt",0);
+					WRITEC_D("ExtCardVersion",0);
+					WRITEC_D("QunVersionStored",READC_D2("QunVersion"));
 					WRITEC_D("QunVersion",0);
 					if (READC_W2("Status")==ID_STATUS_INVISIBLE) 
 						WRITEC_B("NoInit",1);
@@ -403,6 +406,7 @@ void CNetwork::GoOffline() {
 		m_pendingImList.erase(m_pendingImList.begin());
 	}
 
+	CQunInfoExt::Logout(m_myqq);
 	/*
 	if (m_currentMedia.ptszArtist) mir_free(m_currentMedia.ptszArtist);
 	if (m_currentMedia.ptszTitle) mir_free(m_currentMedia.ptszTitle);

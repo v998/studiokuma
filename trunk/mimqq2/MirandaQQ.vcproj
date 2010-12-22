@@ -1578,6 +1578,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\api\quninfoext.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\api\socket.cpp"
 					>
 				</File>
@@ -1635,6 +1639,10 @@
 				</File>
 				<File
 					RelativePath=".\api\qunimageserver.h"
+					>
+				</File>
+				<File
+					RelativePath=".\api\quninfoext.h"
 					>
 				</File>
 				<File
