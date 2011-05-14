@@ -13,7 +13,7 @@ void callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);
 
 CNetwork::CNetwork(LPCSTR szModuleName, LPCTSTR szUserName):
 CClientConnection("CNETWORK",1000),
-m_userhead(NULL), m_qunimage(NULL), m_savedTempSessionMsg(NULL) {
+m_userhead(NULL), m_qunimage(NULL), m_savedTempSessionMsg(NULL), m_hMenuRoot(NULL), m_avatarFolder(NULL) {
 	InitializeCriticalSection(&m_cs);
 	m_szModuleName=m_szProtoName=mir_strdup(szModuleName);
 	if (szUserName) {
@@ -545,13 +545,13 @@ void CNetwork::processIMResponse(InPacket* in) {
 	packetReply.setSequence(packet.getSequence());
 	sendOut(&packetReply);
 
-	for (list<int>::iterator iter=receivedCacheList.begin(); iter!=receivedCacheList.end(); iter++)
-		if ((*iter)==packet.hashCode()) {
+	for (list<double>::iterator iter=receivedCacheList.begin(); iter!=receivedCacheList.end(); iter++)
+		if ((*iter)==(double)packet.hashCode()+(1.0/(double)packet.getIntSequence())) {
 			util_log(0,"[CNetwork] Duplicated message, ignore");
 			return;
 		}
 
-	receivedCacheList.push_front(packet.hashCode());
+	receivedCacheList.push_front((double)packet.hashCode()+(1.0/(double)packet.getIntSequence()));
 	if (receivedCacheList.size()>50) receivedCacheList.pop_back();
 
 	switch (packet.getIMType()) {

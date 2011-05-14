@@ -122,7 +122,8 @@ static BOOL CALLBACK AddQunMemberProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 						aqmt->qunid=qunid;
 
 						while (hContact) {
-							if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+							// if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+							if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
 								DBGetContactSettingByte(hContact,m_szModuleName,"IsQun",0)==0 && DBGetContactSettingByte(hContact,m_szModuleName,"ChatRoom",0)==0) {
 									if (!DBGetContactSettingTString(hContact,m_szModuleName,"Nick",&dbv)) {
 										_stprintf(szQun,_T("%s (%d)"),dbv.ptszVal,DBGetContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,0));
@@ -204,13 +205,17 @@ void KickQunUser(void* args) {
 // lParam: N/A
 // Return: 0 is the operation completed, 1 otherwise
 MIMPROC(OnContactDeleted) {
-	char* szProto;
+	// char* szProto;
 	unsigned int uid;
 	char is_qun;
 	HANDLE hContact=(HANDLE)wParam;
 
+	/*
 	szProto=(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
 	if (!szProto || strcmp(szProto, m_szModuleName)) return 0;
+	*/
+	if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)!=-1) return 0;
+
 	if (!Packet::isClientKeySet()) return 1;
 
 	if (DBGetContactSettingByte(hContact,"CList","NotOnList",0)==1) return 0;
@@ -252,10 +257,12 @@ MIMPROC(OnContactDeleted) {
 // lParam: N/A
 // Return: Always 0
 MIMPROC(OnPrebuildContactMenu) {
+	//if (!strcmp((LPSTR)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0),m_szModuleName)) {
 	DWORD config=0;
 	HANDLE hContact=(HANDLE)wParam;
 	CLISTMENUITEM clmi={sizeof(clmi)};
-	if (!strcmp((LPSTR)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0),m_szModuleName)) {
+
+	if (CallService(MS_PROTO_ISPROTOONCONTACT,wParam,(LPARAM)m_szModuleName)==-1) {
 		/*
 		CRMI2(QQ_CNXTMENU_REMOVEME,RemoveMe,Translate("&Remove me from his/her list"));
 		CRMI2(QQ_CNXTMENU_ADDQUNMEMBER,AddQunMember,Translate("&Add a member to Qun"));
@@ -285,8 +292,14 @@ MIMPROC(OnPrebuildContactMenu) {
 				config=0x09;
 		}
 		//config=-1; // For debug only
-	}
 
+		/*
+		for (int c=0; qqCnxtMenuItems[c]; c++) {
+			clmi.flags=(config & (1<<c))?CMIM_FLAGS:CMIM_FLAGS|CMIF_HIDDEN;
+			CallService(MS_CLIST_MODIFYMENUITEM,(WPARAM)qqCnxtMenuItems[c],(LPARAM)&clmi);
+		}
+		*/
+	}
 	int c=0;
 
 	for (list<HANDLE>::iterator iter=m_contextMenuItemList.begin(); iter!=m_contextMenuItemList.end(); iter++, c++) {
@@ -294,13 +307,6 @@ MIMPROC(OnPrebuildContactMenu) {
 		if (c==2) clmi.flags+=CMIM_NAME;
 		CallService(MS_CLIST_MODIFYMENUITEM,(WPARAM)*iter,(LPARAM)&clmi);
 	}
-
-	/*
-	for (int c=0; qqCnxtMenuItems[c]; c++) {
-		clmi.flags=(config & (1<<c))?CMIM_FLAGS:CMIM_FLAGS|CMIF_HIDDEN;
-		CallService(MS_CLIST_MODIFYMENUITEM,(WPARAM)qqCnxtMenuItems[c],(LPARAM)&clmi);
-	}
-	*/
 
 	return 0;
 }
@@ -1243,7 +1249,9 @@ extern "C" {
 		m_hGroupList.clear();
 
 		while (hContact) {
-			if (!lstrcmpA(m_szModuleName, (LPSTR)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && READ_B2(hContact,"IsQun")==0 && READC_D2(UNIQUEIDSETTING)!=0) {
+			// if (!lstrcmpA(m_szModuleName, (LPSTR)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) &&
+			if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
+				READ_B2(hContact,"IsQun")==0 && READC_D2(UNIQUEIDSETTING)!=0) {
 				index=0;
 				if (!DBGetContactSettingTString(hContact,"CList","Group",&dbv)) {
 					for (iter=groupnames.begin(); iter!=groupnames.end(); iter++) {
@@ -1629,7 +1637,8 @@ extern "C" {
 			time_t now=(time_t)DBGetContactSettingDword(NULL,m_szModuleName,"LoginTS",0);
 
 			while(hContact!=NULL) {
-				if(!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0))) {
+				// if(!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0))) {
+				if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1) {
 					unsigned int uid=DBGetContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,0);
 					// I am responsible for this contact, check last update
 					if (DBGetContactSettingByte(hContact,m_szModuleName,"ChatRoom",0)==0 && 
@@ -2619,8 +2628,10 @@ int __cdecl CNetwork::AuthDeny(HANDLE hContact, const char* szReason) {
 
 	if (!Packet::isClientKeySet()) return 1;   
 
-	if (MessageBox(NULL,TranslateT("Send deny message?\n(If you choose No, then the request is ignored to user)"),NULL,MB_ICONQUESTION | MB_YESNO)==IDNO)
-		return 0;
+	if (CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000) {
+		if (MessageBox(NULL,TranslateT("Send deny message?\n(If you choose No, then the request is ignored to user)"),NULL,MB_ICONQUESTION | MB_YESNO)==IDNO)
+			return 0;
+	}
 
 	if ((dbei.cbBlob=CallService(MS_DB_EVENT_GETBLOBSIZE, (WPARAM)hContact, 0))==-1) return 1;
 
@@ -2686,7 +2697,8 @@ int __cdecl CNetwork::AuthRecv(HANDLE hContact, PROTORECVEVENT* pre) {
 		dbei.cbSize=sizeof(dbei);
 		dbei.szModule=m_szModuleName;
 		dbei.timestamp=pre->timestamp;
-		dbei.flags=pre->flags & (PREF_CREATEREAD?DBEF_READ:0);
+		dbei.flags=(pre->flags&PREF_CREATEREAD)?DBEF_READ:0;
+		dbei.flags|=(pre->flags&PREF_UTF)?DBEF_UTF:0;
 		dbei.eventType=EVENTTYPE_AUTHREQUEST;
 		dbei.cbBlob=pre->lParam;
 		dbei.pBlob=(PBYTE)pre->szMessage;
@@ -3536,6 +3548,51 @@ int __cdecl CNetwork::UserIsTyping(HANDLE hContact, int type) {
 	return 1;
 }
 
+int __cdecl CNetwork::GetAvatarCaps(WPARAM wParam, LPARAM lParam) {
+	switch (wParam) {
+		case AF_MAXSIZE:
+			((LPPOINT)lParam)->x=40;
+			((LPPOINT)lParam)->y=40;
+			return 0;
+		case AF_PROPORTION:
+			return PIP_SQUARE;
+		case AF_FORMATSUPPORTED:
+			return lParam==PA_FORMAT_BMP?1:0;
+		case AF_ENABLED:
+			return 1;
+		case AF_DONTNEEDDELAYS:
+			return 1;
+		case AF_MAXFILESIZE:
+			return 0;
+		case AF_DELAYAFTERFAIL:
+			return 0;
+		case AF_FETCHALWAYS:
+			return 0;
+	}
+	return 0;
+}
+
+int __cdecl CNetwork::SetMyAvatar(WPARAM wParam, LPARAM lParam) {
+	/*
+	wParam=0
+	lParam=(const char *)Avatar file name or NULL to remove the avatar
+	return=0 for sucess
+	*/
+	return 1; // Not supported yet
+}
+
+int __cdecl CNetwork::GetMyAvatar(WPARAM wParam, LPARAM lParam) {
+	HANDLE hContact=NULL;
+	char szPath[MAX_PATH];
+
+	if (!m_avatarFolder) InitFoldersService();
+
+	FoldersGetCustomPath(m_avatarFolder,szPath,MAX_PATH,"QQ");
+
+	mir_snprintf((LPSTR)wParam,lParam,"%s\\%u.bmp",szPath,READC_D2(UNIQUEIDSETTING));
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // OnEvent - maintain protocol events
 
@@ -3546,14 +3603,91 @@ int __cdecl CNetwork::OnEvent(PROTOEVENTTYPE eventType, WPARAM wParam, LPARAM lP
 		case EV_PROTO_ONOPTIONS: return OnOptionsInit( wParam, lParam ); // This is only called from AcctMgr
 		case EV_PROTO_ONRENAME:
 			{	
-				CLISTMENUITEM clmi={sizeof(clmi)};
-				clmi.flags=CMIM_NAME|CMIF_TCHAR;
-				clmi.ptszName=m_tszUserName;
-				CallService(MS_CLIST_MODIFYMENUITEM, (WPARAM)m_hMenuRoot, (LPARAM)&clmi);
+				if (m_hMenuRoot!=MO_GetProtoRootMenu(m_szModuleName)) {
+					CLISTMENUITEM clmi={sizeof(clmi)};
+					clmi.flags=CMIM_NAME|CMIF_TCHAR;
+					clmi.ptszName=m_tszUserName;
+					CallService(MS_CLIST_MODIFYMENUITEM, (WPARAM)m_hMenuRoot, (LPARAM)&clmi);
+				}
 			}	
 		//case EV_PROTO_ONREADYTOEXIT:
+			break;
+		case EV_PROTO_ONMENU:
+			{
+#define DECL(a) extern int a(WPARAM wParam, LPARAM lParam)
+				CLISTMENUITEM mi={sizeof(mi)};
+				int /*c=0,*/ c2=0;
+				CHAR szTemp[MAX_PATH]={0};
+				//TCHAR szPopupName[MAX_PATH];
+				LPSTR pszTemp;
+
+				HGENMENU hGenMenu=MO_GetProtoRootMenu(m_szModuleName);
+
+				if (m_hMenuRoot!=NULL) CallService(MS_CLIST_REMOVEMAINMENUITEM, (WPARAM)m_hMenuRoot, 0);
+
+				mi.pszService=szTemp;
+				mi.ptszName=m_tszUserName;
+
+				if (!hGenMenu) {
+					mi.popupPosition=500085000;
+					mi.hParentMenu=HGENMENU_ROOT;
+					// mi.position=-1999901009;
+					//mi.ptszPopupName=(LPWSTR)-1;
+					mi.flags=CMIF_ROOTPOPUP|CMIF_UNICODE|CMIF_KEEPUNTRANSLATED;
+					mi.hIcon=LoadIcon(hinstance, MAKEINTRESOURCE(IDI_TM));
+					m_hMenuRoot=(HANDLE)CallService(/*MS_CLIST_ADDMAINMENUITEM*/MS_CLIST_ADDPROTOMENUITEM, (WPARAM)0, (LPARAM)&mi);
+				} else {
+					m_hMenuRoot=hGenMenu;
+				}
+
+				mi.flags=CMIF_CHILDPOPUP|CMIF_UNICODE;
+				mi.hParentMenu=(HGENMENU)m_hMenuRoot;
+				// mi.ptszPopupName=(LPWSTR)m_hMenuRoot;
+				// mi.position=500090000;
+				mi.position=201001;
+
+				strcpy(szTemp,m_szModuleName);
+				pszTemp=szTemp+strlen(szTemp);
+
+		#define _CRMI(a,b,d,e,f) DECL(b); strcpy(pszTemp, a);m_serviceList.push_back(QCreateService(szTemp, &CNetwork::b));mi.ptszName=d;e.push_back((HANDLE)CallService(f, 0, (LPARAM)&mi));mi.position++;/*=5*/;
+		#define CRMI(a,b,d) _CRMI(a,b,d,m_menuItemList,/*MS_CLIST_ADDMAINMENUITEM*/MS_CLIST_ADDPROTOMENUITEM)
+				CRMI(QQ_MENU_CHANGENICKNAME,ChangeNickname,TranslateT("Change &Nickname"));
+				CRMI(QQ_MENU_MODIFYSIGNATURE,ModifySignature,TranslateT("&Modify Personal Signature"));
+				//CRMI(QQ_MENU_CHANGEHEADIMAGE,ChangeHeadImage,Translate("Change &Head Image"));
+				CRMI(QQ_MENU_QQMAIL,QQMail,TranslateT("&QQ Mail"));
+				CRMI(QQ_MENU_COPYIP,CopyMyIP,TranslateT("Show and copy my Public &IP"));
+				CRMI(QQ_MENU_DOWNLOADGROUP,DownloadGroup,TranslateT("&Download Group"));
+				CRMI(QQ_MENU_UPLOADGROUP,UploadGroup,TranslateT("&Upload Group"));
+				CRMI(QQ_MENU_REMOVENONSERVERCONTACTS,RemoveNonServerContacts,TranslateT("&Remove contacts not in Server"));
+				CRMI(QQ_MENU_SUPPRESSADDREQUESTS,SuppressAddRequests,TranslateT("&Ignore any Add Requests"));
+				CRMI(QQ_MENU_DOWNLOADUSERHEAD,DownloadUserHead,TranslateT("Re&download User Head"));
+				CRMI(QQ_MENU_GETWEATHER,GetWeather,TranslateT("Get &Weather Information"));
+				CRMI(QQ_MENU_LOGINQUNINFOEXT,ManualLoginQunInfoExt,TranslateT("Manual Retrieve E&xtended Qun Info"));
+				//CRMI(QQ_MENU_SUPPRESSQUN,SuppressQunMessages,Translate("&Suppress Qun Message Receive"));
+				//CRMI(QQ_MENU_TOGGLEQUNLIST,ToggleQunList,Translate("&Toggle Qun List"));
+		#ifdef TESTSERVICE
+				CRMI("/TestService",TestService,TranslateT("Test Service"));
+		#endif
+				NotifyEventHooks(hIPCEvent,QQIPCEVT_CREATE_MAIN_MENU,(LPARAM)&mi);
+
+				// Context Menus
+				mi.flags=CMIF_HIDDEN|CMIF_UNICODE; //CMIF_NOTOFFLINE;
+				mi.position=-500050000;
+				mi.hParentMenu=HGENMENU_ROOT;
+
+		#define CRMI2(a,b,d) _CRMI(a,b,d,m_contextMenuItemList,MS_CLIST_ADDCONTACTMENUITEM)
+				CRMI2(QQ_CNXTMENU_REMOVEME,RemoveMe,TranslateT("&Remove me from his/her list"));
+				CRMI2(QQ_CNXTMENU_ADDQUNMEMBER,AddQunMember,TranslateT("&Add a member to Qun"));
+				CRMI2(QQ_CNXTMENU_SILENTQUN,SilentQun,L"");
+				CRMI2(QQ_CNXTMENU_REAUTHORIZE,Reauthorize,TranslateT("Resend &authorization request"));
+				CRMI2(QQ_CNXTMENU_CHANGECARDNAME,ChangeCardName,TranslateT("Change my Qun &Card Name"));
+				CRMI2(QQ_CNXTMENU_POSTIMAGE,PostImage,TranslateT("Post &Image"));
+				CRMI2(QQ_CNXTMENU_FORCEREFRESH,QunSpace,TranslateT("Qun &Space"));
+			}
+			return 0;
 		default: return 1;
 	}	
+	return 1;
 }
 
 int __cdecl CNetwork::OnPreShutdown(WPARAM wParam, LPARAM lParam) {

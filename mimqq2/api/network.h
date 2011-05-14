@@ -95,7 +95,7 @@ private:
 	list<OutPacket*> m_outPool;
 	//list<InPacket*> m_inPool;
 	list<int>receivedPacketList;
-	list<int>receivedCacheList;
+	list<double>receivedCacheList;
 	time_t m_checkTime;
 	time_t m_keepAliveTime;
 	bool m_IsDetecting;
@@ -221,6 +221,9 @@ private:
 	INT __cdecl RecvAuth(WPARAM,LPARAM);
 	INT __cdecl TestService(WPARAM,LPARAM);
 	INT __cdecl ManualLoginQunInfoExt(WPARAM,LPARAM);
+	INT __cdecl GetAvatarCaps(WPARAM,LPARAM);
+	INT __cdecl GetMyAvatar(WPARAM,LPARAM);
+	INT __cdecl SetMyAvatar(WPARAM,LPARAM);
 
 	void _CopyAndPost(HANDLE hContact, LPCWSTR szFile);
 	void __cdecl FetchQunAvatar(LPVOID data);
@@ -341,7 +344,7 @@ public:
 	HWND opt_hwndQun;
 	//HWND hwndHelper;
 	bool opt_fInit;
-	static HANDLE m_folders[2]; // 0=Avatars 1=QunImages 2=WebServer
+	static HANDLE m_folders[3]; // 0=Avatars 1=QunImages 2=WebServer
 	HANDLE m_avatarFolder;
 };
 

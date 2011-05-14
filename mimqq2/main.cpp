@@ -27,7 +27,7 @@ LISTENINGTOINFO qqCurrentMedia={0};
 
 HANDLE hNetlibUser=NULL;			// Handle of NetLib user
 //static HANDLE hPrevInstanceService=NULL;
-HANDLE CNetwork::m_folders[2];
+HANDLE CNetwork::m_folders[3];
 
 #ifdef MIRANDAQQ_IPC
 HANDLE hIPCEvent=NULL;
@@ -194,25 +194,24 @@ extern "C" {
 	}
 
 	void CNetwork::InitFoldersService() {
-		char AvatarsFolder[MAX_PATH];
+		if (!m_avatarFolder) {
+			char AvatarsFolder[MAX_PATH];
 
-		LPSTR tmpPath = Utils_ReplaceVars("%miranda_avatarcache%");
+			LPSTR tmpPath = Utils_ReplaceVars("%miranda_avatarcache%");
 
-		mir_snprintf(AvatarsFolder, MAX_PATH, "%s\\%s", tmpPath, m_szModuleName);
-		m_avatarFolder=FoldersRegisterCustomPath(m_szModuleName, "Avatars", AvatarsFolder);
+			mir_snprintf(AvatarsFolder, MAX_PATH, "%s\\%s", tmpPath, m_szModuleName);
+			m_avatarFolder=FoldersRegisterCustomPath(m_szModuleName, "Avatars", AvatarsFolder);
 
-		mir_free(tmpPath);
+			mir_free(tmpPath);
+		}
 	}
+
+#define CSF(a,b) DECL(b); strcpy(pszTemp, a); this->QCreateService(szTemp,&CNetwork::b)
 
 	// OnModulesLoaded(): Calls by Miranda when plugin loads
 	int CNetwork::OnModulesLoadedEx( WPARAM wParam, LPARAM lParam )
 	{
-		CHAR szTemp[MAX_PATH]={0};
-		//TCHAR szPopupName[MAX_PATH];
-		LPSTR pszTemp;
 		NETLIBUSER nlu = {0};
-		CLISTMENUITEM mi={sizeof(mi)};
-		int /*c=0,*/ c2=0;
 
 		//add as a known module in DB Editor ++
 		CallService("DBEditorpp/RegisterSingleModule",(WPARAM)m_szModuleName, 0);	
@@ -221,59 +220,23 @@ extern "C" {
 		QHookEvent(ME_USERINFO_INITIALISE, &CNetwork::OnDetailsInit);
 		QHookEvent(ME_OPT_INITIALISE, &CNetwork::OnOptionsInit);
 
-		mi.popupPosition=500090000;
-		mi.pszService=szTemp;
-		mi.ptszName=m_tszUserName;
-		mi.position=-1999901009;
-		mi.ptszPopupName=(LPWSTR)-1;
-		mi.flags=CMIF_ROOTPOPUP|CMIF_UNICODE;
-		mi.hIcon=LoadIcon(hinstance, MAKEINTRESOURCE(IDI_TM));
-		m_hMenuRoot=(HANDLE)CallService(MS_CLIST_ADDMAINMENUITEM, (WPARAM)0, (LPARAM)&mi);
-
-		mi.flags=CMIF_CHILDPOPUP|CMIF_UNICODE;
-		mi.ptszPopupName=(LPWSTR)m_hMenuRoot;
-		mi.position=500090000;
-
-		strcpy(szTemp,m_szModuleName);
-		pszTemp=szTemp+strlen(szTemp);
-
-#define _CRMI(a,b,d,e,f) DECL(b); strcpy(pszTemp, a);m_serviceList.push_back(QCreateService(szTemp, &CNetwork::b));mi.ptszName=d;e.push_back((HANDLE)CallService(f, 0, (LPARAM)&mi));mi.position+=5;
-#define CRMI(a,b,d) _CRMI(a,b,d,m_menuItemList,MS_CLIST_ADDMAINMENUITEM)
-		CRMI(QQ_MENU_CHANGENICKNAME,ChangeNickname,TranslateT("Change &Nickname"));
-		CRMI(QQ_MENU_MODIFYSIGNATURE,ModifySignature,TranslateT("&Modify Personal Signature"));
-		//CRMI(QQ_MENU_CHANGEHEADIMAGE,ChangeHeadImage,Translate("Change &Head Image"));
-		CRMI(QQ_MENU_QQMAIL,QQMail,TranslateT("&QQ Mail"));
-		CRMI(QQ_MENU_COPYIP,CopyMyIP,TranslateT("Show and copy my Public &IP"));
-		CRMI(QQ_MENU_DOWNLOADGROUP,DownloadGroup,TranslateT("&Download Group"));
-		CRMI(QQ_MENU_UPLOADGROUP,UploadGroup,TranslateT("&Upload Group"));
-		CRMI(QQ_MENU_REMOVENONSERVERCONTACTS,RemoveNonServerContacts,TranslateT("&Remove contacts not in Server"));
-		CRMI(QQ_MENU_SUPPRESSADDREQUESTS,SuppressAddRequests,TranslateT("&Ignore any Add Requests"));
-		CRMI(QQ_MENU_DOWNLOADUSERHEAD,DownloadUserHead,TranslateT("Re&download User Head"));
-		CRMI(QQ_MENU_GETWEATHER,GetWeather,TranslateT("Get &Weather Information"));
-		CRMI(QQ_MENU_LOGINQUNINFOEXT,ManualLoginQunInfoExt,TranslateT("Manual Retrieve E&xtended Qun Info"));
-		//CRMI(QQ_MENU_SUPPRESSQUN,SuppressQunMessages,Translate("&Suppress Qun Message Receive"));
-		//CRMI(QQ_MENU_TOGGLEQUNLIST,ToggleQunList,Translate("&Toggle Qun List"));
-#ifdef TESTSERVICE
-		CRMI("/TestService",TestService,TranslateT("Test Service"));
-#endif
-		NotifyEventHooks(hIPCEvent,QQIPCEVT_CREATE_MAIN_MENU,(LPARAM)&mi);
-
-		// Context Menus
-		mi.flags=CMIF_HIDDEN|CMIF_UNICODE; //CMIF_NOTOFFLINE;
-		mi.position=-500050000;
-
-#define CRMI2(a,b,d) _CRMI(a,b,d,m_contextMenuItemList,MS_CLIST_ADDCONTACTMENUITEM)
-		CRMI2(QQ_CNXTMENU_REMOVEME,RemoveMe,TranslateT("&Remove me from his/her list"));
-		CRMI2(QQ_CNXTMENU_ADDQUNMEMBER,AddQunMember,TranslateT("&Add a member to Qun"));
-		CRMI2(QQ_CNXTMENU_SILENTQUN,SilentQun,L"");
-		CRMI2(QQ_CNXTMENU_REAUTHORIZE,Reauthorize,TranslateT("Resend &authorization request"));
-		CRMI2(QQ_CNXTMENU_CHANGECARDNAME,ChangeCardName,TranslateT("Change my Qun &Card Name"));
-		CRMI2(QQ_CNXTMENU_POSTIMAGE,PostImage,TranslateT("Post &Image"));
-		CRMI2(QQ_CNXTMENU_FORCEREFRESH,QunSpace,TranslateT("Qun &Space"));
+		if (CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000) OnEvent(EV_PROTO_ONMENU,0,0);
 
 		InitUpdater();
 		InitFontService();
 		InitFoldersService();
+
+		/*
+		CHAR szTemp[MAX_PATH];
+		LPSTR pszTemp;
+
+		strcpy(szTemp, m_szProtoName);
+		pszTemp=szTemp+strlen(szTemp);
+
+		CSF(PS_GETAVATARCAPS,GetAvatarCaps);
+		CSF(PS_GETMYAVATAR,GetMyAvatar);
+		CSF(PS_SETMYAVATAR,SetMyAvatar);
+		*/
 
 		util_log(0,"Init Completed");
 
@@ -366,8 +329,6 @@ void CNetwork::LoadAccount() {
 	strcpy(szTemp, m_szProtoName);
 	pszTemp=szTemp+strlen(szTemp);
 
-#define CSF(a,b) DECL(b); strcpy(pszTemp, a); this->QCreateService(szTemp,&CNetwork::b)
-
 	CSF(PS_GETNAME,GetName);
 	CSF(PS_GETSTATUS,GetStatus);
 	CSF(PS_SETMYNICKNAME,SetMyNickname);
@@ -376,6 +337,10 @@ void CNetwork::LoadAccount() {
 	CSF(PS_SET_LISTENINGTO,SetCurrentMedia);
 	CSF(PS_GET_LISTENINGTO,GetCurrentMedia);
 	CSF(PS_CREATEACCMGRUI,CreateAccMgrUI);
+
+	CSF(PS_GETAVATARCAPS,GetAvatarCaps);
+	CSF(PS_GETMYAVATAR,GetMyAvatar);
+	CSF(PS_SETMYAVATAR,SetMyAvatar);
 
 #ifdef MIRANDAQQ_IPC
 	CSF("/IPCService",IPCService);

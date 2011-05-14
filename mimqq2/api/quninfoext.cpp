@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 #include "../libJSON.h"
 #pragma comment(lib,"libJSON")
-#define PTLOGIN "http://ui.ptlogin2.qq.com/cgi-bin/login?style=4&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http://webqq.qq.com/main.shtml?direct__2&f_url=loginerroralert"
+#define PTLOGIN "http://ui.ptlogin2.qq.com/cgi-bin/login?appid=3000801&s_url=http://qun.qq.com/air/&f_url=loginerroralert&lang=2052&bgcolor=ffffff&style=1&low_login=1&link_target=blank&target=top&hide_title_bar=1&dummy=1"
 
 class CCodeVerifyWindow {
 public:
@@ -208,6 +208,7 @@ Cookie: pgv_pvid=1527858512; pgv_flv=9.0 r100; pgv_info=ssid=s7498192482; pgv_r_
 			strcpy(szCode,cvw.GetCode());
 
 			if (*szCode) {
+				strupr(szCode);
 				canstart=true;
 			} else {
 				util_log(0,"[CQunInfoExt] ThreadProc: VeryCode cancelled!");
@@ -252,8 +253,8 @@ bool CQunInfoExt::Login(LPSTR pszCode) {
 	GetPasswordHash(pszCode,szHash);
 
 	// GET /login?u=431533706&p=E9765C268D7E93343A681C646C37E5C5&verifycode=RMZQ&remember_uin=1&aid=1002101&u1=http%3A%2F%2Fweb2.qq.com%2Floginproxy.html%3Fstrong%3Dtrue&h=1&ptredirect=0&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert
-	sprintf(m_buffer,"http://ptlogin2.qq.com/login?u=%u&p=%s&verifycode=%s&remember_uin=1&aid=3000801&u1=%s&h=1&ptredirect=1%s&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert",m_uin,szHash,pszCode,"http%3A%2F%2Fweb2.qq.com%2Floginproxy.html%3Frun%3Deqq%26strong%3Dtrue","");
-	if (LPSTR pszData=GetHTMLDocument(m_buffer,"http://ui.ptlogin2.qq.com/cgi-bin/login?style=4&appid=3000801&enable_qlogin=0&no_verifyimg=1&s_url=http://webqq.qq.com/main.shtml?direct__2&f_url=loginerroralert",&dwSize)) {
+	sprintf(m_buffer,"http://ptlogin2.qq.com/login?u=%u&p=%s&verifycode=%s&remember_uin=1&aid=3000801&u1=%s&h=1&ptredirect=1%s&ptlang=2052&from_ui=1&dumy=&fp=loginerroralert&mibao_css=",m_uin,szHash,pszCode,"http%3A%2F%2Fqun.qq.com%2Fair%2F","");
+	if (LPSTR pszData=GetHTMLDocument(m_buffer,"http://ui.ptlogin2.qq.com/cgi-bin/login?appid=3000801&s_url=http://qun.qq.com/air/&f_url=loginerroralert&lang=2052&bgcolor=ffffff&style=1&low_login=1&link_target=blank&target=top&hide_title_bar=1&dummy=1",&dwSize)) {
 		if (!strstr(pszData,"ptuiCB('0','0','")) {
 			util_log(0,"[CQunInfoExt] Login: %s",pszData);
 			LocalFree(pszData);
@@ -373,9 +374,9 @@ LPSTR CQunInfoExt::GetHTMLDocument(LPCSTR pszUrl, LPCSTR pszReferer, LPDWORD pdw
 
 	pszBuffer=NULL;
 
-	if (strlen(pszUrl)>200 && (pszBuffer=(LPSTR)strchr(pszUrl,'?'))) *pszBuffer=0;
+	if (strlen(pszUrl)>400 && (pszBuffer=(LPSTR)strchr(pszUrl,'?'))) *pszBuffer=0;
 
-	if (strlen(pszUrl)<200) 
+	if (strlen(pszUrl)<400) 
 		util_log(0,"[CQunInfoExt] GetHTMLDocument: url=%s size=%d",pszUrl,*pdwLength);
 	else
 		util_log(0,"[CQunInfoExt] GetHTMLDocument: size=%d",*pdwLength);
@@ -560,7 +561,8 @@ HANDLE CQunInfoExt::FindContactByExtID(DWORD dwExtID) {
 	LPCSTR m_szModuleName=m_network->m_szModuleName;
 
 	while (hContact) {
-		if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+		// if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+		if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
 			READC_D2("ExternalID")==dwExtID)
 			 return hContact;
 
