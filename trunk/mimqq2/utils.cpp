@@ -25,7 +25,8 @@ extern map<unsigned short,OutPacket*> pendingImList;
 void CNetwork::SetContactsOffline() {	
 	HANDLE hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
 	while (hContact) {
-		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0)))
+		// if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0)))
+		if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1)
 			if (READC_W2("Status")!=ID_STATUS_OFFLINE) {
 				if (READC_B2("IsQun")==1) {
 					WRITEC_B("QunInit",0);
@@ -87,7 +88,8 @@ int util_log(unsigned char level, char *fmt,...)
 HANDLE CNetwork::FindContact(const unsigned int QQID) {
 	HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
 	while (hContact) {
-		if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+		// if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+		if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
 			READC_D2(UNIQUEIDSETTING)==QQID)
 			 return hContact;
 
@@ -111,6 +113,8 @@ HANDLE CNetwork::AddContact(const unsigned int QQID, bool not_on_list, bool hidd
 			// Creation successful, associate protocol
 			CallService(MS_PROTO_ADDTOCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName);
 			util_log(0,"%s(): Added contact %d",__FUNCTION__,QQID);
+			DBWriteContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,QQID);
+			DBWriteContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE);
 		} else
 			// Creation failed
 			CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact,(LPARAM)NULL);
@@ -118,10 +122,8 @@ HANDLE CNetwork::AddContact(const unsigned int QQID, bool not_on_list, bool hidd
 
 	if (hContact) {
 		// Contact now exist, set flags
-		DBWriteContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,QQID);
 		DBWriteContactSettingByte(hContact,"CList","NotOnList",not_on_list?1:0);
 		DBWriteContactSettingByte(hContact,"CList","Hidden",hidden?1:0);
-		DBWriteContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE);
 	}
 
 	return hContact;

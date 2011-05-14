@@ -107,7 +107,8 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 			// Try to find the guy in all quns
 			HANDLE hContact2=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
 			while (hContact2) {
-				if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+				// if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+				if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
 					DBGetContactSettingByte(hContact2,m_szModuleName,"IsQun",0)) {
 						if (!DBGetContactSetting(hContact2,m_szModuleName,szUID,&dbv)) {
 							DBWriteContactSettingString(hContact,m_szModuleName,szUID,dbv.pszVal);
@@ -178,7 +179,8 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 	} else
 		pre.szMessage=mir_utf8encodecp(pszMsg,936);
 
-	if (READC_W2("Status")==ID_STATUS_DND) pre.flags+=PREF_CREATEREAD;
+	if (READC_W2("Status")==ID_STATUS_DND) 
+		pre.flags+=PREF_CREATEREAD;
 	pre.timestamp = (DWORD)sentTime+600<READ_D2(NULL,"LoginTS")?(DWORD)sentTime:(DWORD)time(NULL);
 
 	CallService(MS_PROTO_CHAINRECV, 0, (LPARAM)&ccs);
@@ -525,8 +527,8 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 	char *reason_utf8;
 	Qun* qun=m_qunList.getQun(qunid);
 
-	//CCSDATA ccs;
-	//PROTORECVEVENT pre;
+	CCSDATA ccs;
+	PROTORECVEVENT pre;
 	HANDLE hContact;
 	char* szBlob;
 	char* pCurBlob;
@@ -548,12 +550,12 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		util_convertFromGBK(szEmail);
 		util_log(0,"%s(): QunID=%d, QQID=%d, msg=%s",__FUNCTION__,qunid,userid,reason_utf8);
 
-#if 0
+#if 1
 		ccs.szProtoService=PSR_AUTH;
 		ccs.hContact=hContact;
 		ccs.wParam=0;
 		ccs.lParam=(LPARAM)&pre;
-		pre.flags=0;
+		pre.flags=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000?0:PREF_UTF;
 		pre.timestamp=(DWORD)time(NULL);
 		pre.lParam=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(reason_utf8)+strlen(szEmail)+5+tokenLen+2;
 
@@ -575,6 +577,8 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 
 		mir_free(reason_utf8);
 #endif
+		
+#if 0
 		DBEVENTINFO dbei;
 
 		util_log(0,"%s(): Received authorization request",__FUNCTION__);
@@ -585,7 +589,7 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		dbei.cbSize=sizeof(dbei);
 		dbei.szModule=m_szModuleName;
 		dbei.timestamp=(DWORD)time(NULL);
-		dbei.flags=fUTF8?0:PREF_UTF;
+		dbei.flags=fUTF8?DBEF_UTF/*PREF_UTF*/:0;
 		dbei.eventType=EVENTTYPE_AUTHREQUEST;
 		dbei.cbBlob=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(reason_utf8)+strlen(szEmail)+5+tokenLen+2;;
 
@@ -605,6 +609,7 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		CallService(MS_DB_EVENT_ADD,(WPARAM)NULL,(LPARAM)&dbei);
 
 		mir_free(reason_utf8);
+#endif
 	}
 
 }
@@ -1254,7 +1259,8 @@ void CNetwork::_requestExtraInfoCallback(RequestExtraInfoReplyPacket* packet) {
 		std::list<unsigned int> quns;
 
 		while (hContact) {
-			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+			// if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+			if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1) {
 				if (READC_W2("ExtraInfo") & QQ_EXTAR_INFO_USER_HEAD)
 					list.push_back(READC_D2(UNIQUEIDSETTING));
 				// No longer work
@@ -1331,7 +1337,8 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 	int status;
 
 	while (hContact) {
-		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+		// if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+		if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1) {
 			if (qqid=READC_D2(UNIQUEIDSETTING)) if (!READC_B2("IsQun") && !READC_B2("TempQun") && qqid<0x80000000) unhandledqqlist[qqid]=0;
 		}
 
@@ -1482,7 +1489,9 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 		// Process quns not in list
 		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
 		while (hContact) {
-			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && READ_B2(hContact,"IsQun")==1) {
+			//if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+			if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
+				READ_B2(hContact,"IsQun")==1) {
 				/*
 				if (!((dwQunIgnore=DBGetContactSettingDword(hContact,"Ignore","Mask1",0))&8))
 					DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore|8);
@@ -1596,7 +1605,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 
 		if (packet->getQunCommand()==QQ_QUN_CMD_GET_TEMP_QUN_INFO) {
 			szInfo=mir_a2u_cp(info.getName().c_str(),936);
-			_stprintf(szNick,TranslateT("(Discusson Group) %s"),szInfo);
+			_stprintf(szNick,TranslateT("(Discussion Group) %s"),szInfo);
 			WRITEC_TS("Nick",szNick);
 			mir_free(szInfo);
 
@@ -3138,7 +3147,8 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 				HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
 
 				while (hContact) {
-					if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+					// if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+					if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1) {
 						if (READC_B2("IsQun")) {
 							DWORD dwExtID=READC_D2("ExternalID");
 							DWORD dwVer;

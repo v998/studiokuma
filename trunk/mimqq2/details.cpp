@@ -224,7 +224,9 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			if (LocalDetails_t* ldt=networkmap[(HANDLE)GetWindowLong(hwndDlg,GWL_USERDATA)]) {
 				char szTemp[MAX_PATH]={0};
 				if (SendDlgItemMessageA(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETTEXT,SendDlgItemMessage(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETCURSEL,0,0),(LPARAM)&szTemp)!=LB_ERR && *szTemp!=0) {
-					int qqid=atoi(strrchr(szTemp,'(')+1);
+					LPSTR pszChk=strrchr(szTemp,'(');
+
+					int qqid=atoi(strrchr(szTemp,pszChk?'(':' ')+1);
 					LPSTR m_szModuleName=ldt->network->m_szModuleName;
 					HANDLE hContact=ldt->hContact;
 					int qunid=READC_D2(UNIQUEIDSETTING);
@@ -463,13 +465,16 @@ static BOOL CALLBACK QQDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 
 int CNetwork::OnDetailsInit(WPARAM wParam, LPARAM lParam)
 {
-	char* szProto;
+	// char* szProto;
 	OPTIONSDIALOGPAGE odp={sizeof(odp),-1990000003};
 	LocalDetails_t* ldt=new LocalDetails_t();
 	HANDLE hContact=(HANDLE)lParam;
 
+	/*
 	szProto = (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, lParam, 0);
 	if ((szProto == NULL || strcmp(szProto, m_szModuleName)) && lParam) return 0;
+	*/
+	if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)lParam,(LPARAM)m_szModuleName)!=-1) return 0;
 
 	odp.hInstance = hinstance;
 	//odp.dwInitParam=(LPARAM)ldt;

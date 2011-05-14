@@ -102,6 +102,7 @@ using namespace std;
 #include "m_system.h"
 #include "m_database.h" // Some inline functions are only activated when m_utils.h and m_system.h are loaded
 #include "m_folders.h"
+#include "m_avatars.h"
 
 #ifdef MIRANDAQQ_IPC
 #pragma message("Processing: IPC Header")
