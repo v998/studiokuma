@@ -136,9 +136,12 @@ void CQunImage::doProcessEvent() {
 void CQunImage::initConnection(const int ip, const short port) {
 	int ip2=htonl(ip);
 	util_log(0,"EvaPicManager::initConnection ip:%s, port:%d", inet_ntoa(*(in_addr*)&ip2), port);
-	if (ip==-1)
-		setServer(false,GROUP_FILE_AGENT,port);
-	else
+	if (ip==-1) {
+		if (hostent* h=gethostbyname("groupfile.tencent.com")) {
+			setServer(false,htonl(*(u_long*)h->h_addr_list[0]),port);
+		} else
+			setServer(false,GROUP_FILE_AGENT,port);
+	} else
 		setServer(false,ip,port);
 
 	sendIP = htonl(inet_addr(getHost().c_str()));

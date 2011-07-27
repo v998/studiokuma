@@ -539,9 +539,12 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		char szEmail[MAX_PATH];
 		bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
 
-		if (fUTF8)
-			reason_utf8=mir_utf8encodecp(msg,936);
-		else {
+		if (fUTF8) {
+			if (!msg || !*msg)
+				reason_utf8=mir_strdup(" ");
+			else
+				reason_utf8=mir_utf8encodecp(msg,936);
+		} else {
 			reason_utf8=mir_strdup(msg);
 			util_convertFromGBK(reason_utf8);
 		}
