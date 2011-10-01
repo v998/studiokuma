@@ -1,12 +1,12 @@
 #include "StdAfx.h"
 
-map<int,EvaAccountStatics_t*> CEvaAccountSwitcher::m_accounts;
-int CEvaAccountSwitcher::m_currentaccount=0;
+map<unsigned int,EvaAccountStatics_t*> CEvaAccountSwitcher::m_accounts;
+unsigned int CEvaAccountSwitcher::m_currentaccount=0;
 EvaAccountStatics_t* CEvaAccountSwitcher::m_currenteast;
 CRITICAL_SECTION CEvaAccountSwitcher::m_cs={0};
-volatile int CEvaAccountSwitcher::m_currentQQ=0;
+volatile unsigned int CEvaAccountSwitcher::m_currentQQ=0;
 volatile int CEvaAccountSwitcher::m_lockcount=0;
-void (*CEvaAccountSwitcher::ProcessAs)(int)=CEvaAccountSwitcher::_NullFunc;
+void (*CEvaAccountSwitcher::ProcessAs)(unsigned int)=CEvaAccountSwitcher::_NullFunc;
 void (*CEvaAccountSwitcher::EndProcess)()=CEvaAccountSwitcher::_NullFunc;
 void (*CEvaAccountSwitcher::FreeAccount)()=CEvaAccountSwitcher::_NullFunc;
 void (*CEvaAccountSwitcher::Finalize)()=CEvaAccountSwitcher::_NullFunc;
@@ -24,7 +24,7 @@ void EvaUHPacket::_EAS_SwitchAccount(bool save);
 */
 
 void CEvaAccountSwitcher::_NullFunc(){};
-void CEvaAccountSwitcher::_NullFunc(int){};
+void CEvaAccountSwitcher::_NullFunc(unsigned int){};
 
 void CEvaAccountSwitcher::Initialize() {
 	// Call this function when switching is required
@@ -35,7 +35,7 @@ void CEvaAccountSwitcher::Initialize() {
 	Finalize=_Finalize;
 }
 
-void CEvaAccountSwitcher::_ProcessAs(int qqid) {
+void CEvaAccountSwitcher::_ProcessAs(unsigned int qqid) {
 #ifdef ENABLE_EAS
 	if (m_cs.DebugInfo==NULL) {
 		// Initialize CS
@@ -43,9 +43,9 @@ void CEvaAccountSwitcher::_ProcessAs(int qqid) {
 	}
 
 	if (m_currentQQ!=qqid) {
-		util_log(0,"CEvaAccountSwitcher(%d): Acquiring mutex lock",qqid);
+		util_log(0,"CEvaAccountSwitcher(%u): Acquiring mutex lock",qqid);
 		EnterCriticalSection(&m_cs);
-		util_log(0,"CEvaAccountSwitcher(%d): Lock acquired",qqid);
+		util_log(0,"CEvaAccountSwitcher(%u): Lock acquired",qqid);
 		m_currentQQ=qqid;
 	} else
 		m_lockcount++;
@@ -62,7 +62,7 @@ void CEvaAccountSwitcher::_ProcessAs(int qqid) {
 			EvaPicPacket::_EAS_SwitchAccount(true);
 			EvaPicOutPacket::_EAS_SwitchAccount(true);
 			EvaUHPacket::_EAS_SwitchAccount(true);
-			util_log(0,"CEvaAccountSwitcher(%d): Save %d, assert=%d",qqid,m_currentaccount,m_currenteast->myQQ);
+			util_log(0,"CEvaAccountSwitcher(%u): Save %u, assert=%u",qqid,m_currentaccount,m_currenteast->myQQ);
 		}
 
 		if (!east) {
@@ -71,7 +71,7 @@ void CEvaAccountSwitcher::_ProcessAs(int qqid) {
 			ZeroMemory(east,sizeof(EvaAccountStatics_t));
 			east->startSequenceNum=5;
 			m_accounts[qqid]=east;
-			util_log(0,"CEvaAccountSwitcher(%d): Created",qqid);
+			util_log(0,"CEvaAccountSwitcher(%u): Created",qqid);
 		}
 
 		m_currentaccount=qqid;
@@ -85,7 +85,7 @@ void CEvaAccountSwitcher::_ProcessAs(int qqid) {
 		EvaPicPacket::_EAS_SwitchAccount(false);
 		EvaPicOutPacket::_EAS_SwitchAccount(false);
 		EvaUHPacket::_EAS_SwitchAccount(false);
-		util_log(0,"CEvaAccountSwitcher(%d): Switched Account, QQ=%d",qqid,m_currenteast->qqNum);
+		util_log(0,"CEvaAccountSwitcher(%u): Switched Account, QQ=%u",qqid,m_currenteast->qqNum);
 	}
 #endif
 }
@@ -103,7 +103,7 @@ void CEvaAccountSwitcher::_EndProcess() {
 			EvaPicPacket::_EAS_SwitchAccount(true);
 			EvaPicOutPacket::_EAS_SwitchAccount(true);
 			EvaUHPacket::_EAS_SwitchAccount(true);
-			util_log(0,"CEvaAccountSwitcher(%d): Save, myqq=%d, assert=%d",m_currentaccount,Packet::getQQ(),m_currenteast->qqNum);
+			util_log(0,"CEvaAccountSwitcher(%u): Save, myqq=%d, assert=%d",m_currentaccount,Packet::getQQ(),m_currenteast->qqNum);
 			//if (m_currenteast->qqNum==0) DebugBreak();
 		}
 
@@ -112,7 +112,7 @@ void CEvaAccountSwitcher::_EndProcess() {
 	}
 	*/
 	if (m_lockcount==0) {
-		util_log(0,"CEvaAccountSwitcher(%d): Unlock mutex",m_currentaccount);
+		util_log(0,"CEvaAccountSwitcher(%u): Unlock mutex",m_currentaccount);
 		LeaveCriticalSection(&m_cs);
 		m_currentQQ=0;
 	} else

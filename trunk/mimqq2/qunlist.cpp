@@ -379,7 +379,7 @@ INT_PTR CALLBACK CQunListV2::_DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 									TCHAR szTemp[MAX_PATH];
 									SendDlgItemMessage(m_hwnd,IDC_QUNMEMBERS,LB_GETTEXT,selected,(LPARAM)szTemp);
 									if (*szTemp!=_T('0')) {
-										int qqid=_ttoi(_tcsrchr(szTemp,_T('('))+1);
+										unsigned int qqid=wcstoul(_tcsrchr(szTemp,_T('('))+1,NULL,10);
 										POINT pt;
 
 										mii.dwTypeData=szTemp+1;
@@ -623,7 +623,7 @@ void CQunListV2::refresh() {
 					}
 
 					util_convertToNative(&pszTemp,info.getName().c_str());
-					_stprintf(szItem,_T("%s (%d)"),pszTemp,info.getExtID());
+					_stprintf(szItem,_T("%s (%u)"),pszTemp,info.getExtID());
 					free(pszTemp);
 					SetWindowText(m_hwnd,szItem);
 
@@ -650,15 +650,15 @@ void CQunListV2::refresh() {
 						flag[3]=iter->getQunGroupIndex();*/
 						*headimg=iter->getFace();
 
-						itoa(iter->getQQ(),szKey,10);
+						ultoa(iter->getQQ(),szKey,10);
 						if (READC_S2(szKey,&dbv)) {
 							// No Nick found
-							_stprintf(szItem+1,_T("%d (%d)"),iter->getQQ(),iter->getQQ());
+							_stprintf(szItem+1,_T("%u (%u)"),iter->getQQ(),iter->getQQ());
 						} else {
 							// Nick found
 							LPTSTR pszNick;
 							util_convertToNative(&pszNick,dbv.pszVal);
-							_stprintf(szItem+1,_T("%s (%d)"),pszNick,iter->getQQ());
+							_stprintf(szItem+1,_T("%s (%u)"),pszNick,iter->getQQ());
 							free(pszNick);
 						}
 						//_itot(iter->getQQ(),szItem,10);
@@ -743,7 +743,7 @@ void CQunListV2::_HandlePopup(void* data) {
 				else {
 					char msg[16];
 					hContact=FindContact(m_inst->getQunid());
-					sprintf(msg,"/temp %d",ui[1]);
+					sprintf(msg,"/temp %u",ui[1]);
 					CallContactService(hContact,PSS_MESSAGE,0,(LPARAM)msg);
 				}
 				break;

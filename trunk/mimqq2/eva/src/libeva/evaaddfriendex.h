@@ -38,12 +38,12 @@ public:
 	EvaAddFriendExPacket &operator=( const EvaAddFriendExPacket &rhs );
 	
 	void setAddQQ(const int id ) { m_AddQQNum = id; }
-	const int getAddQQ() const { return m_AddQQNum; }
+	const unsigned int getAddQQ() const { return m_AddQQNum; }
 	
 protected:
 	virtual int putBody(unsigned char* buf);
 private:
-	int m_AddQQNum;
+	unsigned int m_AddQQNum;
 };
 
 class EvaAddFriendExReplyPacket : public InPacket

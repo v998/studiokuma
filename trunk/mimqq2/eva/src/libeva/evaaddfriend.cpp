@@ -36,7 +36,7 @@ AddFriendPacket::AddFriendPacket( )
 {
 }
 
-AddFriendPacket::AddFriendPacket( const int id )
+AddFriendPacket::AddFriendPacket( const int unsigned id )
 	: OutPacket(QQ_CMD_ADD_FRIEND, true),
 	qqNum(id)
 {
@@ -60,7 +60,7 @@ int AddFriendPacket::putBody( unsigned char * buf )
 {
 	if(qqNum==0) return 0;
 	char strID[20];
-	sprintf(strID,"%d", qqNum);
+	sprintf(strID,"%u", qqNum);
 	int len = strlen(strID);
 	memcpy(buf, strID, len);
 	return len;
@@ -99,7 +99,7 @@ void AddFriendReplyPacket::parseBody()
 #endif
 	memcpy(qqstr, decryptedBuf, index);
 	qqstr[index]=0x00;		
-	myQQ = atoi(qqstr);
+	myQQ = strtoul(qqstr,NULL,10);
 	replyCode = decryptedBuf[index] - 0x30;
 }
 
@@ -111,7 +111,7 @@ AddFriendAuthPacket::AddFriendAuthPacket( )
 {
 }
 
-AddFriendAuthPacket::AddFriendAuthPacket( const int id , const uint8_t type )
+AddFriendAuthPacket::AddFriendAuthPacket( const unsigned int id , const uint8_t type )
 	: OutPacket( QQ_CMD_ADD_FRIEND_AUTH, true),
 	type(type),
 	buddyQQNum(id),
@@ -139,7 +139,7 @@ AddFriendAuthPacket & AddFriendAuthPacket::operator =( const AddFriendAuthPacket
 int AddFriendAuthPacket::putBody( unsigned char * buf )
 {	
 	char qq[20];
-	sprintf(qq,"%d", buddyQQNum);
+	sprintf(qq,"%u", buddyQQNum);
 	int offset = strlen(qq);
 	memcpy(buf, qq, offset);
 	buf[offset++] = DIVIDER;
@@ -186,7 +186,7 @@ DeleteFriendPacket::DeleteFriendPacket( )
 {
 }
 
-DeleteFriendPacket::DeleteFriendPacket( const int id )
+DeleteFriendPacket::DeleteFriendPacket( const unsigned int id )
 	: OutPacket(QQ_CMD_DELETE_FRIEND, true),
 	buddyQQNum(id)
 {
@@ -209,7 +209,7 @@ int DeleteFriendPacket::putBody( unsigned char * buf )
 {
 	if(buddyQQNum==0) return 0;
 	char qq[20];
-	sprintf(qq,"%d", buddyQQNum);
+	sprintf(qq,"%u", buddyQQNum);
 	memcpy(buf, qq, strlen(qq));
 	return strlen(qq);
 }
@@ -253,7 +253,7 @@ DeleteMePacket::DeleteMePacket( )
 {
 }
 
-DeleteMePacket::DeleteMePacket( const int id )
+DeleteMePacket::DeleteMePacket( const unsigned int id )
 	: OutPacket(QQ_CMD_DELETE_ME, true),
 	buddyQQNum(id)
 {
@@ -383,14 +383,14 @@ void SystemNotificationPacket::parseBody( )
 	memcpy(buf, decryptedBuf +start, offset-start);		
 	buf[offset-start]=0x00;
 	start = ++offset;
-	fromQQ = atoi(buf);
+	fromQQ = strtoul(buf,NULL,10);
 	
 	
 	while(decryptedBuf[offset]!=DIVIDER) offset++;	
 	memcpy(buf, decryptedBuf+start, offset-start);
 	buf[offset-start]=0x00;
 	start = ++offset;
-	myQQ = atoi(buf);
+	myQQ = strtoul(buf,NULL,10);
 
 	if(bodyLength > offset ) {
 		while(decryptedBuf[offset]!=DIVIDER && (offset <= bodyLength) ) offset++;

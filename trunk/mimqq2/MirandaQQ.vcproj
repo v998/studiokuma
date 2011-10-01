@@ -222,7 +222,6 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4996;4138"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -575,11 +574,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\errorBmp.gif"
+				RelativePath="R:\errorBmp.gif"
 				>
 			</File>
 			<File
-				RelativePath="R:\errorBmp.gif"
+				RelativePath=".\errorBmp.gif"
 				>
 			</File>
 			<File

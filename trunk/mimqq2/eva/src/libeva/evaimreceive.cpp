@@ -857,7 +857,7 @@ void ReceivedFileIM::parseContents( const unsigned char * buf, const int len )
 #endif
 	memcpy(strSize, buf+pos, strLen);
 	strSize[strLen] = 0x00;
-	m_FileSize = atoi(strSize);
+	m_FileSize = strtoul(strSize,NULL,10);
 }
 
 

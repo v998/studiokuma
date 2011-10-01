@@ -474,7 +474,7 @@ public:
 	~ReceivedTempSessionTextIMPacket() {};
 	ReceivedTempSessionTextIMPacket &operator=(const ReceivedTempSessionTextIMPacket &rhs);
 
-	const int getSender() const { return sender; }
+	const unsigned int getSender() const { return sender; }
 	const std::string getNick() const { return nick; }
 	const std::string getSite() const { return site; }
 	const int getTime() const { return time; }
@@ -488,7 +488,7 @@ public:
 	const unsigned char getGreen() const { return green; }
 	const unsigned char getBlue() const { return blue; }
 private:
-	int sender;
+	unsigned int sender;
 	std::string nick;
 	std::string site;
 	int time;
@@ -512,13 +512,13 @@ public:
 	~TempSessionOpReplyPacket() {};
 	TempSessionOpReplyPacket &operator=(const TempSessionOpReplyPacket &rhs);
 
-	const int getReceiver() const { return receiver; }
+	const unsigned int getReceiver() const { return receiver; }
 	const unsigned char getReplyCode() const { return replyCode; }
 	const unsigned char getSubCommand() const { return subCommand; }
 	const std::string getReplyMessage() const { return replyMessage; }
 private:
 	std::string replyMessage;
-	int receiver;
+	unsigned int receiver;
 	unsigned char replyCode;
 	unsigned char subCommand;
 

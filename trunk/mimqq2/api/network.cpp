@@ -96,7 +96,7 @@ bool CNetwork::setConnectString(LPCSTR pszConnectString) {
 }
 
 void CNetwork::connectionError() {
-	util_log(0,"[%d:CNetwork] Connection Error",m_myqq);
+	util_log(0,"[%u:CNetwork] Connection Error",m_myqq);
 	if (!Packet::isClientKeySet()) {
 		ShowNotification(TranslateT("Failed connecting to server"),NIIF_ERROR);
 		QQ_SendBroadcast( NULL, ACKTYPE_LOGIN, ACKRESULT_FAILED, NULL, LOGINERR_NOSERVER );
@@ -111,7 +111,7 @@ void CNetwork::connectionEstablished() {
 	CEvaAccountSwitcher::ProcessAs(m_myqq);
 	if (Packet::isLoginTokenSet()) {
 		m_IsDetecting=false;
-		util_log(0,"[%d:CNetwork] Login token already set, ???",m_myqq);
+		util_log(0,"[%u:CNetwork] Login token already set, ???",m_myqq);
 	} else {
 		if (!m_IsDetecting) {
 			ServerDetectorPacket::setStep(0);
@@ -143,14 +143,14 @@ void CNetwork::connectionEstablished() {
 			m_codeVerifyWindow=NULL;
 			m_graphicVerifyCode=NULL;
 		}
-		util_log(0,"[%d:CNetwork] Start detect server",m_myqq);
+		util_log(0,"[%u:CNetwork] Start detect server",m_myqq);
 		append(new ServerDetectorPacket);
 	}
 	CEvaAccountSwitcher::EndProcess();
 }
 
 void CNetwork::connectionClosed() {
-	util_log(0,"[%d:CNetwork] Connection Closed",m_myqq);
+	util_log(0,"[%u:CNetwork] Connection Closed",m_myqq);
 	if (!Miranda_Terminated()) GoOffline();
 }
 
@@ -158,7 +158,7 @@ void CNetwork::waitTimedOut() {
 	if (m_checkTime!=0 && time(NULL)-m_checkTime>=2) {
 		for (list<OutPacket*>::iterator iter=m_outPool.begin(); iter!=m_outPool.end();iter++) {
 			if ((*iter)->needResend()) {
-				util_log(0,"[%d:CNetwork] Resend 0x%02x packet, remaining %d times",m_myqq,(*iter)->getCommand(),(*iter)->getResendCount());
+				util_log(0,"[%u:CNetwork] Resend 0x%02x packet, remaining %d times",m_myqq,(*iter)->getCommand(),(*iter)->getResendCount());
 				sendOut(*iter);
 			} else {
 				//util_log(0,"[CNetwork] Remove 0x%02x packet",(*iter)->getCommand());
@@ -349,7 +349,7 @@ void CNetwork::processServerDetectorResponse(InPacket* in) {
 
 	if(packet.isServerReady()){
 		if (!m_graphicVerifyCode) {
-			util_log(0,"[%d:CNetwork] Server Ready, request login token (no verification code)",m_myqq);
+			util_log(0,"[%u:CNetwork] Server Ready, request login token (no verification code)",m_myqq);
 			append(new RequestLoginTokenExPacket());
 		}else {
 			RequestLoginTokenExPacket *packet = new RequestLoginTokenExPacket(QQ_LOGIN_TOKEN_VERIFY);
@@ -361,27 +361,27 @@ void CNetwork::processServerDetectorResponse(InPacket* in) {
 	}else if(packet.needRedirect()){
 		ServerDetectorPacket::nextStep();
 		setServer(isUDP(),packet.getRedirectIP(),getPort());
-		util_log(0,"[%d:CNetwork] Server Detector redirect to %s:%d",m_myqq,getHost().c_str(),getPort());
+		util_log(0,"[%u:CNetwork] Server Detector redirect to %s:%d",m_myqq,getHost().c_str(),getPort());
 		clearOutPool();
 		//m_inPool.clear();
 		//_disconnect(this);
 		disconnect();
 	}else{
-		util_log(0, "[%d:CNetwork] unknown server detect reply ( reply code: %d)",m_myqq,packet.getReplyCode());
+		util_log(0, "[%u:CNetwork] unknown server detect reply ( reply code: %d)",m_myqq,packet.getReplyCode());
 	}
 }
 
 void CNetwork::processRequestLoginTokenExResponse(InPacket* in) {
 	if (Packet::isLoginTokenSet()) {
-		util_log(0,"[%d:CNetwork] Login Token already set! Ignore response",m_myqq);
+		util_log(0,"[%u:CNetwork] Login Token already set! Ignore response",m_myqq);
 	} else {
 		PARSE2(RequestLoginTokenExReplyPacket,append(new RequestLoginTokenExPacket()));
 
 		if(packet.getReplyCode() == QQ_LOGIN_TOKEN_NEED_VERI){
-			util_log(0,"[%d:CNetwork] LoginToken response, graphical confirmation required.",m_myqq);
+			util_log(0,"[%u:CNetwork] LoginToken response, graphical confirmation required.",m_myqq);
 			DEFCB();
 		} else {
-			util_log(0,"[%d:CNetwork] LoginToken set, Start to login",m_myqq);
+			util_log(0,"[%u:CNetwork] LoginToken set, Start to login",m_myqq);
 			LoginPacket *packet = new LoginPacket(m_iDesiredStatus==ID_STATUS_INVISIBLE?QQ_LOGIN_MODE_INVISIBLE:QQ_LOGIN_MODE_NORMAL);
 			DBVARIANT dbv;
 			READ_S2(NULL,QQ_PASSWORD,&dbv);
@@ -428,7 +428,7 @@ void CNetwork::processLoginResponse(InPacket* in) {
 					WRITE_D(NULL,"IP",packet.getMyIP());
 					WRITE_D(NULL,"LastLoginIP",packet.getLastLoginIP());
 					m_clockSkew=(INT)(time(NULL)-packet.getLoginTime());
-					util_log(0, "[%d:CNetwork] Login successful, My IP=%s:%d, Clock skew=%d s",m_myqq,ip.toString().c_str(),packet.getMyPort(),m_clockSkew);
+					util_log(0, "[%u:CNetwork] Login successful, My IP=%s:%d, Clock skew=%d s",m_myqq,ip.toString().c_str(),packet.getMyPort(),m_clockSkew);
 
 					/*
 					if(fileManager) delete fileManager;
@@ -991,7 +991,7 @@ void CNetwork::append(OutPacket* out) {
 }
 
 void CNetwork::packetException(const short cmd) {
-	util_log(0,"[%d:CNetwork] packet exception: (cmd)0x%4x",m_myqq,cmd);
+	util_log(0,"[%u:CNetwork] packet exception: (cmd)0x%4x",m_myqq,cmd);
 
 	if(cmd == QQ_CMD_SERVER_DETECT){
 		connectionError();
@@ -1001,18 +1001,18 @@ void CNetwork::packetException(const short cmd) {
 	if(cmd == QQ_CMD_KEEP_ALIVE){
 		if(m_numOfLostKeepAlivePackets < 2) {
 			m_numOfLostKeepAlivePackets++; 
-			util_log(0,"[%d:CNetwork] KeepAlive timeout, retrying",m_myqq);
+			util_log(0,"[%u:CNetwork] KeepAlive timeout, retrying",m_myqq);
 			append(new KeepAlivePacket());
 		}
 	}
 	if(!m_loggedIn && (cmd == QQ_CMD_LOGIN || cmd == QQ_CMD_REQUEST_LOGIN_TOKEN)){
-		util_log(0,"[%d:CNetwork] Login/LoginToken timeout",m_myqq);
+		util_log(0,"[%u:CNetwork] Login/LoginToken timeout",m_myqq);
 		//connectionError();
 		disconnect();
 	}
 
 	if(m_numOfLostKeepAlivePackets>=2){
-		util_log(0,"[%d:CNetwork] KeepAlive timeout, connection lost",m_myqq);
+		util_log(0,"[%u:CNetwork] KeepAlive timeout, connection lost",m_myqq);
 		ShowNotification(TranslateT("Connection to QQ server lost"),NIIF_ERROR);
 		disconnect();
 		//connectionError();

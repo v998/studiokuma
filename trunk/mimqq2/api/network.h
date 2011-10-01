@@ -257,10 +257,10 @@ private:
 	void _writeVersion(HANDLE hContact, int version, const char* iniFile);
 	void _imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpacket);
 	void _qunImCallback2(const unsigned int qunID, const unsigned int senderQQ, const bool hasFontAttribute, const bool isBold, const bool isItalic, const bool isUnderline, const char fontSize, const char red, const char green, const char blue, const int sentTime, const std::string message);
-	void _updateQunCard(HANDLE hContact, const int qunid);
+	void _updateQunCard(HANDLE hContact, const unsigned int qunid);
 	void _imCallback(const int imType, const void* data);
-	void _sysRequestJoinQunCallback(int qunid, int extid, int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen);
-	void _sysRejectJoinQunCallback(int qunid, int extid, int userid, const char* msg);
+	void _sysRequestJoinQunCallback(unsigned int qunid, unsigned int extid, unsigned int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen);
+	void _sysRejectJoinQunCallback(unsigned int qunid, unsigned int extid, unsigned int userid, const char* msg);
 	void _qunCommandCallback(QunReplyPacket* packet);
 	void _friendChangeStatusCallback(FriendChangeStatusPacket* packet);
 	void _qunGetInfoCallback(QunReplyPacket* packet);
@@ -284,8 +284,8 @@ private:
 public:
 	void GoOffline();
 
-	bool uhCallbackHub(int msg, int qqid, const char* md5, unsigned int session);
-	void qunPicCallbackHub(int msg, int qunid, void* aux);
+	bool uhCallbackHub(int msg, unsigned int qqid, const char* md5, unsigned int session);
+	void qunPicCallbackHub(int msg, unsigned int qunid, void* aux);
 
 	UINT_PTR m_timer;
 
@@ -294,8 +294,8 @@ public:
 	HANDLE FindContact(const unsigned int QQID);
 	HANDLE AddContact(const unsigned int QQID, bool not_on_list, bool hidden);
 
-	const int GetMyQQ() const { return m_myqq; }
-	void AddContactWithSend(int qqid);
+	const unsigned int GetMyQQ() const { return m_myqq; }
+	void AddContactWithSend(unsigned int qqid);
 private:
 	list<HANDLE> m_serviceList;
 	//list<HANDLE> m_menuServicesList;
@@ -304,15 +304,15 @@ private:
 	list<HANDLE> m_hookList;
 	int m_keepaliveCount;
 	map<unsigned short,OutPacket*> m_pendingImList;
-	list<int> m_qunInitList;
+	list<unsigned int> m_qunInitList;
 	bool m_myInfoRetrieved;
 
 	LPSTR m_currentDefaultServer;
 	CUserHead* m_userhead;
 	CQunImage* m_qunimage;
 
-	map<int,unsigned char> m_qunMemberCountList;
-	map<int,unsigned char> m_currentQunMemberCountList;
+	map<unsigned int,unsigned char> m_qunMemberCountList;
+	map<unsigned int,unsigned char> m_currentQunMemberCountList;
 
 	list<ReceivedNormalIM> m_storedIM;
 
@@ -322,15 +322,15 @@ private:
 	map<int,HANDLE> m_hGroupList;
 	int m_qqusers;
 	bool m_downloadGroup;
-	int m_myqq;
+	unsigned int m_myqq;
 	int m_memoPage;
 	HANDLE m_hMenuRoot;
 
 	InPacket* m_curmsg;
 
 public:
-	int m_addUID;
-	int m_addQunNumber;
+	unsigned int m_addUID;
+	unsigned int m_addQunNumber;
 	bool m_needAck;
 	HWND m_hwndModifySignatureDlg;
 	CodeVerifyWindow* m_codeVerifyWindow;

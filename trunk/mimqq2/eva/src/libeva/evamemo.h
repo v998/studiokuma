@@ -42,7 +42,7 @@ class EvaMemoPacket : public OutPacket
 {
 public:
 	EvaMemoPacket(){}
-	EvaMemoPacket( const int id, const unsigned char type);
+	EvaMemoPacket( const unsigned int id, const unsigned char type);
 	EvaMemoPacket( const EvaMemoPacket &rhs );
 	virtual ~EvaMemoPacket(){};
  
@@ -50,12 +50,12 @@ public:
  
 	void setType( const unsigned char type ) { m_Type = type; }
 	void setMemo( const MemoItem &memo ) { m_Memo = memo; }
-	void setQQ( const int qq ) { m_Id = qq; } 
+	void setQQ( const unsigned int qq ) { m_Id = qq; } 
 	void setPage( const int page ) { m_Page = page; }
 	
 	const unsigned char  getType() const { return m_Type; }
 	const MemoItem getMemo() const { return m_Memo; }
-	const int getQQ() const { return m_Id; }
+	const unsigned int getQQ() const { return m_Id; }
 	const int getPage() const { return m_Page; }
 	
 	void setDetails( const MemoItem &memo);
@@ -65,7 +65,7 @@ public:
 protected:
 	virtual int putBody( unsigned char *buf );
 private:
-	int m_Id; 
+	unsigned int m_Id; 
 	unsigned char m_Type;
 	MemoItem m_Memo;
 	stringList m_Infos;
@@ -85,13 +85,13 @@ public:
 	unsigned char getType() const { return m_Type; }
 	const unsigned char getReplyCode() const { return m_ReplyCode; }
 	const MemoItem &getMemo() const { return m_Memo; }
-	const int getQQ() const { return m_Id; }
+	const unsigned int getQQ() const { return m_Id; }
 	const stringList &getDetails() const { return m_Infos; }
 	const stringStringList &getMemos() const { return m_RemarkInfos; }
 	
 	void setType( const unsigned char type ) { m_Type = type; }
 	void setReplyCode( const unsigned char replyCode ) { m_ReplyCode = replyCode; }
-	void setQQ( const int qq ) { m_Id = qq; }
+	void setQQ( const unsigned int qq ) { m_Id = qq; }
 	void setMemo( const MemoItem &memo ) { m_Memo = memo; }
 	void setMemo( const stringList &infos);
 	void setDetails( const stringList &infos ) { m_Infos = infos; }
@@ -104,7 +104,7 @@ private:
 	unsigned char m_Type;
 	unsigned char m_ReplyCode;
 	MemoItem m_Memo;
-	int m_Id;
+	unsigned int m_Id;
 	stringList m_Infos;
 	stringStringList m_RemarkInfos;
 };

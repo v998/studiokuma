@@ -357,7 +357,7 @@ KeepAlivePacket &KeepAlivePacket::operator=(const KeepAlivePacket &rhs )
 int KeepAlivePacket::putBody(unsigned char *buf) 
 {
 	char tmp[20];
-	sprintf(tmp, "%d", getQQ());
+	sprintf(tmp, "%u", getQQ());
 	memcpy(buf, tmp, strlen(tmp));
         return 4; 
 }

@@ -19,7 +19,7 @@ extern "C" BOOL CALLBACK ModifySignatureDlgProc(HWND hwndDlg, UINT msg, WPARAM w
 
 void ftCallbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);
 
-void CNetwork::_updateQunCard(HANDLE hContact, const int qunid) {
+void CNetwork::_updateQunCard(HANDLE hContact, const unsigned int qunid) {
 	int qunCardUpdate=READC_D2("QunCardUpdate");
 
 	if (qunCardUpdate!=-1 && time(NULL)-qunCardUpdate>60) {
@@ -96,7 +96,7 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 		return;
 	}
 
-	itoa(senderQQ,szUID,10);
+	ultoa(senderQQ,szUID,10);
 	char* pszMsg=NULL;
 	DBVARIANT dbv;
 	bool hideMessage=false;
@@ -414,7 +414,7 @@ void CNetwork::_imCallback(const int imType, const void* data) {
 
 					pszTemp=mir_a2u_cp(received->getNick().c_str(),936);
 					pszTemp2=mir_a2u_cp(received->getSite().c_str(),936);
-					_stprintf((LPWSTR)msg2,TranslateT("Temp Session: %s(%d) in %s"),pszTemp,received->getSender(),pszTemp2);
+					_stprintf((LPWSTR)msg2,TranslateT("Temp Session: %s(%u) in %s"),pszTemp,received->getSender(),pszTemp2);
 					mir_free(pszTemp);
 					mir_free(pszTemp2);
 
@@ -523,7 +523,7 @@ void ackCallback(const unsigned short ackType, const void* data, const void* dat
 
 // sysRequestJoinQunCallback(): Callback Function for application to join Qun
 //                                     
-void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen) {
+void CNetwork::_sysRequestJoinQunCallback(unsigned int qunid, unsigned int extid, unsigned int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen) {
 	char *reason_utf8;
 	Qun* qun=m_qunList.getQun(qunid);
 
@@ -549,9 +549,9 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 			util_convertFromGBK(reason_utf8);
 		}
 
-		sprintf(szEmail,"%s (%d)",qun->getDetails().getName().c_str(),qunid);
+		sprintf(szEmail,"%s (%u)",qun->getDetails().getName().c_str(),qunid);
 		util_convertFromGBK(szEmail);
-		util_log(0,"%s(): QunID=%d, QQID=%d, msg=%s",__FUNCTION__,qunid,userid,reason_utf8);
+		util_log(0,"%s(): QunID=%u, QQID=%u, msg=%s",__FUNCTION__,qunid,userid,reason_utf8);
 
 #if 1
 		ccs.szProtoService=PSR_AUTH;
@@ -618,11 +618,11 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 }
 
 // sysRejectJoinQunCallback(): Callback Function for Qun Admin rejected your join Qun request
-void CNetwork::_sysRejectJoinQunCallback(int qunid, int extid, int userid, const char* msg) {
+void CNetwork::_sysRejectJoinQunCallback(unsigned int qunid, unsigned int extid, unsigned int userid, const char* msg) {
 	TCHAR szTemp[MAX_PATH];
 	LPTSTR pszReason=mir_a2u_cp(msg,936);
 
-	swprintf(szTemp,TranslateT("You request to join group %d has been rejected by admin %d.\nReason:\n\n%s"), extid,userid,pszReason);
+	swprintf(szTemp,TranslateT("You request to join group %u has been rejected by admin %u.\nReason:\n\n%s"), extid,userid,pszReason);
 	mir_free(pszReason);
 	ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,szTemp);
 }
@@ -1100,11 +1100,11 @@ void CNetwork::_changeStatusCallback(ChangeStatusReplyPacket* packet) {
 
 void CNetwork::_getUserInfoCallback(GetUserInfoReplyPacket* packet) {
 	ContactInfo info=packet->contactInfo();
-	unsigned int qqid=atoi(info.at(info.Info_qqID).c_str());
+	unsigned int qqid=strtoul(info.at(info.Info_qqID).c_str(),NULL,10);
 	HANDLE hContact=FindContact(qqid);
 	//GETSETTINGS();
 
-	util_log(0,"TEST: QQID=%d",packet->getQQ());
+	util_log(0,"TEST: QQID=%u",packet->getQQ());
 
 	if (qqid>0) {
 		for (int c=0; c<2; c++)
@@ -1384,7 +1384,7 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 				}
 			}
 		} else
-			util_log(98,"%s(): Warning: Cannot find contact with QQ=%d! Possibly removed?",__FUNCTION__,iter->getQQ());
+			util_log(98,"%s(): Warning: Cannot find contact with QQ=%u! Possibly removed?",__FUNCTION__,iter->getQQ());
 	}
 
 	m_tempOnlineList.clear();
@@ -1396,7 +1396,7 @@ void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
 				if (oldStatus!=ID_STATUS_OFFLINE && (oldStatus!=ID_STATUS_INVISIBLE || (DWORD)time(NULL)-READC_D2("InvisibleTS")>300)) {
 					DELC("InvisibleTS");
 					WRITEC_W("Status",ID_STATUS_OFFLINE);
-					util_log(0,"Set QQ contact %d to offline.",iter->first);
+					util_log(0,"Set QQ contact %u to offline.",iter->first);
 				}
 			}
 		}
@@ -1427,10 +1427,10 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 					TCHAR szPath[MAX_PATH];
 					DBGetContactSettingTString(hContact,m_szModuleName,"Nick",&dbv);
 
-					swprintf(szPath,TranslateT("Not moving contact %s (%d) because he/she is maintained by MetaContacts"),dbv.ptszVal,iter->getQQ());
+					swprintf(szPath,TranslateT("Not moving contact %s (%u) because he/she is maintained by MetaContacts"),dbv.ptszVal,iter->getQQ());
 					ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szPath));
 				} else {
-					util_log(0,"%s(): Contact %d belongs to group %d",__FUNCTION__,iter->getQQ(), iter->getGroupID());
+					util_log(0,"%s(): Contact %u belongs to group %d",__FUNCTION__,iter->getQQ(), iter->getGroupID());
 
 					if (iter->getGroupID()==0) // No group
 						CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)0);
@@ -1449,7 +1449,7 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 			// MIMQQ3/Incompatible MIMQQ2 aware: remove qunver/cardver
 			if (hContact=FindContact(iter->getQQ())) {
 				if (READC_B2("MIMQQVersion")!=2) {
-					util_log(0,"%s(): Found incompatible qun %d, requesting new info.",__FUNCTION__,iter->getQQ());
+					util_log(0,"%s(): Found incompatible qun %u, requesting new info.",__FUNCTION__,iter->getQQ());
 					DELC("QunVersion");
 					DELC("CardVersion");
 
@@ -1556,7 +1556,7 @@ void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* pack
 void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 	if (packet->isReplyOK()) {
 		QunInfo info = packet->getQunInfo();
-		int qunid=info.getQunID();
+		unsigned int qunid=info.getQunID();
 		Qun* qun=m_qunList.getQun(qunid);
 
 		if (!qun) {
@@ -1572,7 +1572,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 		std::map<unsigned int, QunMember> lst = packet->getMemberList();
 		int cardVersion=qun->getRealNamesVersion();
 
-		util_log(0,"Qun %d: Version=%d, CardVersion=%d, Member Count(Stored:Recv)=%d:%d",info.getExtID(),info.getVersionID(),cardVersion,lst.size(),l.size());
+		util_log(0,"Qun %u: Version=%u, CardVersion=%u, Member Count(Stored:Recv)=%d:%d",info.getExtID(),info.getVersionID(),cardVersion,lst.size(),l.size());
 
 		m_qunList.setDetails(info);
 		m_qunList.setMemberArgs(qunid,lst);
@@ -1665,7 +1665,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 					out->setMemberList(toSend);
 					append(out);
 					toSend.clear();
-					util_log(0,"Qun %d: Sent 30-batch qun member update",qunid);
+					util_log(0,"Qun %u: Sent 30-batch qun member update",qunid);
 					//i = 0;
 					sent=true;
 				}
@@ -1678,7 +1678,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 			QunGetMemberInfoPacket *out=new QunGetMemberInfoPacket(qunid);
 			out->setMemberList(toSend);
 			append(out);
-			util_log(0,"Qun %d: Sent last batch(%d) qun member update",qunid,toSend.size());
+			util_log(0,"Qun %u: Sent last batch(%d) qun member update",qunid,toSend.size());
 			toSend.clear();
 			sent=true;
 		} 
@@ -1702,7 +1702,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 			pszMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
 			DBWriteContactSettingTString(hContact,"CList","StatusMsg",pszMsg);
 
-			_stprintf(szTemp,TranslateT("Unable to initialize qun %d:\n%s"),m_qunInitList.front(),pszMsg);
+			_stprintf(szTemp,TranslateT("Unable to initialize qun %u:\n%s"),m_qunInitList.front(),pszMsg);
 			ShowNotification(szTemp,NIIF_WARNING);
 			mir_free(pszMsg);
 		}
@@ -1713,7 +1713,7 @@ void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
 }
 
 void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
-	int qunid=packet->getQunID();
+	unsigned int qunid=packet->getQunID();
 
 	switch (packet->getQunCommand()) {
 		case QQ_QUN_CMD_GET_QUN_INFO:
@@ -1776,7 +1776,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 
 				pszServerMsg=mir_a2u_cp(szServerMsg,936);
 				
-				_stprintf(szMsg,TranslateT("Qun Modification Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
+				_stprintf(szMsg,TranslateT("Qun Modification Request for %u %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
 				ShowNotification(szMsg,NIIF_INFO);
 				WRITEC_D("CardVersion",-1);
 				append(new QunGetInfoPacket(qunid));
@@ -1794,7 +1794,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 				if (!extID) extID=qunid;
 				pszServerMsg=mir_a2u_cp(szServerMsg,936);
 
-				_stprintf(szMsg,TranslateT("Qun Exit Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
+				_stprintf(szMsg,TranslateT("Qun Exit Request for %u %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
 				ShowNotification(szMsg,NIIF_INFO);
 
 				if(packet->isReplyOK()){
@@ -1814,7 +1814,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 							//CQunListV2* qunList=CQunListV2::getInstance(false);
 							HANDLE hContact=FindContact(qunid);
 
-							util_log(0,"Qun %d: Member info completed, ask for real names",qunid);
+							util_log(0,"Qun %u: Member info completed, ask for real names",qunid);
 
 							/*
 							if (qunList && qunList->getQunid()==qunid) {
@@ -1885,7 +1885,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 						TCHAR szMsg[MAX_PATH];
 						LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
 
-						_stprintf(szMsg,TranslateT("Administrator of Qun %d denied your join request\n%s"),qunid,pszServerMsg);
+						_stprintf(szMsg,TranslateT("Administrator of Qun %u denied your join request\n%s"),qunid,pszServerMsg);
 						ShowNotification(szMsg,NIIF_ERROR);
 						mir_free(pszServerMsg);
 					}
@@ -1909,7 +1909,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 						TCHAR szMsg[MAX_PATH];
 						LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
 
-						_stprintf(szMsg,TranslateT("Administrator of Qun %d denied your join request\n%s"),qunid,pszServerMsg);
+						_stprintf(szMsg,TranslateT("Administrator of Qun %u denied your join request\n%s"),qunid,pszServerMsg);
 						ShowNotification(szMsg,NIIF_ERROR);
 						mir_free(pszServerMsg);
 					}
@@ -1945,12 +1945,12 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 
 						if (fUTF8) {
 							psr.flags=PSR_UNICODE;
-							swprintf(wuid,L"%d (%d)",iter->getExtID(),iter->getQunID());
+							swprintf(wuid,L"%u (%u)",iter->getExtID(),iter->getQunID());
 							psr.firstName=(LPSTR)mir_a2u_cp(iter->getName().c_str(),936);
 							psr.lastName=(LPSTR)mir_a2u_cp(iter->getDescription().c_str(),936);
 							psr.email=(LPSTR)(iter->getAuthType()==QQ_QUN_NEED_AUTH?TranslateT("Authentication Required"):iter->getAuthType()==QQ_QUN_NO_AUTH?TranslateT("Authentication Not Required"):TranslateT("No Add"));
 						} else {
-							sprintf(uid,"%d (%d)",iter->getExtID(),iter->getQunID());
+							sprintf(uid,"%u (%u)",iter->getExtID(),iter->getQunID());
 							psr.firstName=mir_strdup(iter->getName().c_str());
 							util_convertFromGBK(psr.firstName);
 							psr.lastName=mir_strdup(iter->getDescription().c_str());
@@ -1977,14 +1977,14 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 				HANDLE hContact=FindContact(qunid);
 				if(!qun) break;
 
-				util_log(0,"Qun %d RealNames version: %d -> %d",qunid, qun->getRealNamesVersion(),packet->getCardVersion());
+				util_log(0,"Qun %u RealNames version: %u -> %u",qunid, qun->getRealNamesVersion(),packet->getCardVersion());
 
 				if (packet->getCardVersion()!=READC_D2("CardVersion") || READC_D2("QunCardUpdate")==-1) {
-					util_log(0,"Qun %d: Different card version(%d), perform update",qunid,packet->getCardVersion());
+					util_log(0,"Qun %u: Different card version(%u), perform update",qunid,packet->getCardVersion());
 					fUpdate=true;
 				} else if (time(NULL)-READC_D2("QunCardUpdate")>60) {
 					// Same version, no need to update
-					util_log(0,"Qun %d: Same card version(%d), no need to update",qunid,packet->getCardVersion());
+					util_log(0,"Qun %u: Same card version(%u), no need to update",qunid,packet->getCardVersion());
 					WRITEC_B("GetInfoOnline",1);
 					delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
 					dr->hContact=hContact;
@@ -2027,7 +2027,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 						WRITEC_D("QunCardUpdate",(DWORD)time(NULL));
 						WRITEC_D("CardVersion",packet->getCardVersion());
 
-						util_log(0,"Writing names for Qun %d",qunid);
+						util_log(0,"Writing names for Qun %u",qunid);
 						if (READC_D2("ExtCardVersion")!=packet->getCardVersion()) CQunInfoExt::AddOneJob(m_myqq,1,READC_D2("ExternalID"),packet->getCardVersion());
 
 #ifdef MIRANDAQQ_IPC
@@ -2036,7 +2036,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 #endif
 
 						for (iter=fil.begin();iter!=fil.end();iter++) {
-							itoa(iter->getQQ(),szQQID,10);
+							ultoa(iter->getQQ(),szQQID,10);
 							realName=iter->getQunRealName();
 							if (!realName.length()) realName=iter->getNick();
 
@@ -2099,7 +2099,7 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 				if (!extID) extID=qunid;
 				pszServerMsg=mir_a2u_cp(szServerMsg,936);
 
-				_stprintf(szMsg,TranslateT("Qun Administration Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
+				_stprintf(szMsg,TranslateT("Qun Administration Request for %u %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
 				ShowNotification(szMsg,NIIF_INFO);
 
 				if(packet->isReplyOK()){
@@ -2114,12 +2114,12 @@ void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
 				LPCSTR szServerMsg=strdup(packet->getErrorMessage().c_str());
 				LPTSTR pszServerMsg;
 				HANDLE hContact=FindContact(qunid);
-				int extID=READC_D2("ExternalID");
+				unsigned int extID=READC_D2("ExternalID");
 
 				if (!extID) extID=qunid;
 				pszServerMsg=mir_a2u_cp(szServerMsg,936);
 
-				_stprintf(szMsg,TranslateT("Qun Transfer Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
+				_stprintf(szMsg,TranslateT("Qun Transfer Request for %u %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
 				ShowNotification(szMsg,NIIF_INFO);
 
 				if(packet->isReplyOK()){
@@ -2136,11 +2136,11 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 		int qqid=(int)packet;
 		if (HANDLE hContact=FindContact(qqid)) {
 			if (READC_W2("Status")==ID_STATUS_OFFLINE) {
-				util_log(0,"Set QQ contact %d to invisible",qqid);
+				util_log(0,"Set QQ contact %u to invisible",qqid);
 				WRITEC_W("Status",ID_STATUS_INVISIBLE);
 			}
 			if (READC_W2("Status")==ID_STATUS_INVISIBLE) {
-				util_log(0,"Updated invisible TS for QQ contact %d",qqid);
+				util_log(0,"Updated invisible TS for QQ contact %u",qqid);
 				WRITEC_D("InvisibleTS",(DWORD)time(NULL));
 			}
 		}
@@ -2177,7 +2177,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 					pszTitle=mir_a2u_cp(qmp.getTitle().c_str(),936);
 
 					// http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=xxx&K=xxx
-					itoa(m_myqq,szUrl+strlen(szUrl),10);
+					ultoa(m_myqq,szUrl+strlen(szUrl),10);
 					strcat(szUrl,"&K=");
 					util_fillClientKey(szUrl+strlen(szUrl));
 					strcat(szUrl,"&Mailid=");
@@ -2227,7 +2227,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 					ReceivedQunIM* im=(ReceivedQunIM*)auxpacket;
 					bool fTemp=packet->getIMType()==QQ_RECV_IM_TEMP_QUN_IM;
 
-					int qunID=fTemp?im->getExtID():packet->getSender();
+					unsigned int qunID=fTemp?im->getExtID():packet->getSender();
 					util_log(0,"_imCallback(): sender1=%u parent=%u intid=%u, sender2=%u",packet->getSender(),im->getQunID(),im->getExtID(),im->getSenderQQ());
 					
 					hContact=AddContact(qunID,fTemp,false);
@@ -2243,7 +2243,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 						} else
 							append(new QunGetInfoPacket(qunID));
 					} else {
-						util_log(0,"qunImCallback(): QunVersion=%d, versionID=%d",READC_D2("QunVersion"),im->getVersionID());
+						util_log(0,"qunImCallback(): QunVersion=%u, versionID=%u",READC_D2("QunVersion"),im->getVersionID());
 						_updateQunCard(hContact, qunID);
 					}
 					_qunImCallback2(qunID,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
@@ -2359,7 +2359,7 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 					switch (packet->getIMType()) {
 						case QQ_RECV_IM_APPROVE_JOIN_QUN: 
 							{
-								swprintf(wszTemp,TranslateT("You have been approved to join Qun %d."),packet->getSender());
+								swprintf(wszTemp,TranslateT("You have been approved to join Qun %u."),packet->getSender());
 								ShowNotification(wszTemp,NIIF_INFO);
 								append(new QunGetInfoPacket(packet->getSender()));
 								break;
@@ -2373,10 +2373,10 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 						case QQ_RECV_IM_SET_QUN_ADMIN:
 							switch (join.getCommander()) {
 								case QQ_QUN_SET_ADMIN:
-									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator assigned %d to be administrator."),join.getSender());
+									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator assigned %u to be administrator."),join.getSender());
 									break;
 								case QQ_QUN_UNSET_ADMIN:
-									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator revoked administrator identity of %d."),join.getSender());
+									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator revoked administrator identity of %u."),join.getSender());
 									break;
 							}
 							break;
@@ -2388,12 +2388,12 @@ void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpac
 								switch (packet->getIMType()) {
 									case QQ_RECV_IM_DELETED_FROM_QUN:
 										if (join.getCommander()==0)
-											swprintf(wszTemp+MAX_PATH,TranslateT("%d left this Qun."),join.getSender());
+											swprintf(wszTemp+MAX_PATH,TranslateT("%u left this Qun."),join.getSender());
 										else
-											swprintf(wszTemp+MAX_PATH,TranslateT("%d(%s) removed %d from this Qun."),join.getCommander(),pszComment,join.getSender());
+											swprintf(wszTemp+MAX_PATH,TranslateT("%u(%s) removed %u from this Qun."),join.getCommander(),pszComment,join.getSender());
 										break;
 									case QQ_RECV_IM_ADDED_TO_QUN:
-										_stprintf(wszTemp+MAX_PATH,TranslateT("%d(%s) added %d to this Qun."),join.getCommander(),pszComment,join.getSender());
+										_stprintf(wszTemp+MAX_PATH,TranslateT("%u(%s) added %u to this Qun."),join.getCommander(),pszComment,join.getSender());
 										break;
 								}
 
@@ -2559,7 +2559,7 @@ void CNetwork::_getLevelCallback(EvaGetLevelReplyPacket* packet) {
 		newtime = localtime(&ot);   // Convert time to struct tm form
 		EvaUtil::calcSuns(iter->level,&sun,&moon,&star);
 
-		util_log(0,"%d is Level %d, %d hrs online, Sun=%d, Moon=%d, Star=%d, remain=%d",iter->qqNum, iter->level,iter->onlineTime/3600,sun,moon,star,iter->timeRemainder);
+		util_log(0,"%u is Level %d, %d hrs online, Sun=%d, Moon=%d, Star=%d, remain=%d",iter->qqNum, iter->level,iter->onlineTime/3600,sun,moon,star,iter->timeRemainder);
 
 		if(iter->qqNum == m_myqq){
 			WRITE_D(NULL,"OnlineMins",iter->onlineTime);
@@ -2623,7 +2623,7 @@ void CNetwork::_friendChangeStatusCallback(FriendChangeStatusPacket* packet) {
 					_writeIP(hContact,packet->getIP());
 				}
 #endif
-				util_log(0,"%s(): Contact %d changed status to %d. IP=%s",__FUNCTION__,packet->getQQ(),newStatus,/*packet->getIP()?inet_ntoa(ia):""*/inet_ntoa(*(in_addr*)&ip));
+				util_log(0,"%s(): Contact %u changed status to %d. IP=%s",__FUNCTION__,packet->getQQ(),newStatus,/*packet->getIP()?inet_ntoa(ia):""*/inet_ntoa(*(in_addr*)&ip));
 			}
 
 			DBWriteContactSettingWord(hContact,m_szModuleName,"Status",newStatus);
@@ -2724,7 +2724,7 @@ void CNetwork::_addFriendCallback(EvaAddFriendExReplyPacket* packet) {
 				break;
 			case QQ_AUTH_NO_ADD: // Adding not allowed
 				{
-					swprintf(szMsg,TranslateT("QQ User %d does not allow others to add him/her."),m_addUID);
+					swprintf(szMsg,TranslateT("QQ User %u does not allow others to add him/her."),m_addUID);
 					ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
 					m_addUID=0;
 					break;
@@ -2762,7 +2762,7 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 				WCHAR szMsg[MAX_PATH];
 				HANDLE hContact=FindContact(packet->getFromQQ());
 
-				swprintf(szMsg,TranslateT("Your add friend request to %d have been approved."),packet->getFromQQ());
+				swprintf(szMsg,TranslateT("Your add friend request to %u have been approved."),packet->getFromQQ());
 				DELC("Reauthorize");
 				DELC("AuthReason");
 				ShowNotification(szMsg,NIIF_INFO);
@@ -2804,7 +2804,7 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 				CCSDATA ccs;
 				PROTORECVEVENT pre;
 				pre.flags=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000?0:PREF_UTF;
-				int qqid=packet->getFromQQ();
+				unsigned int qqid=packet->getFromQQ();
 				HANDLE hContact=FindContact(qqid);
 				char* msg=(pre.flags&PREF_UTF)?mir_utf8encodecp(packet->getMessage().c_str(),936):mir_strdup(packet->getMessage().c_str());
 				char* szBlob;
@@ -2840,7 +2840,7 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 				}
 				pre.szMessage=(char *)szBlob;
 
-				util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,pCurBlob);
+				util_log(0,"%s(): QQID=%u, msg=%s",__FUNCTION__,qqid,pCurBlob);
 
 				CallService(MS_PROTO_CHAINRECV,0,(LPARAM)&ccs);
 
@@ -2854,7 +2854,7 @@ void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
 void CNetwork::_deleteMeCallback(DeleteMeReplyPacket* packet) {
 	TCHAR szMsg[MAX_PATH];
 
-	swprintf(szMsg,TranslateT("Your request to be removed from %d %s."),packet->getQQ(),packet->isDeleted()?TranslateT("succeeded"):TranslateT("failed"));
+	swprintf(szMsg,TranslateT("Your request to be removed from %u %s."),packet->getQQ(),packet->isDeleted()?TranslateT("succeeded"):TranslateT("failed"));
 	ShowNotification(szMsg,NIIF_INFO);
 }
 
@@ -3069,12 +3069,12 @@ void CNetwork::callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lP
 	}
 }
 
-bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int session) {
+bool CNetwork::uhCallbackHub(int msg, unsigned int qqid, const char* md5, unsigned int session) {
 	switch (msg) {
 		case CUserHead::Buddy_File:
 			{
 				// Broadcast
-				util_log(0,"Received uh id=%d",qqid);
+				util_log(0,"Received uh id=%u",qqid);
 				HANDLE hContact=FindContact(qqid);
 				if (hContact || qqid==m_myqq) {
 					DBVARIANT dbv;
@@ -3108,7 +3108,7 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 			break;
 		case CUserHead::Buddy_Info:
 			{
-				util_log(0,"Received uh info, id=%d, session=%d",qqid,session);
+				util_log(0,"Received uh info, id=%u, session=%d",qqid,session);
 				HANDLE hContact=FindContact(qqid);
 				if (hContact || qqid==m_myqq) {
 					DBVARIANT dbv;
@@ -3191,7 +3191,7 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 	return false;
 }
 
-void CNetwork::qunPicCallbackHub(int msg, int qunid, void* aux) {
+void CNetwork::qunPicCallbackHub(int msg, unsigned int qunid, void* aux) {
 	switch (msg) {
 #if 0
 		case 0: // Received qunpic

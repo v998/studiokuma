@@ -83,7 +83,7 @@
 #define WRITEINFO_TS(k,i) pszTemp=mir_a2u_cp(info.at(i).c_str(),936); WRITEC_TS(k,pszTemp); mir_free(pszTemp)
 #define WRITEINFO_B(k,i) WRITEC_B(k,atoi(info.at(i).c_str()))
 #define WRITEINFO_W(k,i) WRITEC_W(k,atoi(info.at(i).c_str()))
-#define WRITEINFO_D(k,i) WRITEC_D(k,atoi(info.at(i).c_str()))
+#define WRITEINFO_D(k,i) WRITEC_D(k,strtoul(info.at(i).c_str(),NULL,10))
 
 #define READ_S(c,k,v) if (!DBGetContactSetting(c,m_szModuleName,k,&dbv)) {strcpy(v,dbv.pszVal);DBFreeVariant(&dbv);} else *v=0
 #define READ_S2(c,k,v) DBGetContactSetting(c,m_szModuleName,k,v)
@@ -125,8 +125,8 @@ extern char g_dllname[MAX_PATH];
 
 typedef struct {
 	CNetwork* network;
-	int qunid;
-	int qqid;
+	unsigned int qunid;
+	unsigned int qqid;
 } KICKUSERSTRUCT;
 
 typedef struct {

@@ -249,7 +249,7 @@ private:
 class QunGetInfoPacket : public QunPacket {
 public:
 	QunGetInfoPacket() {}
-	QunGetInfoPacket(const int id);  
+	QunGetInfoPacket(const unsigned int id);  
 	QunGetInfoPacket(const QunGetInfoPacket &rhs);
 	virtual ~QunGetInfoPacket();
 protected:
@@ -259,7 +259,7 @@ protected:
 class QunGetMemberInfoPacket : public QunPacket {
 public:
 	QunGetMemberInfoPacket() {}
-	QunGetMemberInfoPacket(const int id);
+	QunGetMemberInfoPacket(const unsigned int id);
 	QunGetMemberInfoPacket(const QunGetMemberInfoPacket &rhs);
 	virtual ~QunGetMemberInfoPacket();
 	
@@ -417,7 +417,7 @@ public:
 	const unsigned int getExtID() const { return externalID; }
 	
 	void setSearchType(const unsigned char t) { type = t; }
-	void setExtID(const int id) { externalID = id; }
+	void setExtID(const unsigned int id) { externalID = id; }
 	
 	QunSearchPacket &operator=(const QunSearchPacket &rhs);
 protected:
@@ -509,7 +509,7 @@ private:
 class QunAdminOpPacket : public QunPacket {
 public:
 	QunAdminOpPacket() {}
-	QunAdminOpPacket(const int id, const int qqID, const bool isSetAdmin);  
+	QunAdminOpPacket(const unsigned int id, const unsigned int qqID, const bool isSetAdmin);  
 	QunAdminOpPacket(const QunAdminOpPacket &rhs);
 	virtual ~QunAdminOpPacket() {};
 	

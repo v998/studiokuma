@@ -21,7 +21,7 @@
 #include "evautil.h"
 #include <cstring>
 
-EvaMemoPacket::EvaMemoPacket( const int id, const unsigned char type )
+EvaMemoPacket::EvaMemoPacket( const unsigned int id, const unsigned char type )
 	:OutPacket( QQ_CMD_MEMO_OP, true ), m_Id( id ), m_Type( type ), m_Page(0)
 {
 }
@@ -138,7 +138,7 @@ void EvaMemoReplyPacket::parseBody()
 			
 			while (pos<bodyLength) {
 				sl.clear();
-				itoa(EvaUtil::read32(decryptedBuf+pos),qqid,10);
+				ultoa(EvaUtil::read32(decryptedBuf+pos),qqid,10);
 				sl.push_back(qqid);
 				pos += 5;
 

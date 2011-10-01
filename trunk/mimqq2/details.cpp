@@ -69,7 +69,7 @@ void CNetwork::UpdateQunContacts(HWND hwndDlg, unsigned int qunid) {
 	if (Qun* qun=m_qunList.getQun(qunid)) {
 		std::list<FriendItem> list=qun->getMembers();
 		HANDLE hContact=FindContact(qunid);
-		int creator=READC_D2("Creator");
+		unsigned int creator=READC_D2("Creator");
 		DBVARIANT dbv;
 		TCHAR* pszNick;
 		TCHAR szTemp[MAX_PATH];
@@ -80,14 +80,14 @@ void CNetwork::UpdateQunContacts(HWND hwndDlg, unsigned int qunid) {
 
 		for (std::list<FriendItem>::iterator iter=list.begin(); iter!=list.end(); ++iter) {
 
-			itoa(iter->getQQ(),szID,10);
+			ultoa(iter->getQQ(),szID,10);
 			if (READC_S2(szID,&dbv)) {
 				// Nick not found
-				swprintf(szTemp,L" [%s] %d",iter->isOnline()?TranslateT("Online"):TranslateT("Offline"),iter->getQQ());
+				swprintf(szTemp,L" [%s] %u",iter->isOnline()?TranslateT("Online"):TranslateT("Offline"),iter->getQQ());
 			} else {
 				// Nick found
 				pszNick=mir_a2u_cp(dbv.pszVal,936);
-				swprintf(szTemp,L" [%s] %s(%d)",iter->isOnline()?TranslateT("Online"):TranslateT("Offline"),pszNick,iter->getQQ());
+				swprintf(szTemp,L" [%s] %s(%u)",iter->isOnline()?TranslateT("Online"):TranslateT("Offline"),pszNick,iter->getQQ());
 				mir_free(pszNick);
 				DBFreeVariant(&dbv);
 			}
@@ -140,27 +140,27 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 							HANDLE hContact = (HANDLE)((LPPSHNOTIFY)lParam)->lParam;
 							HANDLE hContact2=hContact;
 							DBVARIANT dbv;
-							int nTemp;
+							unsigned int nTemp;
 
 							unsigned int qunid=0;
 
 							qunid=READC_D2(UNIQUEIDSETTING);
 
 							nTemp=READC_D2("Creator");
-							itoa(nTemp,szTemp,10);
+							ultoa(nTemp,szTemp,10);
 
 							if (!READC_S2(szTemp,&dbv)) {
 								// Qun creator info available
 								pszTemp=mir_a2u_cp(dbv.pszVal,936);
-								swprintf(wszTemp,L"%s (%d)", pszTemp, nTemp);
+								swprintf(wszTemp,L"%s (%u)", pszTemp, nTemp);
 								mir_free(pszTemp);
 								DBFreeVariant(&dbv);
 							} else
-								_itow(nTemp,wszTemp,10);
+								_ultow(nTemp,wszTemp,10);
 
 							SetDlgItemText(hwndDlg,IDC_QUNINFO_CREATOR,wszTemp);
 
-							_itow(READC_D2("ExternalID"),wszTemp,10);
+							_ultow(READC_D2("ExternalID"),wszTemp,10);
 							SetDlgItemText(hwndDlg,IDC_QUNINFO_QID,wszTemp);
 
 							if (!READC_TS2("Nick",&dbv)) {
@@ -185,7 +185,7 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 								case 1: // Just retrieved info, send member online update call
 									PostMessage(hwndDlg,WM_TIMER,1,0);
 									{
-										int myqq=ldt->network->GetMyQQ();
+										unsigned int myqq=ldt->network->GetMyQQ();
 										Qun* qun=ldt->network->m_qunList.getQun(READC_D2(UNIQUEIDSETTING));
 										if (qun==NULL || !(qun->isAdmin(myqq)||qun->getDetails().getCreator()==myqq)) {
 											EnableWindow(GetDlgItem(hwndDlg,IDC_QUNINFO_DELMEMBER),FALSE);
@@ -226,10 +226,10 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 				if (SendDlgItemMessageA(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETTEXT,SendDlgItemMessage(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETCURSEL,0,0),(LPARAM)&szTemp)!=LB_ERR && *szTemp!=0) {
 					LPSTR pszChk=strrchr(szTemp,'(');
 
-					int qqid=atoi(strrchr(szTemp,pszChk?'(':' ')+1);
+					unsigned int qqid=strtoul(strrchr(szTemp,pszChk?'(':' ')+1,NULL,10);
 					LPSTR m_szModuleName=ldt->network->m_szModuleName;
 					HANDLE hContact=ldt->hContact;
-					int qunid=READC_D2(UNIQUEIDSETTING);
+					unsigned int qunid=READC_D2(UNIQUEIDSETTING);
 
 					switch (LOWORD(wParam)) {
 						case IDC_QUNINFO_ADDTOME:
@@ -244,7 +244,7 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 						case IDC_QUNINFO_DELMEMBER:
 							{
 								TCHAR szMsg[MAX_PATH];
-								_stprintf(szMsg,TranslateT("Are you sure you want to kick user %d out of this Qun %d?"),qqid,READC_D2("ExternalID"));
+								_stprintf(szMsg,TranslateT("Are you sure you want to kick user %u out of this Qun %d?"),qqid,READC_D2("ExternalID"));
 								if (MessageBox(NULL,szMsg,APPNAME,MB_ICONWARNING|MB_YESNO)==IDYES) {
 									std::list<unsigned int> list;
 									QunModifyMemberPacket *out=new QunModifyMemberPacket(READC_D2(UNIQUEIDSETTING),false);
@@ -264,7 +264,7 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 						case IDC_QUNINFO_TRANSFER:
 							{
 								TCHAR szMsg[MAX_PATH];
-								_stprintf(szMsg,TranslateT("Are you sure you want to transfer Qun %d to user %d?"),READC_D2("ExternalID"),qqid);
+								_stprintf(szMsg,TranslateT("Are you sure you want to transfer Qun %u to user %u?"),READC_D2("ExternalID"),qqid);
 								if (MessageBox(NULL,szMsg,APPNAME,MB_ICONWARNING|MB_YESNO)==IDYES) {
 									std::list<unsigned int> list;
 									QunTransferPacket *out=new QunTransferPacket(qunid,qqid);
@@ -346,7 +346,7 @@ static BOOL CALLBACK QQDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 
 							// Overview
 							// QQ ID
-							_ltow(READC_D2(UNIQUEIDSETTING),szTemp,10);
+							_ultow(READC_D2(UNIQUEIDSETTING),szTemp,10);
 							SetDlgItemText(hwndDlg,IDC_INFO_UID,szTemp);
 
 #define DETAILS_READTS(key,ctl) if (!READC_TS2(key,&dbv)) { SetDlgItemText(hwndDlg,ctl,dbv.ptszVal); DBFreeVariant(&dbv); }
@@ -354,7 +354,7 @@ static BOOL CALLBACK QQDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPA
 							DETAILS_READTS("Nick",IDC_INFO_NICKNAME);
 
 							// Age
-							_itow(READC_W2("Age"),szTemp,10);
+							_ultow(READC_W2("Age"),szTemp,10);
 							SetDlgItemText(hwndDlg,IDC_INFO_AGE,szTemp);
 
 							// Sex
