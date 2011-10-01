@@ -55,7 +55,7 @@ private:
 	std::list<Session> downloadList;
 	std::list<CustomizedPic> picList;
 	std::list<postqunimage_t> sentList;
-	int qunID;
+	unsigned int qunID;
 	CustomizedPic currentPic;
 	int currentIndex;
 

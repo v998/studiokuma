@@ -26,7 +26,7 @@ private:
 	static CQunListV2* m_inst;
 	static HHOOK hHookMessagePost;
 	static HWND m_hwndSRMM;
-	static int m_qunid;
+	static unsigned int m_qunid;
 	static HINSTANCE m_hInstance;
 	HWND m_hwnd;
 	bool m_timerEnabled;
@@ -39,7 +39,7 @@ private:
 	HFONT hFontBold/*, hFontNormal*/;
 	HPEN hPenTitle;
 	HANDLE hContact;
-	map<int,HBITMAP> headlist;
+	map<unsigned int,HBITMAP> headlist;
 	HINSTANCE hHeadImg;
 	bool noheadimg;
 };

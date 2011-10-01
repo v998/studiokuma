@@ -208,7 +208,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 						break;
 					case AUTH_INFO_SUB_CMD_QUN:
 						{
-							int qqid=DBGetContactSettingDword(cvw->m_adp->hContact,network->m_szModuleName,UNIQUEIDSETTING,0);
+							unsigned int qqid=DBGetContactSettingDword(cvw->m_adp->hContact,network->m_szModuleName,UNIQUEIDSETTING,0);
 							HANDLE hContact=cvw->m_adp->hContact;
 							DBVARIANT dbv;
 							DBGetContactSettingTString(hContact,network->m_szModuleName,"AuthReason",&dbv);

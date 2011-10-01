@@ -36,8 +36,8 @@ public:
 	SendIM(const SendIM &rhs) ;
 	virtual ~SendIM() {}
 		
-	const int getReceiver() const { return receiver; };                       // your friend's qq number
-	void setReceiver(int receiver) { this->receiver = receiver; }
+	const unsigned int getReceiver() const { return receiver; };                       // your friend's qq number
+	void setReceiver(unsigned int receiver) { this->receiver = receiver; }
 	
 	const short getFaceCode() const { return face; }
 	void setFaceCode(short face) { this->face = face; }                      // set my face code	
@@ -54,7 +54,7 @@ protected:
 	virtual int putBody(unsigned char *buf);
 	virtual int putContents(unsigned char *buf);
 private:	
-	int receiver; 
+	unsigned int receiver; 
 	short face;
 	unsigned short contentType;
 	unsigned short m_MsgSequence;
@@ -382,8 +382,8 @@ public:
 	OutPacket * copy() { return new SendTempSessionTextIMPacket(*this);}
 	SendTempSessionTextIMPacket &operator=(const SendTempSessionTextIMPacket &rhs);
 
-	const int getReceiver() const { return receiver; };                       // your friend's qq number
-	void setReceiver(int receiver) { this->receiver = receiver; }
+	const unsigned int getReceiver() const { return receiver; };                       // your friend's qq number
+	void setReceiver(unsigned int receiver) { this->receiver = receiver; }
 
 	const std::string &getFontName() const { return fontName; }               // font setting
 	void setFontName(std::string &fontName) { this->fontName = fontName; }
@@ -425,7 +425,7 @@ public:
 protected:
 	virtual int putBody(unsigned char *buf);
 private:
-	int receiver; 
+	unsigned int receiver; 
 	short encoding;
 	std::string fontName;
 	char red, green, blue;

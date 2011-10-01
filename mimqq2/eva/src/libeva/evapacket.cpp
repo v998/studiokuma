@@ -298,7 +298,7 @@ int OutPacket::putHead(unsigned char *buf)
 	memcpy(buf+pos, &tmp, 2);
 	pos+=2; 
 	
-	int id = htonl(getQQ());
+	unsigned int id = htonl(getQQ());
 	memcpy(buf+pos, &id, 4);
 	pos+=4;
 		

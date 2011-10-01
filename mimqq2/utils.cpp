@@ -112,7 +112,7 @@ HANDLE CNetwork::AddContact(const unsigned int QQID, bool not_on_list, bool hidd
 		if (hContact) {
 			// Creation successful, associate protocol
 			CallService(MS_PROTO_ADDTOCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName);
-			util_log(0,"%s(): Added contact %d",__FUNCTION__,QQID);
+			util_log(0,"%s(): Added contact %u",__FUNCTION__,QQID);
 			DBWriteContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,QQID);
 			DBWriteContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE);
 		} else
@@ -460,11 +460,11 @@ void util_fillClientKey(LPSTR pszDest) {
 	}
 }
 
-void CNetwork::AddContactWithSend(int qqid) {
+void CNetwork::AddContactWithSend(unsigned int qqid) {
 	PROTOSEARCHRESULT psr={sizeof(psr)};
 	CHAR szNick[16];
 	psr.nick=szNick;
-	itoa(qqid,szNick,10);
+	ultoa(qqid,szNick,10);
 	AddToList(0,&psr);
 }
 

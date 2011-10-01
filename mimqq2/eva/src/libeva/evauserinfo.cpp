@@ -84,7 +84,7 @@ GetUserInfoPacket::GetUserInfoPacket()
 {
 }
 
-GetUserInfoPacket::GetUserInfoPacket(const int id)
+GetUserInfoPacket::GetUserInfoPacket(const unsigned int id)
 	: OutPacket(QQ_CMD_GET_USER_INFO, true),
 	  qqNum(id)
 {
@@ -105,7 +105,7 @@ GetUserInfoPacket &GetUserInfoPacket::operator=(const GetUserInfoPacket &rhs)
 
 int GetUserInfoPacket::putBody(unsigned char *buf)
 {
-    sprintf((char *)buf, "%d", qqNum);
+    sprintf((char *)buf, "%u", qqNum);
     return strlen((char *)buf);
 }
 
@@ -220,7 +220,7 @@ void ModifyInfoReplyPacket::parseBody( )
 	str[bodyLength]=0x00;
 	
 	char myQQ[20];
-	sprintf(myQQ, "%d", getQQ());
+	sprintf(myQQ, "%u", getQQ());
 	char *pos = strstr(str, myQQ);
 	if( pos != str )
 		accepted = false;

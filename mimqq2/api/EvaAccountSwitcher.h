@@ -46,25 +46,25 @@ public:
 
 class CEvaAccountSwitcher {
 public:
-	static void _ProcessAs(int qqid);
+	static void _ProcessAs(unsigned int qqid);
 	static void _EndProcess();
 	static void _FreeAccout();
 	static void _Finalize();
 	static void Initialize();
-	static void _NullFunc(int);
+	static void _NullFunc(unsigned int);
 	static void _NullFunc();
 
-	static int m_currentaccount;
+	static unsigned int m_currentaccount;
 	static EvaAccountStatics_t* m_currenteast;
 private:
-	static map<int,EvaAccountStatics_t*> m_accounts;
+	static map<unsigned int,EvaAccountStatics_t*> m_accounts;
 	static CRITICAL_SECTION m_cs;
 
-	static volatile int m_currentQQ;
+	static volatile unsigned int m_currentQQ;
 	static volatile int m_lockcount;
 
 public:
-	static void (*ProcessAs)(int qqid);
+	static void (*ProcessAs)(unsigned int qqid);
 	static void (*EndProcess)();
 	static void (*FreeAccount)();
 	static void (*Finalize)();

@@ -38,7 +38,7 @@ private:
 };
 
 typedef struct {
-	int id;
+	unsigned int id;
 	unsigned int sessionId;
 	char md5[16];  // the md5 value used as file name as well
 	bool isUpdated; // useless for protocol, just help the client side code
@@ -64,14 +64,14 @@ public:
 	EvaUHTransferRequest();
 	virtual ~EvaUHTransferRequest() {}
 
-	void setUHInfo(const int id, const unsigned int sessionId) 
+	void setUHInfo(const unsigned int id, const unsigned int sessionId) 
 		{ mId = id; mSessionId = sessionId; }
 	void setFileInfo(const unsigned  int start, const unsigned  int end) 
 		{ mStart = start; mEnd = end; }
 protected:
 	virtual const bool fillBody(unsigned char *buf, int *len);
 private:
-	int mId;
+	unsigned int mId;
 	unsigned int mSessionId;
 	unsigned int mStart;
 	unsigned int mEnd;
@@ -82,7 +82,7 @@ public:
 	EvaUHTransferReply( const unsigned char *buf, const int len);
 	virtual ~EvaUHTransferReply() {}
 
-	const int getQQ() const { return mId; }
+	const unsigned int getQQ() const { return mId; }
 	const unsigned int getSessionId() const { return mSessionId; }
 	const unsigned int getFileSize() const { return mFileSize; }
 	const unsigned int getStart() const { return mStart; }

@@ -60,7 +60,7 @@ private:
 class GetUserInfoPacket : public OutPacket {
 public: 
 	GetUserInfoPacket();
-	GetUserInfoPacket(const int id);
+	GetUserInfoPacket(const unsigned int id);
 	GetUserInfoPacket(const GetUserInfoPacket &rhs);
 	virtual ~GetUserInfoPacket() {}
 	
@@ -68,12 +68,12 @@ public:
 	GetUserInfoPacket &operator=(const GetUserInfoPacket &rhs);
 	
 	void setUserQQ(const int qqNum) { this->qqNum = qqNum; }
-	const int getUserQQ() const { return qqNum; }
+	const unsigned int getUserQQ() const { return qqNum; }
 protected:
 	virtual int putBody(unsigned char *buf); 
      
 private:
-	int qqNum;
+	unsigned int qqNum;
 };
 
 class GetUserInfoReplyPacket : public InPacket {

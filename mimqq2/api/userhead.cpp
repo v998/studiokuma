@@ -20,8 +20,8 @@ public:
 		const unsigned int partSize, const unsigned char *buf);
 
 	const string getMd5String() const;
-	const int getQQ() const { return mId; }
-	const int getSessionId() const { return mSessionId; }
+	const unsigned int getQQ() const { return mId; }
+	const unsigned int getSessionId() const { return mSessionId; }
 
 	// is this file downloaded sucessfully?
 	const bool isFinished();
@@ -335,7 +335,7 @@ void CUserHead::processAllInfoReply() {
 			if (m_network->uhCallbackHub(Buddy_Info, it->id, (char*)EvaHelper::md5ToString(it->md5).c_str(), it->sessionId)) {
 				uhii=*it;
 				mUHInfoItems.push_back(uhii);
-				util_log(0,"[UserHead] Added, it->id=%d, it->sessionId=%d, uhii->id=%d, uhii->sessionId=%d, count=%d",it->id,it->sessionId, mUHInfoItems.back().id,mUHInfoItems.back().sessionId,mUHInfoItems.size());
+				util_log(0,"[UserHead] Added, it->id=%u, it->sessionId=%d, uhii->id=%u, uhii->sessionId=%d, count=%d",it->id,it->sessionId, mUHInfoItems.back().id,mUHInfoItems.back().sessionId,mUHInfoItems.size());
 			}
 			++it;
 		}
@@ -365,7 +365,7 @@ bool CUserHead::doInfoRequest() {
 	}
 
 	item = mUHInfoItems.front();
-	util_log(0,"[UserHead] doInfoRequest, id=%d, sessionId=%x, count=%d\n",item.id,item.sessionId,mUHInfoItems.size());
+	util_log(0,"[UserHead] doInfoRequest, id=%u, sessionId=%x, count=%d\n",item.id,item.sessionId,mUHInfoItems.size());
 
 	if(!(item.id))  // if id == 0, no file need download, we finish
 		return false;
@@ -380,10 +380,10 @@ bool CUserHead::doInfoRequest() {
 		wcscpy(m_popupText,TranslateT("Processing "));
 		if (dbv.ptszVal) {
 			wcscat(m_popupText,dbv.ptszVal);
-			swprintf(m_popupText+wcslen(m_popupText),L"(%d)",item.id);
+			swprintf(m_popupText+wcslen(m_popupText),L"(%u)",item.id);
 			DBFreeVariant(&dbv);
 		} else
-			_itow(item.id,m_popupText+wcslen(m_popupText),10);
+			_ultow(item.id,m_popupText+wcslen(m_popupText),10);
 		wcscat(m_popupText,L": ");
 		m_popupTextP=m_popupText+wcslen(m_popupText);
 		wcscpy(m_popupTextP,TranslateT("Requesting Info"));
@@ -401,8 +401,8 @@ bool CUserHead::doInfoRequest() {
 	return true;
 }
 
-void CUserHead::doTransferRequest(const int id, const unsigned int sid, const unsigned int start, const unsigned int end) {
-	util_log(0,"[UserHead] doTransferRequest: tid: %d, sid: %8x, s: %8x, e: %8x\n", id, sid, start, end);
+void CUserHead::doTransferRequest(const unsigned int id, const unsigned int sid, const unsigned int start, const unsigned int end) {
+	util_log(0,"[UserHead] doTransferRequest: tid: %u, sid: %8x, s: %8x, e: %8x\n", id, sid, start, end);
 	if (m_hWndPopup && start==0) {
 		wcscpy(m_popupTextP,TranslateT("Starting Transfer"));
 		PUChangeTextW(m_hWndPopup,m_popupText);
@@ -431,7 +431,7 @@ void CUserHead::processBuddyInfoReply() {
 
 		// now we start download User Head :)
 		UHInfoItem item={0}; item = mUHInfoItems.front(); //mProfileManager->nextDownload();
-		util_log(0,"[CUserHead] item.id=%d, item.sessionId=%d, count=%d",item.id,item.sessionId,mUHInfoItems.size());
+		util_log(0,"[CUserHead] item.id=%u, item.sessionId=%u, count=%d",item.id,item.sessionId,mUHInfoItems.size());
 		if(!(item.id)) {  // if id == 0, no file need download, we finish
 			mAskForStop = true;
 			delete packet;

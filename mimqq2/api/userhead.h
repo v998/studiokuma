@@ -48,7 +48,7 @@ private:
 	void doDnsRequest();
 
 	bool doInfoRequest();
-	void doTransferRequest(const int id, const unsigned int sid,
+	void doTransferRequest(const unsigned int id, const unsigned int sid,
 		const unsigned  int start, const unsigned  int end);
 
 	void processAllInfoReply();

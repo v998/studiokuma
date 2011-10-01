@@ -31,18 +31,18 @@ public:
 	
 	EvaRequestFacePacket &operator=(const EvaRequestFacePacket &rhs);
 	
-	void setQunID(const int id) { qunID = id;}
+	void setQunID(const unsigned int id) { qunID = id;}
 	void setSessionID(const unsigned int id) { sessionID= id;}
 	void setFileAgentToken(const unsigned char *token, const int len);
 	
-	const int getQunID() const { return qunID; }
+	const unsigned int getQunID() const { return qunID; }
 	const unsigned int getSessionID() const { return sessionID; }
 	const int getTokenLength() const { return tokenLength; }
 	const unsigned char *getFileAgentToken() const { return fileAgentToken; }
 protected:
 	virtual int putBody(unsigned char *buf);
 private:
-	int qunID;
+	unsigned int qunID;
 	unsigned int sessionID;
 	unsigned char *fileAgentToken;
 	int tokenLength;

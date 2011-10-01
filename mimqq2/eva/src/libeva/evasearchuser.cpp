@@ -57,7 +57,7 @@ int OnlineUser::readData( unsigned char * buf )
 			memcpy(tmp, buf+start, offset-start);
 			tmp[offset]=0x00;
 			if(i==0)
-				qqNum = atoi(tmp);
+				qqNum = strtoul(tmp,NULL,10);
 			if(i==1)
 				nick = tmp;
 			if(i==2)
@@ -103,10 +103,10 @@ void SearchUserPacket::setPage( const int p )
 	page = tmp;
 }
 
-void SearchUserPacket::setQQ( const int qqNum )
+void SearchUserPacket::setQQ( const unsigned int qqNum )
 {
 	char tmp[255];
-	sprintf(tmp,"%d", qqNum);
+	sprintf(tmp,"%u", qqNum);
 	qqStr = tmp;	
 }
 

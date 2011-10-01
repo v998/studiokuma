@@ -60,7 +60,7 @@
 #undef __urlmon_h__
 #undef INET_E_ERROR_LAST
 #include <ShlObj.h>
-#pragma warning(default: 4005)
+//#pragma warning(default: 4005)
 #pragma message("Processing: Standard Headers")
 #pragma message("Processing: STL Headers")
 #if _MSC_VER < 1400
@@ -78,7 +78,7 @@ using namespace std;
 #include "newpluginapi.h"
 #include "m_assocmgr.h"
 #include "m_chat.h"
-#pragma warning(disable: 4819)
+#pragma warning(disable: 4819) // 4819: codepage
 #include "m_clist.h"
 #pragma warning(default: 4819)
 #include "m_clistint.h"
@@ -123,8 +123,8 @@ using namespace std;
 #include "codeverify.h"
 #include "utils.h"
 
-#pragma warning(disable:4535)
-#pragma warning(disable:4309 4800)
+// #pragma warning(disable:4535)
+// #pragma warning(disable:4309 4800)
 
 #pragma message("Precompiled Headers Processing Completed")
 #pragma message("========================================")

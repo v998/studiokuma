@@ -191,7 +191,7 @@ void QQFriend::initalizeBuddy(const unsigned int qqid, const unsigned short qqFa
 		fprintf(stderr, "Memomry not enough, exit.\n");
 		exit(0);
 	}
-	sprintf(temp,"%d",qqid);
+	sprintf(temp,"%u",qqid);
 	nick.assign(temp);
 	free(temp);
 	extFlag = BUDDY_INVALID_FIELD;

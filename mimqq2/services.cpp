@@ -100,7 +100,7 @@ static BOOL CALLBACK AddQunMemberProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 					if (!qunid) { // Chat.dll contact
 						DBVARIANT dbv;
 						if (!DBGetContactSetting(aqmt->hContact,m_szModuleName,"ChatRoomID",&dbv)) {
-							qunid=atoi(strchr(dbv.pszVal,'.')+1);
+							qunid=strtoul(strchr(dbv.pszVal,'.')+1,NULL,10);
 							DBFreeVariant(&dbv);
 						}
 					}
@@ -112,10 +112,10 @@ static BOOL CALLBACK AddQunMemberProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 						DBVARIANT dbv;
 
 						if (!DBGetContactSettingTString(aqmt->hContact,aqmt->network->m_szModuleName,"Nick",&dbv)) {
-							swprintf(szQun,L"%s (%d)", dbv.ptszVal, DBGetContactSettingDword(aqmt->hContact,aqmt->network->m_szModuleName,"ExternalID",0));
+							swprintf(szQun,L"%s (%u)", dbv.ptszVal, DBGetContactSettingDword(aqmt->hContact,aqmt->network->m_szModuleName,"ExternalID",0));
 							DBFreeVariant(&dbv);
 						} else
-							swprintf(szQun,L"%d (%d)",qunid,qunid);
+							swprintf(szQun,L"%u (%u)",qunid,qunid);
 
 						SetDlgItemText(hwndDlg,IDC_QUNID,szQun);
 
@@ -126,7 +126,7 @@ static BOOL CALLBACK AddQunMemberProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 							if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1 &&
 								DBGetContactSettingByte(hContact,m_szModuleName,"IsQun",0)==0 && DBGetContactSettingByte(hContact,m_szModuleName,"ChatRoom",0)==0) {
 									if (!DBGetContactSettingTString(hContact,m_szModuleName,"Nick",&dbv)) {
-										_stprintf(szQun,_T("%s (%d)"),dbv.ptszVal,DBGetContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,0));
+										_stprintf(szQun,_T("%s (%u)"),dbv.ptszVal,DBGetContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,0));
 										DBFreeVariant(&dbv);
 										SendDlgItemMessage(hwndDlg,IDC_MEMBERLIST,CB_ADDSTRING,NULL,(LPARAM)szQun);
 									}
@@ -158,14 +158,14 @@ static BOOL CALLBACK AddQunMemberProcOpts(HWND hwndDlg, UINT msg, WPARAM wParam,
 
 									pszUID=strrchr(szUID,'(')+1;
 									*strchr(pszUID,')')=0;
-									util_log(0,"pszUID=%s (%d)",pszUID,atoi(pszUID));
+									util_log(0,"pszUID=%s (%u)",pszUID,strtoul(pszUID,NULL,10));
 
 									EnableWindow(GetDlgItem(hwndDlg,IDOK),false);
 									GetDlgItemTextA(hwndDlg,IDC_QUNID,szQun,MAX_PATH);
 									out=new QunModifyMemberPacket(aqmt->qunid,true);
-									list.push_back(atoi(pszUID));
+									list.push_back(strtoul(pszUID,NULL,10));
 									out->setMembers(list);
-									util_log(0,"Add member %d to qun %d",list.begin(),out->getQunID());
+									util_log(0,"Add member %u to qun %u",list.begin(),out->getQunID());
 									aqmt->network->append(out);
 
 									EndDialog(hwndDlg,0);
@@ -189,7 +189,7 @@ void KickQunUser(void* args) {
 	KICKUSERSTRUCT* kickUser=(KICKUSERSTRUCT*) args;
 
 	TCHAR szMsg[MAX_PATH];
-	_stprintf(szMsg,TranslateT("Are you sure you want to kick user %d out of this Qun %d?"),kickUser->qqid,kickUser->qunid);
+	_stprintf(szMsg,TranslateT("Are you sure you want to kick user %u out of this Qun %u?"),kickUser->qqid,kickUser->qunid);
 	if (MessageBox(NULL,szMsg,APPNAME,MB_ICONWARNING|MB_YESNO)==IDYES) {
 		std::list<unsigned int> list;
 		QunModifyMemberPacket *out=new QunModifyMemberPacket(kickUser->qunid,false);
@@ -228,13 +228,13 @@ MIMPROC(OnContactDeleted) {
 		gd.ptszID=dbv.pwszVal;
 		gd.iType=GC_EVENT_CONTROL;
 		CallService(MS_GC_EVENT,SESSION_TERMINATE,(LPARAM)&ge);
-		CallService(MS_DB_CONTACT_DELETE,(WPARAM)FindContact(_wtoi(dbv.pwszVal)),0);
+		CallService(MS_DB_CONTACT_DELETE,(WPARAM)FindContact(wcstoul(dbv.pwszVal,NULL,10)),0);
 		DBFreeVariant(&dbv);
 	} else {
 		uid=READC_D2(UNIQUEIDSETTING);
 		is_qun=READC_B2("IsQun");
 		if (uid && !is_qun) { // Remove general contact
-			util_log(0,"%s(): About to remove contact with uid=%d",__FUNCTION__,uid);
+			util_log(0,"%s(): About to remove contact with uid=%u",__FUNCTION__,uid);
 			if (MessageBox(NULL,TranslateT("Do you want to delete the contact from server?\n(If you answer 'No', the contact will appear in your list again when you online next time)"),APPNAME,MB_YESNO | MB_ICONQUESTION)==IDYES) {
 				// Remove buddy from server list
 				DeleteFriendPacket *packet=new DeleteFriendPacket();
@@ -242,7 +242,7 @@ MIMPROC(OnContactDeleted) {
 				append(packet);
 			}
 		} else if (is_qun) { // Remove qun contact
-			util_log(0,"%s(): About to remove qun contact with uid=%d",__FUNCTION__,uid);
+			util_log(0,"%s(): About to remove qun contact with uid=%u",__FUNCTION__,uid);
 			if (MessageBox(NULL,TranslateT("Do you want to exit the Qun?\n(If you answer 'Yes', you will need authorization again)"),APPNAME,MB_YESNO | MB_ICONQUESTION)==IDYES) {
 				// Exit from Qun
 				append(new QunExitPacket(uid));
@@ -949,9 +949,9 @@ extern "C" {
 
 		if (READ_B2(NULL,QQ_AVATARTYPE)==2) { // Get QQ Show
 			// QQ Show
-			sprintf(ai.filename+strlen(ai.filename),"\\QQ\\%d.gif",uid);
+			sprintf(ai.filename+strlen(ai.filename),"\\QQ\\%u.gif",uid);
 
-			sprintf(szURL,"http://qqshow-user.tencent.com/%d/10/00/00.gif",uid);
+			sprintf(szURL,"http://qqshow-user.tencent.com/%u/10/00/00.gif",uid);
 			util_log(0,"%s(): Fetching %s",__FUNCTION__,szURL);
 
 			NETLIBHTTPREQUEST nlhr={sizeof(nlhr),REQUEST_GET,NLHRF_GENERATEHOST,szURL};
@@ -959,18 +959,18 @@ extern "C" {
 			if (NETLIBHTTPREQUEST* nlhrr=(NETLIBHTTPREQUEST*)CallService(MS_NETLIB_HTTPTRANSACTION,(WPARAM)hNetlibUser,(LPARAM)&nlhr)) {
 				HANDLE hFile=CreateFileA(ai.filename,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,0,NULL);
 				if (hFile==INVALID_HANDLE_VALUE) {
-					util_log(1,"%s(): Avatar for %d failed to save",__FUNCTION__,uid);
+					util_log(1,"%s(): Avatar for %u failed to save",__FUNCTION__,uid);
 					ProtoBroadcastAck(m_szModuleName, hContact, ACKTYPE_AVATAR, ACKRESULT_FAILED, (HANDLE)&ai, (LPARAM)0);
 				} else {
 					DWORD dwWritten;
 					WriteFile(hFile,nlhrr->pData,nlhrr->dataLength,&dwWritten,NULL);
 					CloseHandle(hFile);
-					util_log(1,"%s(): Avatar for %d downloaded and saved to %s",__FUNCTION__,uid,ai.filename);
+					util_log(1,"%s(): Avatar for %u downloaded and saved to %s",__FUNCTION__,uid,ai.filename);
 					ProtoBroadcastAck(m_szModuleName, hContact, ACKTYPE_AVATAR, ACKRESULT_SUCCESS, (HANDLE)&ai, (LPARAM)0);
 				}
 				CallService(MS_NETLIB_FREEHTTPREQUESTSTRUCT,(WPARAM)nlhrr,0);
 			} else {
-				util_log(1,"%s(): Avatar for %d failed to download",__FUNCTION__,uid);
+				util_log(1,"%s(): Avatar for %u failed to download",__FUNCTION__,uid);
 				ProtoBroadcastAck(m_szModuleName, hContact, ACKTYPE_AVATAR, ACKRESULT_FAILED, (HANDLE)&ai, (LPARAM)0);
 			}
 		} else { // Get Head Image
@@ -1097,7 +1097,7 @@ extern "C" {
 			PROTO_AVATAR_INFORMATION* AI = (PROTO_AVATAR_INFORMATION*)lParam;
 			unsigned int uid=DBGetContactSettingDword(AI->hContact, m_szModuleName, UNIQUEIDSETTING, 0);
 			
-			util_log(0,"GetAvatarInfo(): %d",uid);
+			util_log(0,"GetAvatarInfo(): %u",uid);
 
 			// CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"QQ\\",(LPARAM)AI->filename);
 			FoldersGetCustomPath(m_avatarFolder,AI->filename,MAX_PATH,"QQ");
@@ -1133,7 +1133,7 @@ extern "C" {
 			}
 
 			if (READ_B2(NULL,QQ_AVATARTYPE)==2) { // QQ Show
-				sprintf(AI->filename+strlen(AI->filename),"\\%d.gif",uid);
+				sprintf(AI->filename+strlen(AI->filename),"\\%u.gif",uid);
 				AI->format=PA_FORMAT_GIF;
 			} else { // Head Image
 				DBVARIANT dbv;
@@ -1302,7 +1302,7 @@ extern "C" {
 		DBVARIANT dbv;
 		int value;
 
-		itoa(network->GetMyQQ(),szID,10);
+		ultoa(network->GetMyQQ(),szID,10);
 		details.push_back(szID); // 0
 		pszTemp=mir_u2a_cp(szNewNick,936);
 		details.push_back(pszTemp);
@@ -1412,7 +1412,7 @@ extern "C" {
 						case QQ_QUN_CMD_MODIFY_CARD:
 							{
 								char szID[16];
-								itoa(currentAskDlgParams->network->GetMyQQ(),szID,10);
+								ultoa(currentAskDlgParams->network->GetMyQQ(),szID,10);
 								SetWindowText(hwndDlg,TranslateT("Change Qun Card Name"));
 								SetDlgItemText(hwndDlg,IDC_CAPTION,TranslateT("Enter new Qun Card Name:"));
 								if (!DBGetContactSetting(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,szID,&dbv)) {
@@ -1485,13 +1485,13 @@ extern "C" {
 											// Change Qun Card Name
 											QunModifyCardPacket* packet;
 											DBVARIANT dbv;
-											int qunID=0;
+											unsigned int qunID=0;
 
 											qunID=DBGetContactSettingDword(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,UNIQUEIDSETTING,0);
 
 											if (qunID==0) {
 												if (!DBGetContactSetting(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,"ChatRoomID",&dbv)) {
-													qunID=atoi(strchr(dbv.pszVal,'.')+1);
+													qunID=strtoul(strchr(dbv.pszVal,'.')+1,NULL,10);
 													DBFreeVariant(&dbv);
 												}
 											}
@@ -1515,7 +1515,7 @@ extern "C" {
 												MessageBox(hwndDlg,TranslateT("You must enter a reason."),NULL,MB_ICONERROR);
 											} else {
 												LPSTR pszTemp=mir_u2a_cp(szSignature,936);
-												int qqid=DBGetContactSettingDword(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,UNIQUEIDSETTING,0);
+												unsigned int qqid=DBGetContactSettingDword(currentAskDlgParams->hContact,currentAskDlgParams->network->m_szModuleName,UNIQUEIDSETTING,0);
 												AddFriendAuthPacket* packet=new AddFriendAuthPacket(qqid,QQ_MY_AUTH_REQUEST);
 												packet->setMessage(pszTemp);
 												mir_free(pszTemp);
@@ -2230,7 +2230,7 @@ extern "C" {
 		// http://qun.qq.com/air/2571213#2571213
 		CHAR szUrl[MAX_PATH];
 		DWORD dwExtID=READC_D2("ExternalID");
-		sprintf(szUrl,"http://qun.qq.com/air/%d#%d",dwExtID,dwExtID);
+		sprintf(szUrl,"http://qun.qq.com/air/%u#%u",dwExtID,dwExtID);
 		CallService(MS_UTILS_OPENURL,0,(LPARAM)szUrl);
 		return 0;
 	}
@@ -2249,7 +2249,7 @@ extern "C" {
 	MIMPROC(QQMail) {
 		// http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=xxx&K=xxx
 		CHAR szUrl[MAX_PATH]="http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=";
-		itoa(m_myqq,szUrl+strlen(szUrl),10);
+		ultoa(m_myqq,szUrl+strlen(szUrl),10);
 		strcat(szUrl,"&K=");
 		util_fillClientKey(szUrl+strlen(szUrl));
 		CallService(MS_UTILS_OPENURL,0,(LPARAM)szUrl);
@@ -2476,26 +2476,39 @@ extern "C" {
 
 HANDLE __cdecl CNetwork::AddToList(int flags, PROTOSEARCHRESULT* psr) {
 	HANDLE hContact;
+
 	char uid[16]={0};
-	LPSTR is_qun=strchr(psr->nick,'(');
+	LPSTR is_qun;
 
 	if (!Packet::isClientKeySet()) return 0;
 
-	if (is_qun) { // Adding a Qun
-		strcpy(uid,is_qun+1);
-		*strchr(uid,')')=0;
-	} else // Adding a QQ user
-		strcpy(uid,psr->nick);
+	/*if (psr->flags & PSR_UNICODE) {
+		is_qun=(LPSTR)wcschr((LPWSTR)psr->nick,'(');
 
-	if (!(hContact=AddContact(atol(uid),flags & PALF_TEMPORARY,true))) return NULL;
+		if (is_qun) { // Adding a Qun
+			sprintf(uid,"%S",(LPWSTR)is_qun+1);
+			*strchr(uid,')')=0;
+		} else // Adding a QQ user
+			sprintf(uid,"%S",(LPWSTR)psr->nick);
+	} else*/ {
+		is_qun=strchr(psr->nick,'(');
+
+		if (is_qun) { // Adding a Qun
+			strcpy(uid,is_qun+1);
+			*strchr(uid,')')=0;
+		} else // Adding a QQ user
+			strcpy(uid,psr->nick);
+	}
+
+	if (!(hContact=AddContact(strtoul(uid,NULL,10),flags & PALF_TEMPORARY,true))) return NULL;
 	if (is_qun) {
 		WRITEC_B("IsQun",1);
-		WRITEC_D("ExternalID",atoi(psr->nick));
+		WRITEC_D("ExternalID",/*(psr->flags & PSR_UNICODE)?wcstoul((LPWSTR)psr->nick,NULL,10):*/strtoul(psr->nick,NULL,10));
 	}
 
 	if (!(flags & PALF_TEMPORARY)) { // Not temporary contact, can send Add Friend/Join Qun request
 		util_log(0,"Send Add Request, IsQun=%s",is_qun);
-		m_addUID=atol(uid);
+		m_addUID=strtoul(uid,NULL,10);
 		if (is_qun)
 			append(new QunJoinPacket(m_addUID));
 		else 
@@ -2508,7 +2521,7 @@ HANDLE __cdecl CNetwork::AddToListByEvent(int flags, int iContact, HANDLE hDbEve
 	DBEVENTINFO dbei={sizeof(dbei)};
 	char* nick;
 	HANDLE hContact;
-	int qqid;
+	unsigned int qqid;
 	char* reason;
 
 	if (!Packet::isClientKeySet()) return 0;
@@ -2555,7 +2568,7 @@ HANDLE __cdecl CNetwork::AddToListByEvent(int flags, int iContact, HANDLE hDbEve
 	*/
 	//hContact = (HANDLE) ( dbei.pBlob + sizeof( DWORD ));
 
-	qqid=*(int*)dbei.pBlob;
+	qqid=*(unsigned int*)dbei.pBlob;
 	hContact=*(HANDLE*)(dbei.pBlob+sizeof(DWORD));
 	nick = (char*)( dbei.pBlob + sizeof( DWORD )*2 );
 	{
@@ -2604,13 +2617,13 @@ int __cdecl CNetwork::Authorize(HANDLE hContact) {
 	if (qunUID) qun=m_qunList.getQun(qunUID);
 
 	if (qun) {
-		util_log(0, "%s(): You allowed user %d to join Qun %d",__FUNCTION__,*uid,qunUID);
+		util_log(0, "%s(): You allowed user %u to join Qun %u",__FUNCTION__,*uid,qunUID);
 		QunAuthPacket* packet=new QunAuthPacket(qunUID,QQ_QUN_AUTH_APPROVE);
 		packet->setReceiver(*uid);
 		packet->setToken((unsigned char*)pszBlob+2,*(unsigned short*)pszBlob);
 		append(packet);
 	} else {
-		util_log(0,"%s(): You allowed buddy %d to add you",__FUNCTION__,*uid);
+		util_log(0,"%s(): You allowed buddy %u to add you",__FUNCTION__,*uid);
 		append(new AddFriendAuthPacket(*uid, QQ_MY_AUTH_APPROVE));
 	}
 
@@ -2806,7 +2819,7 @@ int __cdecl CNetwork::GetInfo(HANDLE hContact, int /*infoType*/) {
 	if (READC_B2("ChatRoom")==1) {
 		//append(new QunGetInfoPacket(_wtoi(DBGetStringW(hContact,m_szModuleName,"ChatRoomID"))));
 		SendMessage(GetForegroundWindow(),WM_CLOSE,0,0);
-		CallService(MS_USERINFO_SHOWDIALOG,(WPARAM)FindContact(_wtoi(DBGetStringW(hContact,m_szModuleName,"ChatRoomID"))),0);
+		CallService(MS_USERINFO_SHOWDIALOG,(WPARAM)FindContact(wcstoul(DBGetStringW(hContact,m_szModuleName,"ChatRoomID"),NULL,10)),0);
 	} else if (READC_B2("IsQun")==0) {
 		// General Contact
 		append(new GetUserInfoPacket(dwUin));
@@ -2824,7 +2837,7 @@ HANDLE __cdecl CNetwork::SearchBasic(const char* id) {
 		packet->setSearchType(QQ_SEARCH_QQ);
 		packet->setQQ(id);
 		packet->setMatchEntireString(false);
-		m_searchUID=atol(id);
+		m_searchUID=strtoul(id,NULL,10);
 		append(packet);
 		return (HANDLE)1;
 	} else
@@ -3067,7 +3080,7 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 				}
 			}
 			if (!strncmp(msg,"/kick ",6)) {
-				int qqid=atoi(strchr(msg,' ')+1);
+				unsigned int qqid=strtoul(strchr(msg,' ')+1,NULL,10);
 				if (qqid>0) {
 					KICKUSERSTRUCT* kickUser=(KICKUSERSTRUCT*)mir_alloc(sizeof(KICKUSERSTRUCT));
 					kickUser->qunid=uid;
@@ -3082,7 +3095,7 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 					return 1;
 				}
 			} else if (!strncmp(msg,"/temp ",6)) {
-				unsigned int qqid=atoi(strchr(msg,' ')+1);
+				unsigned int qqid=strtoul(strchr(msg,' ')+1,NULL,10);
 				HANDLE hContact2=FindContact(qqid+0x80000000);
 				Qun* qun=m_qunList.getQun(uid);
 				const FriendItem* fi=qun->getMemberDetails(qqid);
@@ -3126,7 +3139,7 @@ int __cdecl CNetwork::SendMsg(HANDLE hContact, int flags, const char* msg) {
 						pszTemp2=mir_a2u_cp(fi->getNick().c_str(),936);
 					//util_convertFromGBK(pszTemp2);
 
-					swprintf(msg2,TranslateT("Temp Session: %s(%d) in %s"),pszTemp2,qqid,pszTemp);
+					swprintf(msg2,TranslateT("Temp Session: %s(%u) in %s"),pszTemp2,qqid,pszTemp);
 					DBWriteContactSettingTString(hContact2,m_szModuleName,"Nick",msg2);
 
 					//util_convertToGBK(pszTemp);
@@ -3706,7 +3719,7 @@ INT_PTR CALLBACK ChooseAccountDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 				TranslateDialogDefault(hwndDlg);
 
 				for (list<CNetwork*>::iterator iter=g_networks.begin(); iter!=g_networks.end(); iter++) {
-					swprintf(szTemp,L"%s (%d)",(*iter)->m_tszUserName,(*iter)->GetMyQQ());
+					swprintf(szTemp,L"%s (%u)",(*iter)->m_tszUserName,(*iter)->GetMyQQ());
 					id=SendMessage(hWndList,LB_ADDSTRING,0,(LPARAM)szTemp);
 					SendMessage(hWndList,LB_SETITEMDATA,id,(LPARAM)*iter);
 				}
@@ -3765,7 +3778,7 @@ extern "C" int ParseTencentURI(WPARAM wParam, LPARAM lParam) {
 				network=*iter2;
 
 			HANDLE hContact;
-			int qqid=_wtoi(wcsstr(pszUrl,L"uin=")+4);
+			unsigned int qqid=wcstoul(wcsstr(pszUrl,L"uin=")+4,NULL,10);
 			if (!(hContact=network->FindContact(qqid))) {
 				hContact=network->AddContact(qqid,true,false);
 				network->append(new GetUserInfoPacket(qqid));

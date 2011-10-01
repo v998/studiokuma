@@ -60,7 +60,7 @@ public:
 	const short getRedirectedPort() const { return redirectedPort; }
 	const std::string &getReplyMessage() const { return replyMessage; }
 	
-	const int getQQ() const { return qqNum; }
+	const unsigned int getQQ() const { return qqNum; }
 	const unsigned int getMyIP() const { return IP; }
 	const unsigned short getMyPort() const { return port; }
 	const int getLoginTime() const { return loginTime; };
@@ -72,7 +72,7 @@ public:
 protected:
 	virtual void parseBody();
 private:	
-	int qqNum;
+	unsigned int qqNum;
 	unsigned int IP;
 	unsigned short port;
 	int loginTime;

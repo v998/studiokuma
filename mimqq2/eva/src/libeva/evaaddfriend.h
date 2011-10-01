@@ -30,19 +30,19 @@ class AddFriendPacket : public OutPacket
 {
 public:
 	AddFriendPacket();
-	AddFriendPacket(const int id);
+	AddFriendPacket(const unsigned int id);
 	AddFriendPacket(const AddFriendPacket &rhs);
 	virtual ~AddFriendPacket() {};
 	
 	OutPacket *copy(){return new AddFriendPacket(*this);}
 	AddFriendPacket &operator=( const AddFriendPacket &rhs );
 	
-	void setAddQQ(const int id) { qqNum = id; }
-	const int getAddQQ() const { return qqNum; }
+	void setAddQQ(const unsigned int id) { qqNum = id; }
+	const unsigned int getAddQQ() const { return qqNum; }
 protected:
 	virtual int putBody(unsigned char* buf);
 private:
-	int qqNum;
+	unsigned int qqNum;
 };
 
 class AddFriendReplyPacket : public InPacket
@@ -56,20 +56,20 @@ public:
 	InPacket *copy() { return new AddFriendReplyPacket(*this); }
 	AddFriendReplyPacket &operator=(const AddFriendReplyPacket &rhs);
 	
-	const int getMyQQ() const { return myQQ; }
+	const unsigned int getMyQQ() const { return myQQ; }
 	const uint8_t getReplyCode() const { return replyCode; }	
 protected:
 	virtual void parseBody();
 private:		
 	uint8_t replyCode;
-	int myQQ;
+	unsigned int myQQ;
 };
 
 class AddFriendAuthPacket : public OutPacket
 {
 public:
 	AddFriendAuthPacket();
-	AddFriendAuthPacket(const int id, const uint8_t type);
+	AddFriendAuthPacket(const unsigned int id, const uint8_t type);
 	AddFriendAuthPacket( AddFriendAuthPacket& rhs);
 	
 	virtual ~AddFriendAuthPacket() {};
@@ -81,8 +81,8 @@ public:
 	const std::string getMessage() const { return message; }
 	void setMessage(const std::string &msg) { message = msg; }
 	
-	const int getBuddyQQ() const { return buddyQQNum; }
-	void setBuddyQQ(const int id) { buddyQQNum = id; };
+	const unsigned int getBuddyQQ() const { return buddyQQNum; }
+	void setBuddyQQ(const unsigned int id) { buddyQQNum = id; };
 	
 	const uint8_t getType() const { return type; }
 	void setType(const uint8_t type) { this->type = type; }
@@ -92,7 +92,7 @@ protected:
 private:
 	static const unsigned char DIVIDER = 0x1f;
 	uint8_t type;
-	int buddyQQNum;
+	unsigned int buddyQQNum;
 	std::string message;
 };
 
@@ -120,19 +120,19 @@ class DeleteFriendPacket : public OutPacket
 {
 public:
 	DeleteFriendPacket();
-	DeleteFriendPacket(const int id);
+	DeleteFriendPacket(const unsigned int id);
 	DeleteFriendPacket(const DeleteFriendPacket &rhs);
 	virtual ~DeleteFriendPacket() {};
 	
 	OutPacket *copy(){return new DeleteFriendPacket(*this);}
 	DeleteFriendPacket &operator=(const DeleteFriendPacket &rhs);
 	
-	void setBuddyQQ(int id) { buddyQQNum = id; }
-	const int getBuddyQQ() const { return buddyQQNum; }
+	void setBuddyQQ(unsigned int id) { buddyQQNum = id; }
+	const unsigned int getBuddyQQ() const { return buddyQQNum; }
 protected:		
 	virtual int putBody(unsigned char* buf);
 private:
-	int buddyQQNum;
+	unsigned int buddyQQNum;
 };
 
 class DeleteFriendReplyPacket : public InPacket
@@ -159,19 +159,19 @@ class DeleteMePacket : public OutPacket
 {
 public:
 	DeleteMePacket();
-	DeleteMePacket(const int id);
+	DeleteMePacket(const unsigned int id);
 	DeleteMePacket(const DeleteMePacket &rhs);
 	virtual ~DeleteMePacket() {};
 	
 	OutPacket *copy(){return new DeleteMePacket(*this);}
 	DeleteMePacket &operator=(const DeleteMePacket &rhs);
 	
-	void setBuddyQQ(int id) { buddyQQNum = id; }
-	const int getBuddyQQ() const { return buddyQQNum; }
+	void setBuddyQQ(unsigned int id) { buddyQQNum = id; }
+	const unsigned int getBuddyQQ() const { return buddyQQNum; }
 protected:		
 	virtual int putBody(unsigned char* buf);
 private:
-	int buddyQQNum;
+	unsigned int buddyQQNum;
 };
 
 class DeleteMeReplyPacket : public InPacket
