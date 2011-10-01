@@ -36,23 +36,21 @@ Copyright (C) 2000-5  Richard Hughes, Roland Rabien & Tristan Van de Vreede
 const bool EvaHelper::getFileMD5( const std::string fileName, char *md5)
 {
 	if(!md5) return false;
-	LPWSTR pszFilename=mir_a2u_cp(fileName.c_str(),936);
-	FILE* fp=_wfopen(pszFilename,L"rb");
+	LPWSTR pszFilename=mir_a2u_cp(fileName.c_str(),CP_UTF8);
+	HANDLE hFile=CreateFileW(pszFilename,GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,0,NULL);
 	unsigned int len=0;
-	if (!fp) {
+	if (hFile==INVALID_HANDLE_VALUE) {
 		mir_free(pszFilename);
 		return false;
 	}
 
-	fseek(fp,0,SEEK_END);
-	
-	len = ftell(fp);
-
-	fseek(fp,0,SEEK_SET);
+	len=GetFileSize(hFile,NULL);
 
 	char *buf = new char[len];
-	unsigned int numRead = fread(buf,1,len,fp);
-	fclose(fp);
+	DWORD numRead; // = fread(buf,1,len,fp);
+	ReadFile(hFile,buf,len,&numRead,NULL);
+	CloseHandle(hFile);
+
 	if(numRead!=len){
 		printf("len=%d, numRead=%d\n",len,numRead);
 

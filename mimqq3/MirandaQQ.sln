@@ -1,10 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MirandaQQ", "MirandaQQ.vcproj", "{C2B66ECF-6577-4FB8-A206-B71682EB819B}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MirandaQQ", "MirandaQQ.vcxproj", "{C2B66ECF-6577-4FB8-A206-B71682EB819B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MIMQQHelper", "..\MIMQQHelper\MIMQQHelper.vcproj", "{60C51C34-7175-4557-ACBD-A3D1B4645727}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MIMQQHelper", "..\MIMQQHelper\MIMQQHelper.vcxproj", "{60C51C34-7175-4557-ACBD-A3D1B4645727}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QQHeadImg", "QQHeadImg\QQHeadImg.vcproj", "{56EB9CAB-3E0F-4BE3-95E0-474996511B78}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QQHeadImg", "QQHeadImg\QQHeadImg.vcxproj", "{56EB9CAB-3E0F-4BE3-95E0-474996511B78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,7 +17,6 @@ Global
 		{C2B66ECF-6577-4FB8-A206-B71682EB819B}.Release-Unicode|Win32.ActiveCfg = Release-Unicode|Win32
 		{C2B66ECF-6577-4FB8-A206-B71682EB819B}.Release-Unicode|Win32.Build.0 = Release-Unicode|Win32
 		{60C51C34-7175-4557-ACBD-A3D1B4645727}.Debug-UNICODE|Win32.ActiveCfg = Debug|Win32
-		{60C51C34-7175-4557-ACBD-A3D1B4645727}.Debug-UNICODE|Win32.Build.0 = Debug|Win32
 		{60C51C34-7175-4557-ACBD-A3D1B4645727}.Release-Unicode|Win32.ActiveCfg = Debug|Win32
 		{60C51C34-7175-4557-ACBD-A3D1B4645727}.Release-Unicode|Win32.Build.0 = Debug|Win32
 		{56EB9CAB-3E0F-4BE3-95E0-474996511B78}.Debug-UNICODE|Win32.ActiveCfg = Release|Win32

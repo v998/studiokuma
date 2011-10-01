@@ -269,8 +269,9 @@ typedef struct
 typedef struct tagListParam
 {
 	int rootlevel;
-	int MenuObjectHandle;
-	int wParam,lParam;
+	HANDLE MenuObjectHandle;
+	WPARAM wParam;
+	LPARAM lParam;
 }
 	ListParam,*lpListParam;
 
@@ -375,9 +376,9 @@ typedef struct
 
 typedef struct tagOptParam
 {
-	int Handle;
+	HANDLE Handle;
 	int Setting;
-	int Value;
+	INT_PTR Value;
 }
 	OptParam,*lpOptParam;
 
@@ -391,5 +392,15 @@ typedef struct tagOptParam
 //lparam=*lpOptParam
 //returns TRUE if it processed the command, FALSE otherwise
 #define MO_SETOPTIONSMENUITEM					"MO/SetOptionsMenuItem"
+
+//wparam=char* szProtoName
+//lparam=0
+//returns HGENMENU of the root item or NULL
+#define MO_GETPROTOROOTMENU					"MO/GetProtoRootMenu"
+
+__forceinline HGENMENU MO_GetProtoRootMenu( const char* szProtoName )
+{
+	return ( HGENMENU )CallService( MO_GETPROTOROOTMENU, ( WPARAM )szProtoName, 0 );
+}
 
 #endif

@@ -411,7 +411,7 @@ static const unsigned char Computer_UUID_0F5F[16] = {
 #define QQ_QUN_CMD_MODIFY_CARD              0x0E
 #define QQ_QUN_CMD_REQUEST_ALL_REALNAMES    0x0F
 #define QQ_QUN_CMD_REQUEST_CARD             0x10
-#define QQ_QUN_CMD_SEND_IM_EX               0x1A
+#define QQ_QUN_CMD_SEND_IM_EX_2011          0x2A
 #define QQ_QUN_CMD_ADMIN                    0x1B
 #define QQ_QUN_CMD_TRANSFER                 0x1C
 #define QQ_QUN_CMD_CREATE_TEMP_QUN          0x30

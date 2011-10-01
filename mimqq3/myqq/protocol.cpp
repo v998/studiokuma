@@ -11,6 +11,10 @@
  *
  */
 
+#include <StdAfx.h>
+
+extern "C" {
+	/*
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -22,7 +26,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #endif
-
+	*/
 #include "qqdef.h"
 #include "qqclient.h"
 #include "qqcrypt.h"
@@ -35,9 +39,13 @@ int post_packet( struct qqclient* qq, qqpacket* p, int key_type )
 {
 	bytebuffer* buf = p->buf;
 	unsigned char* encrypted;
-	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 13 : 11;
+	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 24 : 22;
+	static uchar unknown_packet_flags[] = {0x02,0x00,0x00,0x00,0x01,0x01,0x01,0x00,0x00,0x64,0x70};
 	if( qq->log_packet ){
-		DBG("[%d] send packet cmd: %x  seq: %x", qq->number, p->command, p->seqno );
+		if( p->command == QQ_CMD_QUN_CMD )
+			DBG("[%d] send packet cmd: %x subcmd: %x  seq: %x", qq->number, p->command, (int)p->buf->data[0], p->seqno );
+		else
+			DBG("[%d] send packet cmd: %x  seq: %x", qq->number, p->command, p->seqno );
 		hex_dump( buf->data, buf->pos );
 	}
 	switch( key_type )//use this key to enrypt data
@@ -114,6 +122,7 @@ int post_packet( struct qqclient* qq, qqpacket* p, int key_type )
 	put_word( buf, p->command );
 	put_word( buf, p->seqno );
 	put_int( buf, qq->number );
+	put_data( buf, unknown_packet_flags, 11 );
 	p->key_type = key_type;
 	return packetmgr_put( qq, p );
 }
@@ -121,7 +130,7 @@ int post_packet( struct qqclient* qq, qqpacket* p, int key_type )
 static int decrypt_with_key( qqclient* qq, qqpacket* p, bytebuffer* buf, uchar* key )
 {
 	int out_len = PACKET_SIZE;
-	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 9 : 7;
+	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 16 : 14;
 	int ret;
 	uchar* decrypted;
 	NEW( decrypted, PACKET_SIZE, unsigned char );
@@ -148,7 +157,7 @@ static int decrypt_with_key( qqclient* qq, qqpacket* p, bytebuffer* buf, uchar* 
 static int decrypt_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 {
 	//size2+head1+version2+command2+sequence2 = 9
-	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 9 : 7;
+	int head_len = qq->network==TCP || qq->network==PROXY_HTTP ? 16 : 14;
 	if( p->match ){
 		switch( p->match->key_type ){
 		case NO_KEY:
@@ -200,6 +209,10 @@ int process_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 		DBG("[%d] recv packet ver:%x cmd: %x seqno: %x", qq->number, p->version, p->command, p->seqno );
 		hex_dump( p->buf->data, p->buf->len );
 	}
+
+	// memcpy(qq->mimnetwork->m_libevabuffer,p->buf->data,p->buf->len);
+	qq->mimnetwork->m_packet=p;
+
 	switch( p->command ){
 	case QQ_CMD_TOUCH:
 		prot_login_touch_reply( qq, p );
@@ -222,15 +235,28 @@ int process_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 	case QQ_CMD_LOGIN_SEND_INFO:
 		prot_login_send_info_reply( qq, p );
 		break;
+	case QQ_CMD_E9:
+		prot_login_e9_reply( qq, p );
+		break; 
+	case QQ_CMD_EA:
+		prot_login_ea_reply( qq, p );
+		break; 
+	case QQ_CMD_EC:
+		prot_login_ec_reply( qq, p );
+		break; 
+	case QQ_CMD_ED:
+		prot_login_ed_reply( qq, p );
+		break; 
 	case QQ_CMD_KEEP_ALIVE:
 		prot_user_keep_alive_reply( qq, p );
 		break;
-#ifndef MIRANDAQQ_EXPORTS
 	case QQ_CMD_RECV_IM_09:
 	case QQ_CMD_RECV_IM:
-		prot_im_recv_msg( qq, p );
+		// MirandaQQ handles message by itself due to userhead/emoticon stuff
+		// however ack is better handled by myqq3 in case of proto change
+		 prot_im_recv_msg( qq, p );
+		//prot_im_ack_recv( qq, p );
 		break;
-#endif
 	case QQ_CMD_CHANGE_STATUS:
 		prot_user_change_status_reply( qq, p );
 		break;
@@ -301,10 +327,23 @@ int process_packet( qqclient* qq, qqpacket* p, bytebuffer* buf )
 	case QQ_CMD_DEL_BUDDY:
 		prot_buddy_del_buddy_reply( qq, p );
 		break;
+	case QQ_CMD_SEARCH_UID:
+		prot_buddy_search_uid_reply( qq, p );
+		break;
+	case 0xa6: // Weather
+		prot_weather_reply( qq, p );
+		break;
 	default:
 		DBG("unknown cmd: %x", p->command );
 		hex_dump( p->buf->data, p->buf->len );
 		break;
 	}
+
+	/*
+	qq->mimnetwork->m_packet=p;
+	qq->mimnetwork->processPacket(qq->mimnetwork->m_libevabuffer,p->buf->len);
+	*/
+
 	return 0;
 }
+} // extern "C"

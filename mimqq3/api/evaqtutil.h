@@ -40,12 +40,12 @@ public:
 	std::list<CustomizedPic> getPicList() { return picList; }
 	void setQunID(const int id) { qunID = id; }
 	const int getQunID() const { return qunID; }
-	void setQunIM(ReceivedQunIM* rqim) { qunIM=rqim; }
-	ReceivedQunIM* getQunIM() { return qunIM; }
+	//void setQunIM(ReceivedQunIM* rqim) { qunIM=rqim; }
+	//ReceivedQunIM* getQunIM() { return qunIM; }
 private:
 	std::list<CustomizedPic> picList;
 	int qunID;
-	ReceivedQunIM* qunIM;
+	//ReceivedQunIM* qunIM;
 };
 
 class EvaSendCustomizedPicEvent : public QCustomEvent

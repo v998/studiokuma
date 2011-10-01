@@ -46,7 +46,7 @@ private:
 
 					SetWindowLong(hwndDlg,GWL_USERDATA,lParam);
 					if (!READC_S2(UNIQUEIDSETTING,&dbv)) {
-						itoa(dbv.dVal,szTemp,10);
+						ultoa(dbv.dVal,szTemp,10);
 						SetDlgItemTextA(hwndDlg,IDC_LOGIN,szTemp);
 						DBFreeVariant(&dbv);
 					}
@@ -95,7 +95,7 @@ private:
 					HANDLE hContact=NULL;
 
 					GetDlgItemTextA(hwndDlg,IDC_LOGIN,szTemp,MAX_PATH);
-					WRITEC_D(UNIQUEIDSETTING,atoi(szTemp));
+					WRITEC_D(UNIQUEIDSETTING,strtoul(szTemp,NULL,10));
 
 					GetDlgItemTextA(hwndDlg,IDC_PASSWORD,szTemp,MAX_PATH);
 					if (*szTemp && !strchr(szTemp,0x1)) {

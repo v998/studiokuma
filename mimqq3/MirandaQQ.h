@@ -65,6 +65,7 @@
 #define QQ_CNXTMENU_CHANGECARDNAME		"/ChangeCardName"
 #define QQ_CNXTMENU_POSTIMAGE			"/PostImage"
 #define QQ_CNXTMENU_SELECTIMAGE			"/SelectImage"
+#define QQ_CNXTMENU_QUNSPACE			"/QunSpace"
 #define QQ_CNXTMENU_FORCEREFRESH		"/ForceRefresh"
 #define QQ_CNXTMENU_CHANGEEIP			"/ChangeEIP"
 
@@ -129,8 +130,8 @@ extern char g_dllname[MAX_PATH];
 
 typedef struct {
 	CNetwork* network;
-	int qunid;
-	int qqid;
+	unsigned int qunid;
+	unsigned int qqid;
 } KICKUSERSTRUCT;
 
 typedef struct {

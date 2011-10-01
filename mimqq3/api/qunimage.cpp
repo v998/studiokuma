@@ -51,6 +51,7 @@ isBusy(false), currentIndex(0), /*bufLength(0),*/ expectedSequence(0), isSend(fa
 	
 	if (!m_imageServer) m_imageServer=new CQunImageServer();
 
+	/*
 	if (ServiceExists(MS_POPUP_ADDPOPUPW) && !DBGetContactSettingByte(NULL,network->m_szModuleName,QQ_NOPROGRESSPOPUPS,0)) {
 		POPUPDATAW ppd={0};
 		swprintf(ppd.lpwzContactName,TranslateT("QQ Qun Image Operation (%s)"),network->m_tszUserName);
@@ -66,6 +67,7 @@ isBusy(false), currentIndex(0), /*bufLength(0),*/ expectedSequence(0), isSend(fa
 		}
 		util_log(0,"Returned from MS_POPUP_ADDPOPUPW: hWndPopup=0x%08p",m_hWndPopup);
 	}
+	*/
 
 }
 
@@ -136,9 +138,29 @@ void CQunImage::doProcessEvent() {
 void CQunImage::initConnection(const int ip, const short port) {
 	int ip2=htonl(ip);
 	util_log(0,"EvaPicManager::initConnection ip:%s, port:%d", inet_ntoa(*(in_addr*)&ip2), port);
-	if (ip==-1)
-		setServer(false,GROUP_FILE_AGENT,port);
-	else
+
+	if (ServiceExists(MS_POPUP_ADDPOPUPW) && !DBGetContactSettingByte(NULL,m_network->m_szModuleName,QQ_NOPROGRESSPOPUPS,0) && m_hWndPopup == NULL ) {
+		POPUPDATAW ppd={0};
+		swprintf(ppd.lpwzContactName,TranslateT("QQ Qun Image Operation (%s)"),m_network->m_tszUserName);
+		wcscpy(ppd.lpwzText,L"...");
+		ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+		ppd.iSeconds=-1;
+		ppd.PluginWindowProc=PopupWndProc;
+		ppd.PluginData=&m_hWndPopup;
+		m_popupTextP=m_popupText;
+		if (PUAddPopUpW(&ppd)!=-1) {
+			time_t curtime=time(NULL);
+			while (time(NULL)-curtime<2 && !m_hWndPopup) Sleep(100);
+		}
+		util_log(0,"Returned from MS_POPUP_ADDPOPUPW: hWndPopup=0x%08p",m_hWndPopup);
+	}
+
+	if (ip==-1) {
+		if (hostent* h=gethostbyname("groupfile.tencent.com")) {
+			setServer(false,htonl(*(u_long*)h->h_addr_list[0]),port);
+		} else
+			setServer(false,GROUP_FILE_AGENT,port);
+	} else
 		setServer(false,ip,port);
 
 	sendIP = htonl(inet_addr(getHost().c_str()));
@@ -148,7 +170,7 @@ void CQunImage::initConnection(const int ip, const short port) {
 		doProcessEvent();
 	} else {
 		if (m_hWndPopup) {
-			swprintf(m_popupTextP,TranslateT("Connecting to %S"),inet_ntoa(*(in_addr*)&ip2));
+			swprintf(m_popupTextP,TranslateT("Connecting to %S"),ip==-1?"groupfile.tencent.com":inet_ntoa(*(in_addr*)&ip2));
 			PUChangeTextW(m_hWndPopup,m_popupText);
 		}
 
@@ -564,12 +586,12 @@ void CQunImage::doRequestAgent() {
 }
 
 void CQunImage::doSendFileInfo() {
-	currentFile.filename = strrchr(currentOutPic.fileName.c_str(),'\\')+1; // in GBK
+	currentFile.filename = strrchr(currentOutPic.fileName.c_str(),'\\')+1; // in UTF-8
 	currentFile.length = currentOutPic.imageLength;
 	currentFile.offset = 0;
 	currentFile.buf = new unsigned char[currentFile.length];
 
-	LPWSTR pszFileName=mir_a2u_cp(currentOutPic.fileName.c_str(),936);
+	LPWSTR pszFileName=mir_a2u_cp(currentOutPic.fileName.c_str(),CP_UTF8);
 	HANDLE hFile=CreateFile(pszFileName,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,NULL,NULL);
 	if (hFile==INVALID_HANDLE_VALUE) {
 		util_log(0,"[CQunImage] doSendFileInfo -- cannot open file \'%s\' !", currentOutPic.fileName.c_str());
@@ -688,7 +710,7 @@ void CQunImage::doRequestData(CustomizedPic pic, const bool isReply) {
 }
 
 void CQunImage::doSaveFile() {
-	LPWSTR fileName=mir_a2u_cp(currentPic.tmpFileName.c_str(),936);
+	LPWSTR fileName=mir_a2u_cp(currentPic.tmpFileName.c_str(),CP_UTF8);
 	HANDLE hFile;
 	// WCHAR szFileOut[MAX_PATH];
 
@@ -703,7 +725,7 @@ void CQunImage::doSaveFile() {
 	// FoldersGetCustomPathW(m_network->m_folders[1],szFileOut,MAX_PATH,"QQ\\QunImages\\");
 
 	//util_convertToNative(&fileName,currentPic.tmpFileName.c_str());
-	hFile=CreateFile(fileName,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,NULL,0);
+	hFile=CreateFileW(fileName,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,NULL,0);
 	if (hFile==INVALID_HANDLE_VALUE) {
 		util_log(0,"[CQunImage] doSaveFile -- cannot open file \'%S\'!\n", fileName);
 		mir_free(fileName);

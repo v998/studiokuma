@@ -22,7 +22,7 @@ public:
 	string getHost() const { return m_host; }
 	int getPort() const { return m_port; }
 	const string &getName() const { return m_name; }
-	void send(LPCSTR szData, const int len);
+	int send(LPCSTR szData, const int len);
 
 	//static void unregisterAllConnections();
 

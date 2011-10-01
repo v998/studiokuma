@@ -22,14 +22,15 @@ extern "C" {
 #include "md5.h"
 #include "protocol.h"
 
-//41 需要自己验证才被添加为好友
-//40 无需验证被添加为好友
-//43 主动添加好友成功
+//41 需要自己验证才被添加为好友 
+//40 无需验证被添加为好友 
+//43 主动添加好友成功 
 void prot_misc_broadcast( struct qqclient* qq, qqpacket* p )
 {
 	bytebuffer *buf = p->buf;
 	char  e[4][256];
 	char* str = (char*)buf->data;
+	char event[384];
 	int i, len, s, j;
 	len = buf->len;
 	memset( e, 0, sizeof(e) );
@@ -40,9 +41,13 @@ void prot_misc_broadcast( struct qqclient* qq, qqpacket* p )
 			s = i+1;
 		}
 	}
+
+	sprintf( event, "misc_broascast^$%s^$%s^$%s^$%s",e[0],e[1],e[2],e[3] );
+	qqclient_put_event( qq, event );
+
 	if( strcmp( e[0], "06" ) == 0 ){
 		//broadcast
-		char event[384];
+		// char event[384];
 		sprintf( event, "broadcast^$%s^$%s", e[1], e[3] );
 		qqclient_put_event( qq, event );
 	}else if( strcmp( e[0], "41" ) == 0 ){//still work in qq2009 #被加为好友，要验证
@@ -67,9 +72,12 @@ void prot_misc_broadcast( struct qqclient* qq, qqpacket* p )
 		}else{
 			strcpy( e[0], "Nothing" );
 		}
+		sprintf( event, "broadcast_request_add^$%s^$%s", e[1], e[3] );
+		qqclient_put_event( qq, event );
+
 		sprintf( e[1], "[%u]请求你添加为好友。附言：%s", from, e[0] );
 		buddy_msg_callback( qq, 101, time(NULL), e[1] );
-	}else if( strcmp( e[0], "04") == 0 ){
+	}else if( strcmp( e[0], "04" ) == 0 ){
 		uint from, to;
 		from = atoi( e[1] );
 		to = atoi( e[2] );
@@ -109,4 +117,75 @@ void prot_misc_broadcast( struct qqclient* qq, qqpacket* p )
 		DBG("e[0]: %s", e[0] );
 	}
 }
+
+void prot_weather_reply( struct qqclient* qq, qqpacket* p )
+{
+	bytebuffer *buf = p->buf;
+	char event[1024] = "weather^$";
+	char* pszEvent = event + 9;
+
+	uchar subcommand = get_byte( buf );
+	uchar reply_code = get_byte( buf );
+
+	uchar len = get_byte( buf );
+	if(len == 0) {
+		DBG( "Invalid weather response. subcmd=%d code=%d",subcommand,reply_code );
+		return;	
+	}
+
+	pszEvent += get_data( buf, (uchar*)pszEvent, len ); // Province
+
+	strcpy( pszEvent, "^$" );
+	pszEvent += 2;
+
+	pszEvent += get_data( buf, (uchar*)pszEvent, get_byte( buf ) ); // City
+
+	strcpy( pszEvent, "^$" );
+	pszEvent += 2;
+
+	buf->pos += 2; // unknown 2 bytes
+
+	buf->pos += get_byte( buf ); // ignore the second city information
+
+	uchar count = get_byte( buf );
+	pszEvent += sprintf( pszEvent, "%u^$", count ); // Number of forecast items
+
+	while( count-- > 0) {
+		pszEvent += sprintf( pszEvent, "%u^$", get_int( buf ) ); // Time
+
+		pszEvent += get_data( buf, (uchar*)pszEvent, get_byte( buf ) ); // Short Description
+		strcpy( pszEvent, "^$" );
+		pszEvent += 2;
+
+		pszEvent += get_data( buf, (uchar*)pszEvent, get_byte( buf ) ); // Wind
+		strcpy( pszEvent, "^$" );
+		pszEvent += 2;
+
+		pszEvent += sprintf( pszEvent, "%d^$", get_word( buf ) ); // Low Temperature
+		pszEvent += sprintf( pszEvent, "%d^$", get_word( buf ) ); // High Temperature
+		
+		buf->pos++;
+
+		pszEvent += get_data( buf, (uchar*)pszEvent, get_byte( buf ) ); // Hint
+		strcpy( pszEvent, "^$" );
+		pszEvent += 2;
+	}
+	// unknown 2 bytes, ignore
+
+	qqclient_put_event( qq, event );
+}
+
+// TODO: No longer working
+void prot_weather( struct qqclient* qq, uint ip ) {
+	qqpacket* p = packetmgr_new_send( qq, 0xa6 );
+	if( !p ) return;
+	bytebuffer *buf = p->buf;
+
+	put_byte( buf, 0x01 ); // subcommand?
+	put_int( buf, ip );
+	put_word( buf, 0x0000 );
+
+	post_packet( qq, p, SESSION_KEY );
+}
+
 } // extern "C"

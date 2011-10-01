@@ -1,7 +1,7 @@
 #ifndef _LIST_H
 #define _LIST_H
 
-#include <pthread.h>
+#include "commplatform.h"
 
 typedef struct plist{
 	pthread_mutex_t	mutex;

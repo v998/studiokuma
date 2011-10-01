@@ -126,24 +126,28 @@ HANDLE CNetwork::FindContact(const unsigned int QQID) {
 // * if contact with specified QQID already exists, the existing one will be used instead.
 HANDLE CNetwork::AddContact(const unsigned int QQID, bool not_on_list, bool hidden) {
 	HANDLE hContact=FindContact(QQID);
+	BOOL fNew=FALSE;
 
 	if (!hContact) {
 		// Contact not exist, create it
 		hContact=(HANDLE)CallService(MS_DB_CONTACT_ADD, (WPARAM)NULL, (LPARAM)NULL);
+
 		if (hContact) {
 			// Creation successful, associate protocol
 			CallService(MS_PROTO_ADDTOCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName);
 			util_log(0,"%s(): Added contact %d",__FUNCTION__,QQID);
-		} else
+		} /*else
 			// Creation failed
 			CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact,(LPARAM)NULL);
+			*/
+		fNew=TRUE;
 	}
 
 	if (hContact) {
 		// Contact now exist, set flags
 		DBWriteContactSettingDword(hContact,m_szModuleName,UNIQUEIDSETTING,QQID);
-		DBWriteContactSettingByte(hContact,"CList","NotOnList",not_on_list?1:0);
-		DBWriteContactSettingByte(hContact,"CList","Hidden",hidden?1:0);
+		if (fNew && not_on_list) DBWriteContactSettingByte(hContact,"CList","NotOnList",not_on_list?1:0);
+		if (fNew && hidden) DBWriteContactSettingByte(hContact,"CList","Hidden",hidden?1:0);
 		// DBWriteContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_ONLINE);
 	}
 
@@ -403,15 +407,17 @@ void CNetwork::GoOffline() {
 
 	SetCurrentMedia(1,NULL);
 
-	qqclient_logout(&m_client);
+	if (isConnected()) qqclient_logout(&m_client);
 	qqclient_cleanup(&m_client);
 
 	if (!Miranda_Terminated()) SetContactsOffline();
 
+	/*
 	while (m_pendingImList.size()) {
 		delete m_pendingImList.begin()->second;
 		m_pendingImList.erase(m_pendingImList.begin());
 	}
+	*/
 	/*
 	if (m_currentMedia.ptszArtist) mir_free(m_currentMedia.ptszArtist);
 	if (m_currentMedia.ptszTitle) mir_free(m_currentMedia.ptszTitle);
@@ -494,17 +500,18 @@ void util_fillClientKey(LPSTR pszDest) {
 #endif
 }
 
-void CNetwork::AddContactWithSend(int qqid) {
+void CNetwork::AddContactWithSend(DWORD qqid) {
 	PROTOSEARCHRESULT psr={sizeof(psr)};
 	CHAR szNick[16];
 	psr.nick=szNick;
-	itoa(qqid,szNick,10);
+	ultoa(qqid,szNick,10);
 	AddToList(0,&psr);
 }
 
 void CNetwork::ForkThread(ThreadFunc func, void* arg) {
 	unsigned int threadid;
 	mir_forkthreadowner(( pThreadFuncOwner ) *( void** )&func,this,arg,&threadid);
+	util_log(0,"Created thread %x ep=%p",threadid,func);
 }
 
 #if 0 // TODO

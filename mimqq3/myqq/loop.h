@@ -1,7 +1,7 @@
 ﻿#ifndef _LOOP_H
 #define _LOOP_H
 
-#include <pthread.h>
+#include "commplatform.h"
 
 typedef int (*loop_search_func)(const void *, const void *);
 typedef void (*loop_delete_func)(const void *);

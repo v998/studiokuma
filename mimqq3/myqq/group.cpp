@@ -1,4 +1,4 @@
-﻿/*
+﻿/* (myqq3:svn13)
  *  group.c
  *
  *  Group Operations
@@ -62,7 +62,6 @@ void group_remove( struct qqclient* qq, uint number )
 
 void group_update_list( struct qqclient* qq )
 {
-
 //	prot_group_download_list( qq, 0 );  不知道这个09还能不能用。
 	prot_group_download_labels( qq, 0 );
 }

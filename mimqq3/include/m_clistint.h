@@ -29,9 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define HCONTACT_ISGROUP    0x80000000
 #define HCONTACT_ISINFO     0xFFFF0000
-#define IsHContactGroup(h)  (((unsigned)(h)^HCONTACT_ISGROUP)<(HCONTACT_ISGROUP^HCONTACT_ISINFO))
-#define IsHContactInfo(h)   (((unsigned)(h)&HCONTACT_ISINFO)==HCONTACT_ISINFO)
-#define IsHContactContact(h) (((unsigned)(h)&HCONTACT_ISGROUP)==0)
+#define IsHContactGroup(h)  (((UINT_PTR)(h)^HCONTACT_ISGROUP)<(HCONTACT_ISGROUP^HCONTACT_ISINFO))
+#define IsHContactInfo(h)   (((UINT_PTR)(h)&HCONTACT_ISINFO)==HCONTACT_ISINFO)
+#define IsHContactContact(h) (((UINT_PTR)(h)&HCONTACT_ISGROUP)==0)
 #define MAXEXTRACOLUMNS     16
 
 #define MAX_TIP_SIZE 2048
@@ -151,13 +151,15 @@ typedef struct _menuProto
 #define CLCDEFAULT_OFFLINEMODES  MODEF_OFFLINE
 #define CLCDEFAULT_GREYOUTFLAGS  0
 #define CLCDEFAULT_FULLGREYOUTFLAGS  (MODEF_OFFLINE|PF2_INVISIBLE|GREYF_UNFOCUS)
+#define CLCDEFAULT_SELBLEND      1
 #define CLCDEFAULT_SELBKCOLOUR   GetSysColor(COLOR_HIGHLIGHT)
+#define CLCDEFAULT_TEXTCOLOUR    GetSysColor(COLOR_WINDOWTEXT)
 #define CLCDEFAULT_SELTEXTCOLOUR GetSysColor(COLOR_HIGHLIGHTTEXT)
 #define CLCDEFAULT_HOTTEXTCOLOUR (IsWinVer98Plus()?RGB(0,0,255):GetSysColor(COLOR_HOTLIGHT))
 #define CLCDEFAULT_QUICKSEARCHCOLOUR RGB(255,255,0)
 #define CLCDEFAULT_LEFTMARGIN    0
 #define CLCDEFAULT_GAMMACORRECT  1
-#define CLCDEFAULT_SHOWIDLE      0
+#define CLCDEFAULT_SHOWIDLE      1
 #define CLCDEFAULT_USEWINDOWSCOLOURS 0
 
 #define TRAYICON_ID_BASE    100
@@ -376,14 +378,15 @@ typedef struct
 	 * version 5 additions (0.7.0.x) - tray icons
 	 *************************************************************************************/
 
-	struct trayIconInfo_t* trayIcon;
-	int    trayIconCount;
-	int    shellVersion;
-	int    cycleTimerId, cycleStep;
-	TCHAR* szTip;
-	BOOL   bTrayMenuOnScreen;
+	struct   trayIconInfo_t* trayIcon;
+	int      trayIconCount;
+	int      shellVersion;
+	UINT_PTR cycleTimerId;
+    int      cycleStep;
+	TCHAR*   szTip;
+	BOOL     bTrayMenuOnScreen;
 
-	HICON ( *pfnGetIconFromStatusMode )( HANDLE hContact, const char *szProto, int status );
+	HICON  ( *pfnGetIconFromStatusMode )( HANDLE hContact, const char *szProto, int status );
 
 	void   ( *pfnInitTray )( void );
 	int    ( *pfnTrayIconAdd )( HWND hwnd, const char *szProto, const char *szIconProto, int status );
@@ -399,7 +402,7 @@ typedef struct
 	void   ( *pfnLockTray )( void );
 	void   ( *pfnUnlockTray )( void );
 
-	VOID ( CALLBACK *pfnTrayCycleTimerProc )( HWND hwnd, UINT message, UINT_PTR idEvent, DWORD dwTime );
+	VOID   ( CALLBACK *pfnTrayCycleTimerProc )( HWND hwnd, UINT message, UINT_PTR idEvent, DWORD dwTime );
 
 	/*************************************************************************************
 	 * version 6 additions (0.8.0.x) - accounts

@@ -6,7 +6,7 @@ If you are interested in MyQQ and have improved it, I suggest you that you send
 your source code to me then everyone will know your work and thank you!
 
 You can get the latest version of this software (including its source code) at
-http://home.xxsyzx.com
+xiaoxia.org
 
 注意：本软件以及源代码仅供学习研究使用。所用协议皆属个人业余的黑匣分析结果。
 
@@ -25,9 +25,27 @@ Linux编译：
 MacOSX编译：
 在终端里执行
 	make -C src -fmac.mak clean all
-由于最初没有周全考虑，目前版本暂时不兼容64位的机器，望见谅！
 
 Update History:
+
+Version 3.21(2010-06)
+1. 修正了一些东西。
+
+Version 3.20(2009-10-27)
+1. QQInternational Beta1 Protocol.
+2. Random packet seqno.
+
+Version 3.19(2009-9-10)
+1. 修复获取群列表（3.18的登录时跳过了获取群列表）。
+2. 增加获取好友详细资料。
+3. 整理myqq.c中的登录状态判断。
+
+Version 3.18 (2009-7-6 2009-7-30)
+1. 修正config.c潜在的内存溢出。
+2. 支持长消息（长度大于700）文本发送。
+3. libqq异步登录。
+4. myqq显示别名为主。
+5. 修改了登录协议和别名获取协议。
 
 Version 3.17 (2009-6-30)
 1. 修正发送消息后头像的变化。

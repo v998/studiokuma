@@ -2,7 +2,7 @@
 #define _MEMORY_H
 
 #include <time.h>
-#include <pthread.h>
+#include "commplatform.h"
 
 #define MEMO_LEN 64
 #define MAX_ALLOCATION 4096

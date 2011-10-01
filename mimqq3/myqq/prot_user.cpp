@@ -86,7 +86,7 @@ void prot_user_change_status_reply( struct qqclient* qq, qqpacket* p )
 	if( get_byte( buf ) == '0' ){
 		qq->self->status = qq->mode;
 		DBG("change status to %d", qq->mode );
-		char event[16];
+		char event[20];
 		sprintf( event, "status^$%d", qq->mode );
 		qqclient_put_event( qq, event );
 	}else{
@@ -108,8 +108,7 @@ void prot_user_get_key_reply( struct qqclient* qq, qqpacket* p )
 {
 	bytebuffer *buf = p->buf;
 	uchar cmd, result;
-	uchar key[16];
-	// token tok;
+	uchar key[20];
 	cmd = get_byte( buf );
 	result = get_byte( buf );
 	if( result != 0 ){
@@ -118,12 +117,12 @@ void prot_user_get_key_reply( struct qqclient* qq, qqpacket* p )
 	switch( cmd ){
 	case 4:	//file key
 		get_data( buf, key, 16 );
-		buf->pos += 12;
+		buf->pos += 12;	
 		qq->data.file_token.len = (ushort)get_byte(buf);
 		get_data(buf,qq->data.file_token.data, qq->data.file_token.len); 
 //		get_token( buf, &tok );
 		memcpy( qq->data.file_key, key, 16 );
-		// qq->data.file_token = tok;
+//		qq->data.file_token = tok;
 		DBG("got file key.");
 		break;
 	default:
@@ -293,8 +292,7 @@ void prot_user_get_level_reply( struct qqclient* qq, qqpacket* p )
 	
 }
 
-
-void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, char* code )
+void prot_user_request_token( struct qqclient* qq, uint number, uchar operation, ushort type, const char* code )
 {
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_REQUEST_TOKEN );
 	if( !p ) return;
@@ -305,7 +303,7 @@ void prot_user_request_token( struct qqclient* qq, uint number, uchar operation,
 		put_word( buf, type );	//
 		put_int( buf, number );
 		put_word( buf, 4 );
-		put_data( buf, (uchar*)code,4 );
+		put_data( buf, (uchar*)code, 4 );
 		put_word( buf, strlen(qq->data.qqsession));
 		put_data( buf, (uchar*)qq->data.qqsession, strlen(qq->data.qqsession));
 	}else{
@@ -329,12 +327,13 @@ void prot_user_request_token_reply( struct qqclient* qq, qqpacket* p )
 		DBG("need verifying...");
 		if( buf->pos == buf->len )	{
 			puts("Verifying code is incorrect!");
+			qqclient_put_event( qq, "request_token_reply^$0" );
 			return;	//verify code wrong.
 		}
 		int len, ret;
 		len = get_word( buf );
 		if( len >= 128 ){
-			DBG("url is too long.");
+			DBG("url is too long.");	
 			return;
 		}
 		NEW( data, datalen, char );
@@ -354,6 +353,9 @@ void prot_user_request_token_reply( struct qqclient* qq, qqpacket* p )
 			}
 			strncpy( qq->data.qqsession, session, 127 );
 			qqclient_set_process( qq, P_VERIFYING );
+
+			char szTemp[260];
+			sprintf( szTemp, "request_token_reply^$%s",path );
 			puts("You need to input the verifying code.");
 		}else{
 			DBG("http_request failed. ret=%d", ret );
@@ -384,5 +386,19 @@ void prot_user_request_token_reply( struct qqclient* qq, qqpacket* p )
 	cmd = 0;
 }
 
+void prot_user_typing( struct qqclient* qq, uint number )
+{
+	qqpacket* p = packetmgr_new_send( qq, 0x00d5 /* QQ_CMD_SEND_TYPING */ );
+	if( !p ) return;
+	bytebuffer *buf = p->buf;
+
+	put_int( buf, qq->number );
+	put_int( buf, number );
+	put_byte( buf, 0 );
+
+	p->need_ack = 0;
+
+	post_packet( qq, p, SESSION_KEY );
+}
 
 } // extern "C"

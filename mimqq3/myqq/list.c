@@ -13,7 +13,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include "commplatform.h"
 #include "qqdef.h"
 #include "debug.h"
 #include "memory.h"

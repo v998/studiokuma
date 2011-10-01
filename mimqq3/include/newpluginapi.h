@@ -145,11 +145,16 @@ typedef struct {
 	typedef INT_PTR (*MIRANDASERVICEOBJ)(void*,WPARAM,LPARAM);
 	typedef INT_PTR (*MIRANDASERVICEOBJPARAM)(void*,WPARAM,LPARAM,LPARAM);
 
-	#define CALLSERVICE_NOTFOUND      ((int)0x80000000)
+#ifdef _WIN64
+    #define CALLSERVICE_NOTFOUND      ((INT_PTR)0x8000000000000000)
+#else
+    #define CALLSERVICE_NOTFOUND      ((int)0x80000000)
+#endif
+
 #endif
 
 //see modules.h for what all this stuff is
-typedef struct {
+typedef struct tagPLUGINLINK {
 	HANDLE (*CreateHookableEvent)(const char *);
 	int (*DestroyHookableEvent)(HANDLE);
 	int (*NotifyEventHooks)(HANDLE,WPARAM,LPARAM);
@@ -167,8 +172,8 @@ typedef struct {
 	HANDLE (*CreateServiceFunctionParam)(const char *,MIRANDASERVICEPARAM,LPARAM); // v0.7+ (2007/04/24)
 	int (*NotifyEventHooksDirect)(HANDLE,WPARAM,LPARAM); // v0.7+
 	#if MIRANDA_VER >= 0x800
-		int (*CallProtoService)(const char *, const char *, WPARAM, LPARAM );
-		int (*CallContactService)( HANDLE, const char *, WPARAM, LPARAM );
+		INT_PTR (*CallProtoService)(const char *, const char *, WPARAM, LPARAM );
+		INT_PTR (*CallContactService)( HANDLE, const char *, WPARAM, LPARAM );
 		HANDLE (*HookEventParam)(const char *,MIRANDAHOOKPARAM,LPARAM);
 		HANDLE (*HookEventObj)(const char *,MIRANDAHOOKOBJ, void* );
 		HANDLE (*HookEventObjParam)(const char *, MIRANDAHOOKOBJPARAM, void*, LPARAM);

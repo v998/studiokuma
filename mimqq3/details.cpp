@@ -69,7 +69,7 @@ void CNetwork::UpdateQunContacts(HWND hwndDlg, unsigned int qunid) {
 	if (qqqun* qq=qun_get(&m_client,qunid,0)) {
 		plist l=qq->member_list;
 		HANDLE hContact=FindContact(qunid);
-		int creator=READC_D2("Creator");
+		DWORD creator=READC_D2("Creator");
 		DBVARIANT dbv;
 		TCHAR* pszNick;
 		TCHAR szTemp[MAX_PATH];
@@ -81,7 +81,7 @@ void CNetwork::UpdateQunContacts(HWND hwndDlg, unsigned int qunid) {
 
 		for (int c=0; c<l.count; c++) {
 			qm=(qunmember*)l.items[c];
-			itoa(qm->number,szID,10);
+			ultoa(qm->number,szID,10);
 			/*
 			if (READC_S2(szID,&dbv)) {
 				// Nick not found
@@ -148,27 +148,27 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 							HANDLE hContact = (HANDLE)((LPPSHNOTIFY)lParam)->lParam;
 							HANDLE hContact2=hContact;
 							DBVARIANT dbv;
-							int nTemp;
+							DWORD nTemp;
 
 							unsigned int qunid=0;
 
 							qunid=READC_D2(UNIQUEIDSETTING);
 
 							nTemp=READC_D2("Creator");
-							itoa(nTemp,szTemp,10);
+							ultoa(nTemp,szTemp,10);
 
 							if (!READC_S2(szTemp,&dbv)) {
 								// Qun creator info available
 								pszTemp=mir_a2u_cp(dbv.pszVal,936);
-								swprintf(wszTemp,L"%s (%d)", pszTemp, nTemp);
+								swprintf(wszTemp,L"%s (%u)", pszTemp, nTemp);
 								mir_free(pszTemp);
 								DBFreeVariant(&dbv);
 							} else
-								_itow(nTemp,wszTemp,10);
+								_ultow(nTemp,wszTemp,10);
 
 							SetDlgItemText(hwndDlg,IDC_QUNINFO_CREATOR,wszTemp);
 
-							_itow(READC_D2("ExternalID"),wszTemp,10);
+							_ultow(READC_D2("ExternalID"),wszTemp,10);
 							SetDlgItemText(hwndDlg,IDC_QUNINFO_QID,wszTemp);
 
 							if (!READC_TS2("Nick",&dbv)) {
@@ -253,7 +253,7 @@ static BOOL CALLBACK QunDetailsDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LP
 			if (LocalDetails_t* ldt=networkmap[(HANDLE)GetWindowLong(hwndDlg,GWL_USERDATA)]) {
 				char szTemp[MAX_PATH]={0};
 				if (SendDlgItemMessageA(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETTEXT,SendDlgItemMessage(hwndDlg,IDC_QUNINFO_MEMBERLIST,LB_GETCURSEL,0,0),(LPARAM)&szTemp)!=LB_ERR && *szTemp!=0) {
-					int qqid=atoi(strrchr(szTemp,'(')+1);
+					DWORD qqid=atoi(strrchr(szTemp,'(')+1);
 					LPSTR m_szModuleName=ldt->network->m_szModuleName;
 					HANDLE hContact=ldt->hContact;
 					int qunid=READC_D2(UNIQUEIDSETTING);

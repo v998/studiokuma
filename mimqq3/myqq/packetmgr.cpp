@@ -26,7 +26,9 @@ extern "C" {
 
 static void delete_func(const void *p)
 {
-	DEL( ((qqpacket*)p)->buf );	DEL( p );
+	if( p ){
+		DEL( ((qqpacket*)p)->buf );	DEL( p );
+	}
 }
 
 qqpacket* packetmgr_new_packet( qqclient* qq )
@@ -70,8 +72,7 @@ qqpacket* packetmgr_new_send( qqclient* qq, int cmd )
 
 void packetmgr_inc_seqno( qqclient* qq )
 {
-	qq->seqno ++;
-	//qq->seqno = rand();
+	qq->seqno = rand();
 }
 
 void packetmgr_new_seqno( qqclient* qq )
@@ -81,6 +82,8 @@ void packetmgr_new_seqno( qqclient* qq )
 
 void packetmgr_del_packet( qqpacketmgr* mgr, qqpacket* p )
 {
+	if( NULL == p )
+		return;
 	if( p->match ){
 		loop_remove( &mgr->sent_loop, p->match );
 		delete_func( p->match );
@@ -105,15 +108,20 @@ static void check_ready_packets( qqclient* qq )
 				delete_func( p );
 				return;
 			}
-
-			qq->mimnetwork->send((LPCSTR)p->buf->data,p->buf->len);
-			if( p->need_ack ){
-				p->time_alive = time(NULL);
-				loop_push_to_tail( &mgr->sent_loop, p );
-			}else{
+			int ret = qq->mimnetwork->send((LPCSTR)p->buf->data,p->buf->len);
+//			DBG (("[%d] out packet cmd: %x", p->command ));
+			if( ret != p->buf->len ){
+				DBG ("send packet failed. ret(%d)!=p->len(%d)", ret, p->buf->len );
 				delete_func( p );
+				qqclient_set_process( qq, P_ERROR );
+			}else{
+				if( p->need_ack ){
+					p->time_alive = time(NULL);
+					loop_push_to_tail( &mgr->sent_loop, p );
+				}else{
+					delete_func( p );
+				}
 			}
-
 		}else{
 			DBG("no packet. ");
 		}
@@ -135,8 +143,13 @@ int packetmgr_put_urge( qqclient* qq, qqpacket* p, int urge )
 	p->time_alive = time(NULL);
 	p->send_times ++;
 	//ok, send now
-	loop_push_to_tail( &mgr->ready_loop, p );
-	check_ready_packets( qq );
+	/*if( qq->packetmgr.recv_threadid == GetCurrentThreadId() ){
+		//recv thread
+		loop_push_to_tail( &mgr->temp_loop, p );
+	}else*/{
+		loop_push_to_tail( &mgr->ready_loop, p );
+		check_ready_packets( qq );
+	}
 	return 0;
 }
 
@@ -173,7 +186,7 @@ int handle_packet( qqclient* qq, qqpacket* p, uchar* data, int len )
 	buf->len = buf->size = len;
 	memcpy( buf->data, data, buf->len );
 	//get packet info
-	if( qq->network == TCP )
+	if( qq->network == TCP || qq->network == PROXY_HTTP )
 		get_word( buf );	//packet len
 	p->head = get_byte( buf );
 	p->tail = buf->data[buf->len-1];
@@ -185,6 +198,8 @@ int handle_packet( qqclient* qq, qqpacket* p, uchar* data, int len )
 	p->version = get_word( buf );
 	p->command = get_word( buf );
 	p->seqno = get_word( buf );
+	get_int( buf ); //number
+	buf->pos += 3; //00 00 00
 	uint chk_repeat = (p->seqno<<16)|p->command;
 	//check repeat
 	if( loop_search( &mgr->recv_loop, (void*)chk_repeat, repeat_searcher ) == NULL ){
@@ -196,13 +211,13 @@ int handle_packet( qqclient* qq, qqpacket* p, uchar* data, int len )
 			DBG("%u: Error impossible. p->buf: %x  p->command: %x", qq->number, p->buf, p->command );
 		}
 		//deal with the packet
-		memcpy(qq->mimnetwork->m_libevabuffer,data,len);
 		process_packet( qq, p, buf );
-		qq->mimnetwork->processPacket(qq->mimnetwork->m_libevabuffer,len);
+#ifndef MIRANDAQQ_EXPORTS
 		qqpacket* t;
 		while( (t = (qqpacket*)loop_pop_from_tail( &mgr->temp_loop )) ){
 			loop_push_to_head( &mgr->ready_loop, t );
 		}
+#endif
 		if( p->match ){
 			loop_remove( &mgr->sent_loop, p->match );
 			delete_func( p->match );
@@ -247,23 +262,42 @@ void* packetmgr_recv( void* data )
 		}
 		pos += ret;
 		//TCP only
-		if( qq->network == TCP ){
+		if( qq->network == TCP || qq->network == PROXY_HTTP ){
 			if ( pos > 2 ){
-				int len = ntohs(*(ushort*)recv_buf);
-				if( pos >= len )	//a packet is O.K.
-				{
-					if( handle_packet( qq, p, recv_buf, len ) < 0 ) {
+				if( !qq->proxy_established && qq->network == PROXY_HTTP ){
+					if( strstr( (char*)recv_buf, "200" )!=NULL ){
+						DBG("proxy server reply ok!");
+						qq->proxy_established = 1;
+						prot_login_touch( qq );
+						//手动添加到发送队列。
+						qqpacket* t;
+						while( (t = (qqpacket*) loop_pop_from_tail( &mgr->temp_loop )) )
+							loop_push_to_head( &mgr->ready_loop, t );
+						//检查待发送包
+						check_ready_packets( qq );
+					}else{
+						DBG("proxy server reply failure!");
+						recv_buf[ret]=0;
+						DBG( "%s", recv_buf );
+						qqclient_set_process( qq, P_ERROR );
+					}
+				}else{
+					int len = ntohs(*(ushort*)recv_buf);
+					if( pos >= len )	//a packet is O.K.
+					{
+						if( handle_packet( qq, p, recv_buf, len ) < 0 ) {
+							pos = 0;
+							continue;
+						}
+						pos -= len;
+						//copy data to buf
+						if( pos > 0 ){
+							memmove( recv_buf, recv_buf+len, pos );
+						}
+					}else if( pos == PACKET_SIZE ){
+						DBG("error: pos: 0x%x ", pos );
 						pos = 0;
-						continue;
 					}
-					pos -= len;
-					//copy data to buf
-					if( pos > 0 ){
-						memmove( recv_buf, recv_buf+len, pos );
-					}
-				}else if( pos == PACKET_SIZE ){
-					DBG("error: pos: 0x%x ", pos );
-					pos = 0;
 				}
 			}
 		}else{	//UDP
@@ -280,12 +314,14 @@ void* packetmgr_recv( void* data )
 
 int packetmgr_start( qqclient* qq )
 {
-	int ret;
+	// int ret;
 	qqpacketmgr *mgr = &qq->packetmgr;
 	memset( mgr, 0, sizeof(qqpacketmgr) );
 	loop_create( &mgr->recv_loop, MAX_LOOP_PACKET, NULL );
 	loop_create( &mgr->ready_loop, 128, delete_func );
+#ifndef MIRANDAQQ_EXPORTS
 	loop_create( &mgr->temp_loop, 64, delete_func );
+#endif
 	loop_create( &mgr->sent_loop, 32, delete_func );
 #ifndef MIRANDAQQ_EXPORTS
 	ret = pthread_create( &mgr->thread_recv, NULL, packetmgr_recv, (void*)qq );
@@ -297,18 +333,21 @@ int packetmgr_start( qqclient* qq )
 void packetmgr_end( qqclient* qq )
 {
 	qqpacketmgr *mgr = &qq->packetmgr;
-	// pthread_join( mgr->thread_recv, NULL );
-	DBG("removing packets.");
+#ifndef MIRANDAQQ_EXPORTS
+	pthread_join( mgr->thread_recv, NULL );
+#endif
 	loop_cleanup( &mgr->recv_loop );
 	loop_cleanup( &mgr->sent_loop );
 	loop_cleanup( &mgr->ready_loop );
+#ifndef MIRANDAQQ_EXPORTS
 	loop_cleanup( &mgr->temp_loop );
+#endif
 	DBG("packetmgr_end");
 }
 
 static int timeout_searcher( const void* p, const void* v )
 {
-	if( (time_t)v-((qqpacket*)p)->time_alive > 0 ){
+	if( (time_t)v-((qqpacket*)p)->time_alive > 0 || ((qqpacket*)p)->command==0x1d ){ // MIMQQ: Let 0x1d fast retry
 		return 1;
 	}else{
 		return 0;
@@ -329,16 +368,16 @@ int packetmgr_check_packet( struct qqclient* qq, int timeout )
 			loop_remove( &mgr->sent_loop, p );
 		}
 		if( p ){
-			if(p->send_times >= 10/*2*/ ){
+			if(p->send_times >= 10 ){
 				ushort cmd=p->command;
-				MSG("Failed to send the packet. command: %x\n", p->command );
+				DBG ("[%u] Failed to send the packet. command: %x\n", qq->number, p->command );
 				delete_func( p );
 				mgr->failed_packets ++;
-				if( /*mgr->failed_packets > 2*/cmd==QQ_CMD_KEEP_ALIVE || qq->process != P_LOGIN ){
+				if( /*mgr->failed_packets > 5*/cmd==QQ_CMD_KEEP_ALIVE || qq->process != P_LOGIN ){
 					qqclient_set_process( qq, P_ERROR );
 				}
 			}else{
-				DBG("resend packet cmd: %x, retry=%d", p->command,p->send_times );
+				DBG ("[%u] resend packet cmd: %x, retry=%d", qq->number, p->command, p->send_times );
 				packetmgr_put_urge( qq, p, 1 );
 			}
 		}

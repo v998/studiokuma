@@ -592,11 +592,11 @@
 				>
 			</File>
 			<File
-				RelativePath="R:\errorBmp.gif"
+				RelativePath=".\errorBmp.gif"
 				>
 			</File>
 			<File
-				RelativePath=".\errorBmp.gif"
+				RelativePath="R:\errorBmp.gif"
 				>
 			</File>
 			<File
@@ -611,128 +611,10 @@
 				Name="src"
 				>
 				<File
-					RelativePath=".\api\EvaAccountSwitcher.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evacachedfile.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evafiledownloader.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evafilemanager.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="api\evahtmlparser.cpp"
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="api\evaipaddress.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath="api\evaipseeker.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -833,31 +715,7 @@
 				Name="headers"
 				>
 				<File
-					RelativePath=".\api\EvaAccountSwitcher.h"
-					>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evacachedfile.h"
-					>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evafiledownloader.h"
-					>
-				</File>
-				<File
-					RelativePath=".\api\filetrans\evafilemanager.h"
-					>
-				</File>
-				<File
 					RelativePath="api\evahtmlparser.h"
-					>
-				</File>
-				<File
-					RelativePath="api\evaipaddress.h"
-					>
-				</File>
-				<File
-					RelativePath="api\evaipseeker.h"
 					>
 				</File>
 				<File
@@ -1171,6 +1029,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\myqq\commplatform.h"
+					>
+				</File>
+				<File
 					RelativePath=".\myqq\config.h"
 					>
 				</File>
@@ -1261,6 +1123,10 @@
 							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\myqq\commplatform.cpp"
+					>
 				</File>
 				<File
 					RelativePath=".\myqq\config.c"
@@ -1501,14 +1367,14 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath=".\myqq\protocol.c"
+					RelativePath=".\myqq\protocol.cpp"
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="0"
+							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
 				</File>
@@ -1517,6 +1383,7 @@
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
+						ExcludedFromBuild="true"
 						>
 						<Tool
 							Name="VCCLCompilerTool"
@@ -1632,55 +1499,11 @@
 				Filter="h"
 				>
 				<File
-					RelativePath=".\libeva2\evaaddfriend.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaaddfriendex.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evacrypt.h"
-					>
-				</File>
-				<File
 					RelativePath=".\libeva2\evadefines.h"
 					>
 				</File>
 				<File
-					RelativePath=".\libeva2\evaextrainfo.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evafriend.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evagroup.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaimreceive.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaimsend.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaonlinestatus.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evapacket.h"
-					>
-				</File>
-				<File
 					RelativePath=".\libeva2\libcustompic\evapicpacket.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaqun.h"
 					>
 				</File>
 				<File
@@ -1696,10 +1519,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\libeva2\evasearchuser.h"
-					>
-				</File>
-				<File
 					RelativePath=".\libeva2\libcustompic\evatransfer.h"
 					>
 				</File>
@@ -1712,15 +1531,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\libeva2\evauserinfo.h"
-					>
-				</File>
-				<File
 					RelativePath=".\libeva2\evautil.h"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaweather.h"
 					>
 				</File>
 			</Filter>
@@ -1729,203 +1540,7 @@
 				Filter="cpp"
 				>
 				<File
-					RelativePath=".\libeva2\evaaddfriend.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaaddfriendex.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evacrypt.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						ExcludedFromBuild="true"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaextrainfo.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\libeva2\evafriend.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evagroup.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaimreceive.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaimsend.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaonlinestatus.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evapacket.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release-Unicode|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)\$(InputName)1.obj"
-							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath=".\libeva2\libcustompic\evapicpacket.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaqun.cpp"
 					>
 					<FileConfiguration
 						Name="Debug-UNICODE|Win32"
@@ -1973,10 +1588,6 @@
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath=".\libeva2\evasearchuser.cpp"
-					>
-				</File>
-				<File
 					RelativePath=".\libeva2\libcustompic\evatransfer.cpp"
 					>
 					<FileConfiguration
@@ -2011,10 +1622,6 @@
 							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evauserinfo.cpp"
-					>
 				</File>
 				<File
 					RelativePath=".\libeva2\evautil.cpp"
@@ -2054,18 +1661,6 @@
 							Name="VCCLCompilerTool"
 							ObjectFile="$(IntDir)\$(InputName)1.obj"
 							XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\libeva2\evaweather.cpp"
-					>
-					<FileConfiguration
-						Name="Debug-UNICODE|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="2"
 						/>
 					</FileConfiguration>
 				</File>

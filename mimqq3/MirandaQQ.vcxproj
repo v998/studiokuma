@@ -1,0 +1,665 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug-UNICODE|Win32">
+      <Configuration>Debug-UNICODE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Unicode|Win32">
+      <Configuration>Release-Unicode</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C2B66ECF-6577-4FB8-A206-B71682EB819B}</ProjectGuid>
+    <RootNamespace>MirandaQQ</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">false</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>include;eva/src/libeva;libevaX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MIRANDAQQ_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ws2_32.lib;urlmon.lib;msimg32.lib;comctl32.lib;rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>MirandaQQ.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(ProjectName).pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(ProjectName).map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <ImportLibrary>$(OutDir)MirandaQQ.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>if exist \test copy mirandaqq.dll \test\plugins
+if exist \test copy mirandaqq.map \test\plugins
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <AdditionalIncludeDirectories>include;eva/src/libeva;libevaX;../;../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MIRANDAQQ_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ws2_32.lib;urlmon.lib;rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>MirandaQQ.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(ProjectName).pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(ProjectName).map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImportLibrary>$(OutDir)MirandaQQ.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>include;../;../../../;.;myqq;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MIRANDAQQ_EXPORTS;__WIN32__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4138;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>rpcrt4.lib;wsock32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>MirandaQQ.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(ProjectName).pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(ProjectName).map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <ImportLibrary>$(OutDir)MirandaQQ.lib</ImportLibrary>
+    </Link>
+    <PostBuildEvent>
+      <Command>if exist \test copy mirandaqq.dll \test\plugins
+if exist \test copy mirandaqq.pdb \test\plugins
+if exist \test copy mirandaqq.map \test\plugins
+echo copy mirandaqq.dll c:\miranda-im\plugins
+echo copy mirandaqq.map c:\miranda-im\plugins
+echo copy mirandaqq.pdb c:\miranda-im\plugins
+echo copy mirandaqq.dll \\sheepvm\c$\mim\plugins
+echo copy mirandaqq.map \\sheepvm\c$\mim\plugins
+echo copy mirandaqq.pdb \\sheepvm\c$\mim\plugins
+echo.
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>include;eva/src/libeva;libevaX;../;../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_USRDLL;MIRANDAQQ_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4138;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>MirandaQQ.dll</OutputFile>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(ProjectName).pdb</ProgramDatabaseFile>
+      <GenerateMapFile>false</GenerateMapFile>
+      <MapFileName>$(ProjectName).map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <ImportLibrary>$(OutDir)MirandaQQ.lib</ImportLibrary>
+      <AllowIsolation>true</AllowIsolation>
+    </Link>
+    <PostBuildEvent>
+      <Command>if exist \test copy mirandaqq.dll \test\plugins
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="accmgrui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="callbacks.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="codeverify.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="details.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="options.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="qunlist.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="services.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="StackWalk.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="StdAfx.cpp">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">STDAFX_CPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Create</PrecompiledHeader>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Create</PrecompiledHeader>
+      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\EvaAccountSwitcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\filetrans\evacachedfile.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\filetrans\evafiledownloader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\filetrans\evafilemanager.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\evahtmlparser.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\evaipaddress.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\evaipseeker.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\evaqtutil.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\network.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\qunimage.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\qunimageserver.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\socket.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="api\userhead.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\buddy.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\config.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\crc32.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\debug.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\group.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\list.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\loop.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\md5.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="myqq\memory.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\myqq.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\packetmgr.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_buddy.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_group.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_im.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_login.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_misc.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_qun.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\prot_user.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\protocol.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\pthread.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\qqclient.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\qqcrypt.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\qqpacket.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\qqsocket.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\qun.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\utf8.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\util.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="myqq\webqq.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaaddfriend.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaaddfriendex.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evacrypt.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaextrainfo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evafriend.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evagroup.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaimreceive.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaimsend.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaonlinestatus.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evapacket.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="libeva2\libcustompic\evapicpacket.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaqun.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\libcustompic\evarequestagent.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\libcustompic\evarequestface.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\libcustompic\evarequeststart.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evasearchuser.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\libcustompic\evatransfer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\libuh\evauhpacket.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\libuh\evauhprotocols.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libeva2\evauserinfo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libeva2\evautil.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release-Unicode|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
+      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
+    </ClCompile>
+    <ClCompile Include="libeva2\evaweather.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-UNICODE|Win32'">Use</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CristalQQ-16x16x8-offline.ico" />
+    <None Include="CristalQQ-16x16x8.ico" />
+    <None Include="errorBmp.gif" />
+    <None Include="R:\errorBmp.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="api\EvaAccountSwitcher.h" />
+    <ClInclude Include="api\filetrans\evacachedfile.h" />
+    <ClInclude Include="api\filetrans\evafiledownloader.h" />
+    <ClInclude Include="api\filetrans\evafilemanager.h" />
+    <ClInclude Include="api\evahtmlparser.h" />
+    <ClInclude Include="api\evaipaddress.h" />
+    <ClInclude Include="api\evaipseeker.h" />
+    <ClInclude Include="api\evaqtutil.h" />
+    <ClInclude Include="api\network.h" />
+    <ClInclude Include="api\qqapi.h" />
+    <ClInclude Include="api\qunimage.h" />
+    <ClInclude Include="api\qunimageserver.h" />
+    <ClInclude Include="api\socket.h" />
+    <ClInclude Include="api\userhead.h" />
+    <ClInclude Include="include\AggressiveOptimize.h" />
+    <ClInclude Include="include\m_addcontact.h" />
+    <ClInclude Include="include\m_assocmgr.h" />
+    <ClInclude Include="include\m_avatars.h" />
+    <ClInclude Include="include\m_awaymsg.h" />
+    <ClInclude Include="include\m_button.h" />
+    <ClInclude Include="include\m_chat.h" />
+    <ClInclude Include="include\m_clc.h" />
+    <ClInclude Include="include\m_clist.h" />
+    <ClInclude Include="include\m_clistint.h" />
+    <ClInclude Include="include\m_clui.h" />
+    <ClInclude Include="include\m_contactdir.h" />
+    <ClInclude Include="include\m_contacts.h" />
+    <ClInclude Include="include\m_database.h" />
+    <ClInclude Include="include\m_email.h" />
+    <ClInclude Include="include\m_file.h" />
+    <ClInclude Include="include\m_findadd.h" />
+    <ClInclude Include="include\m_folders.h" />
+    <ClInclude Include="include\m_fontservice.h" />
+    <ClInclude Include="include\m_fuse.h" />
+    <ClInclude Include="include\m_genmenu.h" />
+    <ClInclude Include="include\m_history.h" />
+    <ClInclude Include="include\m_hotkeys.h" />
+    <ClInclude Include="include\m_icolib.h" />
+    <ClInclude Include="include\m_icq.h" />
+    <ClInclude Include="include\m_idle.h" />
+    <ClInclude Include="include\m_ignore.h" />
+    <ClInclude Include="include\m_imgsrvc.h" />
+    <ClInclude Include="include\m_keybindings.h" />
+    <ClInclude Include="include\m_langpack.h" />
+    <ClInclude Include="include\m_message.h" />
+    <ClInclude Include="include\m_netlib.h" />
+    <ClInclude Include="include\m_notify.h" />
+    <ClInclude Include="include\m_options.h" />
+    <ClInclude Include="include\m_plugins.h" />
+    <ClInclude Include="include\m_png.h" />
+    <ClInclude Include="include\m_popup.h" />
+    <ClInclude Include="include\m_popup2.h" />
+    <ClInclude Include="include\m_proto_listeningto.h" />
+    <ClInclude Include="include\m_protocols.h" />
+    <ClInclude Include="include\m_protoint.h" />
+    <ClInclude Include="include\m_protomod.h" />
+    <ClInclude Include="include\m_protosvc.h" />
+    <ClInclude Include="include\m_sessions.h" />
+    <ClInclude Include="include\m_skin.h" />
+    <ClInclude Include="include\m_smileyadd.h" />
+    <ClInclude Include="include\m_stdhdr.h" />
+    <ClInclude Include="include\m_system.h" />
+    <ClInclude Include="include\m_system_cpp.h" />
+    <ClInclude Include="include\m_updater.h" />
+    <ClInclude Include="include\m_url.h" />
+    <ClInclude Include="include\m_userinfo.h" />
+    <ClInclude Include="include\m_utils.h" />
+    <ClInclude Include="include\newpluginapi.h" />
+    <ClInclude Include="include\statusmodes.h" />
+    <ClInclude Include="callbacks.h" />
+    <ClInclude Include="codeverify.h" />
+    <ClInclude Include="ipc.h" />
+    <ClInclude Include="MirandaQQ.h" />
+    <ClInclude Include="pthread.h" />
+    <ClInclude Include="qunlist.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="utils.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="myqq\buddy.h" />
+    <ClInclude Include="myqq\config.h" />
+    <ClInclude Include="myqq\crc32.h" />
+    <ClInclude Include="myqq\debug.h" />
+    <ClInclude Include="myqq\group.h" />
+    <ClInclude Include="myqq\list.h" />
+    <ClInclude Include="myqq\loop.h" />
+    <ClInclude Include="myqq\md5.h" />
+    <ClInclude Include="myqq\memory.h" />
+    <ClInclude Include="myqq\packetmgr.h" />
+    <ClInclude Include="myqq\protocol.h" />
+    <ClInclude Include="myqq\qqclient.h" />
+    <ClInclude Include="myqq\qqcrypt.h" />
+    <ClInclude Include="myqq\qqdef.h" />
+    <ClInclude Include="myqq\qqpacket.h" />
+    <ClInclude Include="myqq\qqsocket.h" />
+    <ClInclude Include="myqq\qun.h" />
+    <ClInclude Include="myqq\utf8.h" />
+    <ClInclude Include="myqq\util.h" />
+    <ClInclude Include="myqq\webqq.h" />
+    <ClInclude Include="libeva2\evaaddfriend.h" />
+    <ClInclude Include="libeva2\evaaddfriendex.h" />
+    <ClInclude Include="libeva2\evacrypt.h" />
+    <ClInclude Include="libeva2\evadefines.h" />
+    <ClInclude Include="libeva2\evaextrainfo.h" />
+    <ClInclude Include="libeva2\evafriend.h" />
+    <ClInclude Include="libeva2\evagroup.h" />
+    <ClInclude Include="libeva2\evaimreceive.h" />
+    <ClInclude Include="libeva2\evaimsend.h" />
+    <ClInclude Include="libeva2\evaonlinestatus.h" />
+    <ClInclude Include="libeva2\evapacket.h" />
+    <ClInclude Include="libeva2\libcustompic\evapicpacket.h" />
+    <ClInclude Include="libeva2\evaqun.h" />
+    <ClInclude Include="libeva2\libcustompic\evarequestagent.h" />
+    <ClInclude Include="libeva2\libcustompic\evarequestface.h" />
+    <ClInclude Include="libeva2\libcustompic\evarequeststart.h" />
+    <ClInclude Include="libeva2\evasearchuser.h" />
+    <ClInclude Include="libeva2\libcustompic\evatransfer.h" />
+    <ClInclude Include="libeva2\libuh\evauhpacket.h" />
+    <ClInclude Include="libeva2\libuh\evauhprotocols.h" />
+    <ClInclude Include="libeva2\evauserinfo.h" />
+    <ClInclude Include="libeva2\evautil.h" />
+    <ClInclude Include="libeva2\evaweather.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

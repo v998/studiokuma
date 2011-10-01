@@ -66,6 +66,7 @@
 #pragma message("Processing Precompiled Headers")
 
 #pragma message("Processing: Windows Headers")
+#define _WIN32_WINNT 0x0400 // For TryEnterCriticalSection()
 #include <windows.h>
 // These two are workaround for inclusion errors in ShlObj.h
 #undef __urlmon_h__

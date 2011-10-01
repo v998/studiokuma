@@ -14,11 +14,11 @@ typedef struct qqbuddy{
 	uchar		gid;
 	uchar		qqshow;
 	uchar		flag;
-	uchar		session_key[16];
+	uchar		session_key[20];
 	uchar		status;
 	ushort		version;
 	uchar		verify_flag;	//00 允许 01 验证 02 拒绝 03 问题
-
+	
 	uint		sign_time;
 	uchar		account_flag;
 #ifndef NO_BUDDY_DETAIL_INFO
@@ -39,7 +39,7 @@ typedef struct qqbuddy{
 	char		city[16];
 	char		country[16];
 #else
-	char		signiture[1];
+	char		signature[1];
 	char		account[1];
 	char		alias[1];
 	char		post_code[1];

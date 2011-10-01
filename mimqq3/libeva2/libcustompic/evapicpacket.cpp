@@ -20,7 +20,7 @@
 #include "StdAfx.h"
 
 #include "evapicpacket.h"
-#include "../evacrypt.h"
+//#include "../evacrypt.h"
 #include <string.h>
 #include <stdio.h>
 #ifdef _WIN32
