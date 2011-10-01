@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
+#include "commplatform.h"
 #ifdef __WIN32__
 #include <winsock.h>
 #include <wininet.h>

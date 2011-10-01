@@ -75,7 +75,7 @@ EXPORT qqclient* libqq_create( uint number, char* pass )
 		return NULL;
 	}
 	qqclient_create( qq, number, pass );
-	qq->auto_accept = 1;	//temporarily do this
+	qq->auto_accept = 0;	//temporarily do this
 	return qq;
 }
 
@@ -88,6 +88,12 @@ EXPORT int libqq_login( qqclient* qq )
 		DBG("thread creation failed. ret=%d", ret );
 	}
 	return ret;
+}
+
+EXPORT int libqq_keepalive( qqclient* qq )
+{
+	//qqclient_keepalive( qq );
+	return 0;
 }
 
 EXPORT int libqq_logout( qqclient* qq )
@@ -142,7 +148,7 @@ EXPORT void libqq_verify( qqclient* qq, const char* code )
 	if( code ){
 		qqclient_verify( qq, *(uint*)code );
 	}else{
-		qqclient_verify( qq, 0x00000000 );	//this will make the server change another png
+		qqclient_verify( qq, NULL );	//this will make the server change another png
 	}
 }
 
@@ -172,12 +178,12 @@ EXPORT void libqq_delbuddy( qqclient* qq, uint uid )
 
 void buddy_msg_callback ( qqclient* qq, uint uid, time_t t, char* msg )
 {
-	char timestr[24];
+	char timestr[32];
 	struct tm * timeinfo;
 	char* str;
 	int len;
   	timeinfo = localtime ( &t );
-	strftime( timestr, 24, "%Y-%m-%d %H:%M:%S", timeinfo );
+	strftime( timestr, 30, "%Y-%m-%d %H:%M:%S", timeinfo );
 	len = strlen( msg );
 	NEW( str, len+64 );
 	if( uid == 10000 ){
@@ -192,12 +198,12 @@ void qun_msg_callback ( qqclient* qq, uint uid, uint int_uid,
 	time_t t, char* msg )
 {
 	qqqun* q;
-	char timestr[24];
+	char timestr[32];
 	struct tm * timeinfo;
 	char* str;
 	int len;
   	timeinfo = localtime ( &t );
-	strftime( timestr, 24, "%Y-%m-%d %H:%M:%S", timeinfo );
+	strftime( timestr, 30, "%Y-%m-%d %H:%M:%S", timeinfo );
 	q = qun_get( qq, int_uid, 1 );
 	if( !q ){
 		DBG("error: q=NULL");
@@ -211,7 +217,7 @@ void qun_msg_callback ( qqclient* qq, uint uid, uint int_uid,
 
 EXPORT uint libqq_refresh( qqclient* qq )
 {
-	char event[16];
+	char event[24];
 	qqclient_set_process( qq, qq->process );
 	sprintf( event, "status^$%d", qq->mode );
 	qqclient_put_event( qq, event );

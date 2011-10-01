@@ -266,7 +266,8 @@ extern "C" {
 		CRMI2(QQ_CNXTMENU_REAUTHORIZE,Reauthorize,TranslateT("Resend &authorization request"));
 		CRMI2(QQ_CNXTMENU_CHANGECARDNAME,ChangeCardName,TranslateT("Change my Qun &Card Name"));
 		CRMI2(QQ_CNXTMENU_POSTIMAGE,PostImage,TranslateT("Post &Image"));
-		CRMI2(QQ_CNXTMENU_FORCEREFRESH,QunSpace,TranslateT("Qun &Space"));
+		CRMI2(QQ_CNXTMENU_QUNSPACE,QunSpace,TranslateT("Qun &Space"));
+		CRMI2(QQ_CNXTMENU_FORCEREFRESH,ForceRefresh,TranslateT("&Force refresh member names"));
 
 		InitUpdater();
 		InitFontService();

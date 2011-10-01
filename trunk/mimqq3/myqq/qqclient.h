@@ -1,7 +1,7 @@
 #ifndef _QQCLIENT_H
 #define _QQCLIENT_H
 
-#include <pthread.h>
+#include "commplatform.h"
 #include <time.h>
 #include "qqdef.h"
 #include "packetmgr.h"
@@ -20,7 +20,8 @@ enum LOGIN_PROCESS{
 	P_ERROR,
 	P_DENIED,
 	P_WRONGPASS,
-	P_BUSY
+	P_BUSY,
+	P_WAITING
 };
 
 
@@ -41,9 +42,10 @@ typedef struct qqclient{
 	ushort		version;
 	ushort		seqno;
 	int			socket;
-	char		password[32];
+	char		password[64];
 	uchar		md5_pass1[16];
 	uchar		md5_pass2[16];
+	uchar		md5_pass_qq[16];
 	uint		server_ip;
 	ushort		server_port;
 	uint		proxy_server_ip;
@@ -62,15 +64,15 @@ typedef struct qqclient{
 	int			process;
 	char		log_terminal;
 	char		log_packet;
+#ifndef MIRANDAQQ_EXPORTS
 	pthread_t	thread_keepalive;
+#endif
 	qqpacketmgr	packetmgr;
 	qqbuddy*	self;
 	//buddy qun group
-// #if 0 // Handle by MIM database
 	plist		buddy_list;
 	plist		qun_list;
 	plist		group_list;
-// #endif
 	uint		online_clock;
 	char		verify_dir[PATH_LEN];
 	ushort		level;
@@ -87,6 +89,7 @@ typedef struct qqclient{
 	union{
 		struct qqdata_2009	data;
 	};
+	int		keep_alive_counter;
 }qqclient;
 
 
@@ -96,7 +99,7 @@ int qqclient_login( qqclient* qq );
 void qqclient_logout( qqclient* qq );
 void qqclient_detach( qqclient* qq );
 void qqclient_cleanup( qqclient* qq );
-int qqclient_verify( qqclient* qq, char* code );
+int qqclient_verify( qqclient* qq, const char* code );
 int qqclient_wait( qqclient* qq, int sec );
 void qqclient_change_status( qqclient* qq, uchar mode );
 int qqclient_get_event( qqclient* qq, char* event, int size, int wait );
@@ -106,5 +109,6 @@ int qqclient_put_message( qqclient* qq, char* msg );
 void qqclient_get_server( qqclient* qq );
 int qqclient_add( qqclient* qq, uint number, char* request_str );
 int qqclient_del( qqclient* qq, uint number );
+void qqclient_keepalive(qqclient* qq);
 
 #endif

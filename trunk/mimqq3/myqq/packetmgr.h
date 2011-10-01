@@ -1,19 +1,22 @@
 #ifndef _PACKETMGR_H
 #define _PACKETMGR_H
 
-#include <pthread.h>
+#include "commplatform.h"
 #include "qqdef.h"
 #include "loop.h"
 
 #include "qqpacket.h"
 struct qqclient;
 typedef struct qqpacketmgr{
+	// uint		recv_threadid;
 	int 		recv_packets;
 	int 		failed_packets;
-	pthread_t 	thread_recv;
+	// pthread_t 	thread_recv;
 	
 	loop		ready_loop;
+#ifndef MIRANDAQQ_EXPORTS
 	loop		temp_loop;
+#endif
 	loop		sent_loop;
 	
 //	ushort		seqno[MAX_COMMAND];

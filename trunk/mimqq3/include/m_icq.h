@@ -5,7 +5,7 @@
 // Copyright © 2000-2001 Richard Hughes, Roland Rabien, Tristan Van de Vreede
 // Copyright © 2001-2002 Jon Keating, Richard Hughes
 // Copyright © 2002-2004 Martin Öberg, Sam Kothari, Robert Rainwater
-// Copyright © 2004-2009 Joe Kucera
+// Copyright © 2004-2010 Joe Kucera
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -19,18 +19,18 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 // -----------------------------------------------------------------------------
 //
-// File name      : $URL: https://miranda.svn.sourceforge.net/svnroot/miranda/trunk/miranda/include/m_icq.h $
-// Revision       : $Revision: 8823 $
-// Last change on : $Date: 2009-01-12 01:17:57 +0800 $
-// Last change by : $Author: jokusoftware $
+// File name      : $URL: http://miranda.googlecode.com/svn/trunk/miranda/include/m_icq.h $
+// Revision       : $Revision: 11723 $
+// Last change on : $Date: 2010-05-09 19:55:59 +0800 $
+// Last change by : $Author: borkra $
 //
 // DESCRIPTION:
 //
-//  Describe me here please...
+//  Public headers for ICQ protocol plug-in
 //
 // -----------------------------------------------------------------------------
 
@@ -44,10 +44,6 @@ typedef struct {
   PROTOSEARCHRESULT hdr;
   DWORD uin;
   BYTE auth;
-  char *uid;
-  char *nick; // utf-8
-  char *firstName;
-  char *lastName;
   BYTE gender;
   BYTE age;
   DWORD country;
@@ -194,6 +190,7 @@ typedef struct {
 #define CSSF_MASK_STATUS    0x0001  // status member valid for set/get
 #define CSSF_MASK_NAME      0x0002  // pszName member valid for set/get
 #define CSSF_MASK_MESSAGE   0x0004  // pszMessage member valid for set/get
+#define CSSF_DISABLE_MENU   0x0020  // disable default custom status menu, wParam = bEnable
 #define CSSF_DISABLE_UI     0x0040  // disable default custom status UI, wParam = bEnable
 #define CSSF_DEFAULT_NAME   0x0080  // only with CSSF_MASK_NAME and get API to get default custom status name (wParam = status)
 #define CSSF_STATUSES_COUNT 0x0100  // returns number of custom statuses in wParam, only get API
@@ -244,9 +241,11 @@ typedef struct {
 //return = 0 (for success)
 #define PS_ICQ_GETCUSTOMSTATUSEX "/GetXStatusEx"
 
+#define LR_BIGICON 0x40
+
 // Retrieves specified custom status icon
 //wParam = (int)N  // custom status id (1-32), 0 = my current custom status
-//lParam = flags   // use LR_SHARED for shared HICON
+//lParam = flags   // use LR_SHARED for shared HICON, LR_BIGICON for 32x32 icon
 //return = HICON   // custom status icon (use DestroyIcon to release resources if not LR_SHARED)
 #define PS_ICQ_GETCUSTOMSTATUSICON "/GetXStatusIcon"
 

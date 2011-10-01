@@ -13,27 +13,13 @@ Copyright (C) 2000-5  Richard Hughes, Roland Rabien & Tristan Van de Vreede
 #include "StdAfx.h"
 #include <math.h>
 
-//extern void __cdecl _get_infothread(HANDLE hContact);
 extern "C" BOOL CALLBACK ModifySignatureDlgProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam);
-
-void ftCallbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);
-
-void CNetwork::_updateQunCard(HANDLE hContact, const int qunid) {
-	int qunCardUpdate=READC_D2("QunCardUpdate");
-
-	if (qunCardUpdate!=-1 && time(NULL)-qunCardUpdate>60*30) {
-		util_log(0,"_updateQunCard(): QunCardUpdate=%d, time=%d",READC_D2("QunCardUpdate"), time(NULL));
-		WRITEC_D("QunCardUpdate",(DWORD)time(NULL));
-		append(new QunRequestAllRealNames(qunid));
-	}
-}
 
 LRESULT CALLBACK _noticePopupProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){ 
 	switch( message ) {
 			case WM_COMMAND:
 				{
 					if (LPVOID data=PUGetPluginData(hWnd)) {
-						//ShellExecuteW(NULL,NULL,(LPTSTR)data,NULL,NULL,SW_SHOWNORMAL);
 						char* pszTemp=mir_u2a_cp((LPTSTR)data,936);
 						CallService(MS_UTILS_OPENURL,0,(LPARAM)pszTemp);
 						mir_free(pszTemp);
@@ -73,16 +59,6 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 
 	if (senderQQ==m_myqq) {
 		// This message is sent by me, update time offset and broadcast ack
-		/*
-		if (qqSettings->allowUpdateTime) {
-			time_t newOffset=time(NULL)-sentTime;
-			if (newOffset < 1800 && newOffset > -1800) {
-				qqSettings->serverTimeOffset=newOffset;
-				util_log(0,"Server offset updated (%d sec)",newOffset);
-			}
-		}
-		*/
-
 		if (strstr(message.c_str(),"[img]")) {
 			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
 			dr->hContact=hContact;
@@ -95,21 +71,14 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 		return;
 	}
 
-	itoa(senderQQ,szUID,10);
-	char* pszMsg=NULL;
+	ultoa(senderQQ,szUID,10);
+	LPSTR pszMsg=NULL;
 	DBVARIANT dbv;
 	bool hideMessage=false;
 
-	/*
-	if (DBGetContactSetting(hContact,m_szModuleName,szUID,&dbv)) {
-		// No Nick
-		pszMsg=(char*)mir_alloc((strlen(szUID)+message.length()+60)*3);
-		sprintf(pszMsg,"%s:\n",szUID);
-	} else {
-	*/
 	qqqun* qq=qun_get(&m_client,qunID,0);
 	qunmember* qm=qun_member_get(&m_client,qq,senderQQ,0);
-	char* pszUtf8=mir_utf8encodecp(message.c_str(),936);
+	LPCSTR pszUtf8=message.c_str();
 	int cbUtf8=strlen(pszUtf8);
 
 	if (!READC_U8S2(szUID,&dbv)) {
@@ -118,17 +87,18 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 			sprintf(pszMsg,"%s (%s):\n",dbv.pszVal,szUID);
 		}
 		DBFreeVariant(&dbv);
-	} else if (!qm || !*qm->nickname) {
+	}
+	if (!pszMsg && qm && *qm->nickname) {
+		// With Nick
+		pszMsg=(char*)mir_alloc((strlen(qm->nickname)+strlen(szUID)+3+cbUtf8+120));
+		sprintf(pszMsg,"%s (%s):\n",qm->nickname,szUID);
+	}
+	if (!pszMsg) {
 		// No Nick
 		pszMsg=(char*)mir_alloc((strlen(szUID)+cbUtf8+120));
 		sprintf(pszMsg,"%s:\n",szUID);
 	}
 
-	if (!pszMsg) {
-		// With Nick
-		pszMsg=(char*)mir_alloc((strlen(qm->nickname)+strlen(szUID)+3+cbUtf8+120));
-		sprintf(pszMsg,"%s (%s):\n",qm->nickname,szUID);
-	}
 	if (g_enableBBCode && hasFontAttribute) { // BBCode enabled or Chat Plugin in use
 		sprintf(pszMsg+strlen(pszMsg),"[color=%02x%02x%02x]", (unsigned char)red, (unsigned char)green, (unsigned char)blue);
 		if (isBold) strcat(pszMsg,"[b]");
@@ -172,396 +142,32 @@ void CNetwork::_qunImCallback2(const unsigned int qunID, const unsigned int send
 	pre.timestamp = (DWORD)sentTime+600<READ_D2(NULL,"LoginTS")?(DWORD)sentTime:(DWORD)time(NULL);
 
 	CallService(MS_PROTO_CHAINRECV, 0, (LPARAM)&ccs);
-#ifdef MIRANDAQQ_IPC
-	ipcmessage_t ipcm={hContact,qunID,pre.timestamp,mir_a2u_cp(pszMsg,936)};
-	NotifyEventHooks(hIPCEvent,QQIPCEVT_RECV_MESSAGE,(LPARAM)&ipcm);
-	mir_free(ipcm.message);
-#endif
 	mir_free(pre.szMessage);
 	mir_free(pszMsg);
-	mir_free(pszUtf8);
-}
-#if 0 // UPGRADE_DISABLE
-// errorCallback(): Callback Function for Connection Error
-// errorCode: Error Code
-// errorMsg: Error Message in GBK (If any)
-#if 0
-void errorCallback(int errorCode, const char* errorMsg) {
-	switch (errorCode) {
-#if 0
-		case QQNetwork::QQNETERR_CONNLOST:
-			util_log(0,"%s(): Lost Connection!",__FUNCTION__);
-			ShowNotification(Translate("Connection to QQ server lost"),NIIF_ERROR);
-			CallProtoService(m_szModuleName,PS_SETSTATUS,ID_STATUS_OFFLINE,0);
-			break;
-		case QQNetwork::QQQUNERR_NEEDAUTH:
-			{
-				HANDLE hContact=FindContact(qqSettings->addUID);
-				DBVARIANT dbv={0};
-
-				if (hContact) DBGetContactSetting(hContact,m_szModuleName,"AuthReason",&dbv);
-				if (!hContact || !dbv.pszVal) {
-					mir_forkthread(util_pthread_msgbox,strdup(Translate("Qun need authorization. Please enable authorization and enter your reason.")));
-					qqSettings->addUID=0;
-
-					DBWriteContactSettingByte(hContact,"CList","NotOnList",1);
-				} else {
-					QunAuthPacket* packet=new QunAuthPacket(qqSettings->addUID,QQ_QUN_AUTH_REQUEST);
-					util_convertToGBK(dbv.pszVal);
-					packet->setMessage(dbv.pszVal);
-					network->append(packet);
-					DBFreeVariant(&dbv);
-				}
-				break;
-			}
-#endif
-		case QQNetwork::QQQUNERR_NOADD:
-			mir_forkthread(util_pthread_msgbox,strdup(Translate("This Qun does not allow others to join")));
-			break;
-		case QQNetwork::QQQUNERR_MISC:
-			{
-				char* szMsg=strdup(errorMsg);
-				util_convertFromGBK(szMsg);
-				mir_forkthread(util_pthread_msgbox,szMsg);
-			}
-			break;
-		case QQNetwork::QQQUNERR_IMAGE:
-			{
-				util_convertFromGBK((char*)errorMsg);
-				mir_forkthread(util_pthread_msgbox,strdup(errorMsg));
-			}
-			break;
-	}
-}
-#endif
-
-extern int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep);
-#endif // UPGRADE_DISABLE
-// IMCallback(): Callback Function for IM Retrieval
-// imType: Type of IM received
-// data: Different types of IM object depending on type of IM
-void CNetwork::_imCallback(const int imType, const void* data) {
-	switch (imType) {
-		case QQ_RECV_IM_TO_BUDDY:
-		case QQ_RECV_IM_FROM_BUDDY_2006:
-		case QQ_RECV_IM_TO_UNKNOWN: 
-		case QQ_RECV_IM_BUDDY_09:
-		case QQ_RECV_IM_BUDDY_09SP1:
-		{
-			ReceivedNormalIM * received = (ReceivedNormalIM*)data;
-			HANDLE hContact=FindContact(received->getSender());
-			if (!hContact) {
-				hContact=AddContact(received->getSender(),true,false);
-#if 0 // TODO
-				append(new GetUserInfoPacket(received->getSender()));
-#endif
-			}
-
-			char* msg;
-			string sOut;
-
-#if 0
-			EvaHtmlParser parser;
-			std::list<CustomizedPic> picList = parser.parseCustomizedPics((char*)received->getMessage().c_str(),false);
-
-			if (picList.size()) {
-				/*
-				FILE* fp=fopen("C:\\imdebug.txt","wb");
-				fwrite(received->getBodyData(),received->getBodyLength(),1,fp);
-				fclose(fp);
-				*/
-
-				char szPath[MAX_PATH];
-				std::list<CustomizedPic>::iterator iter;
-				CallService(MS_FILE_GETRECEIVEDFILESFOLDER,(WPARAM)hContact,(LPARAM)szPath);
-				strcat(szPath,"\\");
-
-				for(iter=picList.begin(); iter!=picList.end(); iter++) {
-					strcpy(strrchr(szPath,'\\'),iter->fileName.c_str());
-					if (_access(szPath,0) && strrchr(szPath,'\\')[1]=='{') {
-						// File not exist
-						util_log(0,"ZDY file %s not found, put to queue",szPath);
-						m_storedIM.push_back(*received);
-						return;
-					}
-				}
-
-				char* szMessage=mir_strdup(received->getMessage().c_str());
-				char* pszMessage=szMessage;
-
-				strrchr(szPath,'\\')[1]=0;
-
-				// All files available
-				while (strstr(pszMessage,"[ZDY]")) {
-					*strstr(pszMessage,"[ZDY]")=0;
-					sOut+=pszMessage;
-					sOut+="[img]";
-					sOut+=szPath;
-					sOut+=picList.front().fileName;
-					sOut+="[/img]";
-					picList.pop_front();
-
-					pszMessage=strstr(pszMessage+strlen(pszMessage)+1,"[/ZDY]")+6;
-
-					if (!strstr(pszMessage,"[ZDY]")) {
-						sOut+=pszMessage;
-					} 
-				}
-
-				mir_free(szMessage);
-				msg=(char*)mir_alloc((sOut.length()+64)*3);
-			} else {
-#endif
-			{
-				msg=(char*)mir_alloc((received->getMessage().length()+64)*3);
-			}
-
-			PROTORECVEVENT pre;
-			CCSDATA ccs;
-			*msg=0;
-			if (g_enableBBCode && received->hasFontAttribute()) {
-				sprintf(msg,"[color=#%02x%02x%02x]",(unsigned char)received->getRed(),(unsigned char)received->getGreen(),(unsigned char)received->getBlue());
-
-				if (received->isBold()) strcat(msg,"[b]");
-				if (received->isItalic()) strcat(msg,"[i]");
-				if (received->isUnderline()) strcat(msg,"[u]");
-			}
-
-			if (sOut.empty()) {
-				strcat(msg,received->getMessage().c_str());
-			} else {
-				strcat(msg,sOut.c_str());
-			}
-
-			if (g_enableBBCode && received->hasFontAttribute()) {
-				if (received->isBold()) strcat(msg,"[/b]");
-				if (received->isItalic()) strcat(msg,"[/i]");
-				if (received->isUnderline()) strcat(msg,"[/u]");
-				strcat(msg,"[/color]");
-			}
-
-			//LPWSTR pszUnicode=NULL;
-
-			pre.flags=PREF_UTF;
-
-			if (READ_B2(NULL,QQ_MESSAGECONVERSION) > 1) {
-				LPWSTR pszTempS=mir_a2u_cp(msg,936);
-				LPWSTR pszTempT=mir_tstrdup(pszTempS);
-				LCMapString(GetUserDefaultLCID(),LCMAP_TRADITIONAL_CHINESE,pszTempS,wcslen(pszTempS)+1,pszTempT,wcslen(pszTempT)+1);
-				pre.szMessage=mir_utf8encodeW(pszTempT);
-				mir_free(pszTempS);
-				mir_free(pszTempT);
-			} else
-				pre.szMessage=mir_utf8encodecp(msg,936);
-
-			pre.timestamp = (DWORD) time(NULL);
-			pre.lParam = 0;
-
-			ccs.hContact=hContact;
-			ccs.szProtoService = PSR_MESSAGE;
-			ccs.wParam = 0;
-			ccs.lParam = ( LPARAM )&pre;
-			CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
-			
-#ifdef MIRANDAQQ_IPC
-			ipcmessage_t ipcm={hContact,READC_D2(UNIQUEIDSETTING),pre.timestamp,mir_a2u_cp(pre.szMessage,936)};
-			NotifyEventHooks(hIPCEvent,QQIPCEVT_RECV_MESSAGE,(LPARAM)&ipcm);
-			mir_free(ipcm.message);
-#endif
-
-			mir_free(msg);
-			mir_free(pre.szMessage);
-			WRITEC_W("Sequence",received->getSequence());
-			WRITEC_S("FileSessionKey",(char*)received->getBuddyFileSessionKey());
-
-			break;
-		}
-		case 0x1f:
-			{
-				ReceivedTempSessionTextIMPacket* received = (ReceivedTempSessionTextIMPacket*)data;
-				HANDLE hContact=FindContact(received->getSender()+0x80000000);
-				PROTORECVEVENT pre;
-				CCSDATA ccs;
-				char msg2[1024]={0};
-
-				pre.flags=0;
-				ccs.hContact=hContact;
-				ccs.szProtoService = PSR_MESSAGE;
-				ccs.wParam = 0;
-				ccs.lParam = ( LPARAM )&pre;
-				pre.timestamp = (DWORD) time(NULL);
-				pre.lParam = 0;
-
-				if (!hContact) {
-					LPWSTR pszTemp, pszTemp2;
-					hContact=AddContact(received->getSender()+0x80000000,true,false);
-					ccs.hContact=hContact;
-					pre.szMessage = msg2;
-					pre.flags=PREF_UNICODE;
-
-					pszTemp=mir_a2u_cp(received->getNick().c_str(),936);
-					pszTemp2=mir_a2u_cp(received->getSite().c_str(),936);
-					_stprintf((LPWSTR)msg2,TranslateT("Temp Session: %s(%d) in %s"),pszTemp,received->getSender(),pszTemp2);
-					mir_free(pszTemp);
-					mir_free(pszTemp2);
-
-				}
-
-				//char* msg=(char*)malloc((received->getMessage().length()+64)*3);
-				char* msg=(char*)mir_alloc(received->getMessage().length()+64);
-				*msg=0;
-				/*if (qqSettings->enableBBCode)*/ {
-					COLORREF color=RGB((unsigned char)received->getRed(),(unsigned char)received->getGreen(),(unsigned char)received->getBlue());
-
-					if (received->isBold()) strcat(msg,"[b]");
-					if (received->isItalic()) strcat(msg,"[i]");
-					if (received->isUnderline()) strcat(msg,"[u]");
-
-					sprintf(msg+strlen(msg),"[color=#%02x%02x%02x]",(unsigned char)received->getRed(),(unsigned char)received->getGreen(),(unsigned char)received->getBlue());
-				}
-				strcat(msg,received->getMessage().c_str());
-
-				/*if (qqSettings->enableBBCode)*/ {
-					if (received->isBold()) strcat(msg,"[/b]");
-					if (received->isItalic()) strcat(msg,"[/i]");
-					if (received->isUnderline()) strcat(msg,"[/u]");
-					strcat(msg,"[/color]");
-				}
-
-#if 0
-				LPWSTR pszUnicode=NULL;
-
-				/*if (qqSettings->unicode)*/ {
-					pszUnicode=mir_a2u_cp(msg,936);
-				}
-
-				// TODO: !
-				util_convertFromGBK(msg);
-
-				if (pszUnicode) {
-					pre.flags = PREF_UNICODE;
-					wcscpy((LPWSTR)(msg+strlen(msg)+1),pszUnicode);
-					mir_free(pszUnicode);
-				}
-#endif
-				LPSTR pszUTF8=mir_utf8encodecp(msg,936);
-				pre.szMessage = pszUTF8;
-				pre.flags=PREF_UTF;
-				pre.timestamp++;
-
-				CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
-
-				//free(msg);
-				mir_free(pszUTF8);
-				mir_free(msg);
-
-				if (*msg2) {
-					DBWriteContactSettingString(hContact,m_szModuleName,"Site",received->getSite().c_str());
-					WRITEC_TS("Nick",(LPTSTR)msg2);
-				}
-
-				break;
-			}
-	}
 }
 
-#if 0 // TODO
-// buddyOnlineFinishedCallback(): Callback Function for Buddy Online enumeration finish
-void buddyOnlineFinishedCallback() {
-	HANDLE hContact;
-	hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST,0,0);
-	time_t now=time(NULL);
-
-	while(hContact!=NULL) {
-		if(!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0))) {
-			// I am responsible for this contact, check last update
-			if (READC_B2("ChatRoom")==0 && 
-				DBGetContactSettingWord(hContact,m_szModuleName,"Status",ID_STATUS_OFFLINE)!=ID_STATUS_OFFLINE &&
-				READC_B2("IsQun")==0 &&
-				now-READC_D2("TickTS")>30)
-				// Buddy online not received, make him/her offline
-				WRITEC_W("Status",ID_STATUS_OFFLINE);
-		}
-		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT,(WPARAM)hContact,0);
-	}
-}
-#endif
-// ackCallback(): Callback Function for some acknowledge messages
-#if 0
-void ackCallback(const unsigned short ackType, const void* data, const void* data2) {
-	GETSETTINGS();
-	switch (ackType) {
-		case QQNetwork::QQADDAUTH_SENT: // Authorization Request Sent
-			WCHAR szMsg[MAX_PATH];
-			swprintf(szMsg,TranslateT("Authorization request for User %d send successfully.\nThe user will be in your contact list when he/she approve your request."),(unsigned int)data);
-			ShowNotification(szMsg,NIIF_INFO);
-			qqSettings->addUID=0;
-			break;
-		case QQNetwork::QQNETCB_PERSONALSIGREMOVED: // Personal Signature Removed
-			DBDeleteContactSetting(NULL,m_szModuleName,"PersonalSignature");
-			break;
-		case QQNetwork::QQNETCB_PERSONALSIGMODIFIED: // Personal Signature Modified
-			//qqNetwork->requestSignature(qqSettings->myUID);
-			//ShowNotification(Translate("Personal Signature Modified"),NIIF_INFO);
-			break;
-	}
-}
-#endif
 // sysRequestJoinQunCallback(): Callback Function for application to join Qun
 //                                     
-void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen) {
-	char *reason_utf8;
+void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, LPCSTR msg, const unsigned char *token, const WORD tokenLen) {
 	qqqun* qun=qun_get(&m_client,qunid,0);
 
-	//CCSDATA ccs;
-	//PROTORECVEVENT pre;
 	HANDLE hContact;
-	char* szBlob;
-	char* pCurBlob;
+	LPSTR szBlob;
+	LPSTR pCurBlob;
 
 	hContact=FindContact(qunid);
 
 	if (hContact && qun) { // The qun is initialized, proceed
 		char szEmail[MAX_PATH];
 
-		reason_utf8=mir_strdup(msg);
-		util_convertFromGBK(reason_utf8);
-
 		sprintf(szEmail,"%s (%d)",qun->name,qunid);
-		//util_convertFromGBK(szEmail);
 		mir_utf8decodecp(szEmail,CP_ACP,NULL);
-		util_log(0,"%s(): QunID=%d, QQID=%d, msg=%s",__FUNCTION__,qunid,userid,reason_utf8);
+		util_log(0,"%s(): QunID=%d, QQID=%d, msg=%s",__FUNCTION__,qunid,userid,msg);
 
-#if 0
-		ccs.szProtoService=PSR_AUTH;
-		ccs.hContact=hContact;
-		ccs.wParam=0;
-		ccs.lParam=(LPARAM)&pre;
-		pre.flags=0;
-		pre.timestamp=(DWORD)time(NULL);
-		pre.lParam=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(reason_utf8)+strlen(szEmail)+5+tokenLen+2;
-
-		/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
-		pCurBlob=szBlob=(char *)malloc(pre.lParam);
-		memcpy(pCurBlob,&userid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
-		memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
-		strcpy((char *)pCurBlob," "); pCurBlob+=2;
-		strcpy((char *)pCurBlob," "); pCurBlob+=2;
-		strcpy((char *)pCurBlob," "); pCurBlob+=2;
-		strcpy((char *)pCurBlob,szEmail); pCurBlob+=(strlen(szEmail)+1);
-		strcpy((char *)pCurBlob,reason_utf8); pCurBlob+=(strlen(reason_utf8)+1);
-		*(unsigned short*)pCurBlob=tokenLen;
-		memcpy(pCurBlob+2,token,tokenLen);
-		
-		pre.szMessage=(char *)szBlob;
-
-		CallService(MS_PROTO_CHAINRECV,0,(LPARAM)&ccs);
-
-		mir_free(reason_utf8);
-#endif
 		DBEVENTINFO dbei;
 
 		util_log(0,"%s(): Received authorization request",__FUNCTION__);
+
 		// Show that guy
 		DBDeleteContactSetting(hContact,"CList","Hidden");
 
@@ -569,9 +175,9 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		dbei.cbSize=sizeof(dbei);
 		dbei.szModule=m_szModuleName;
 		dbei.timestamp=(DWORD)time(NULL);
-		dbei.flags=0;
+		dbei.flags=DBEF_UTF;
 		dbei.eventType=EVENTTYPE_AUTHREQUEST;
-		dbei.cbBlob=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(reason_utf8)+strlen(szEmail)+5+tokenLen+2;;
+		dbei.cbBlob=sizeof(DWORD)+3+sizeof(HANDLE)+strlen(msg)+strlen(szEmail)+5+tokenLen+2;;
 
 		/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
 		pCurBlob=szBlob=(char *)malloc(dbei.cbBlob);
@@ -581,22 +187,20 @@ void CNetwork::_sysRequestJoinQunCallback(int qunid, int extid, int userid, cons
 		strcpy((char *)pCurBlob," "); pCurBlob+=2;
 		strcpy((char *)pCurBlob," "); pCurBlob+=2;
 		strcpy((char *)pCurBlob,szEmail); pCurBlob+=(strlen(szEmail)+1);
-		strcpy((char *)pCurBlob,reason_utf8); pCurBlob+=(strlen(reason_utf8)+1);
+		strcpy((char *)pCurBlob,msg); pCurBlob+=(strlen(msg)+1);
 		*(unsigned short*)pCurBlob=tokenLen;
 		memcpy(pCurBlob+2,token,tokenLen);
 
 		dbei.pBlob=(PBYTE)szBlob;
 		CallService(MS_DB_EVENT_ADD,(WPARAM)NULL,(LPARAM)&dbei);
-
-		mir_free(reason_utf8);
 	}
 
 }
 
 // sysRejectJoinQunCallback(): Callback Function for Qun Admin rejected your join Qun request
-void CNetwork::_sysRejectJoinQunCallback(int qunid, int extid, int userid, const char* msg) {
+void CNetwork::_sysRejectJoinQunCallback(int qunid, int extid, int userid, LPCSTR msg) {
 	TCHAR szTemp[MAX_PATH];
-	LPTSTR pszReason=mir_a2u_cp(msg,936);
+	LPTSTR pszReason=mir_utf8decodeW(msg);
 
 	swprintf(szTemp,TranslateT("You request to join group %d has been rejected by admin %d.\nReason:\n\n%s"), extid,userid,pszReason);
 	mir_free(pszReason);
@@ -604,641 +208,8 @@ void CNetwork::_sysRejectJoinQunCallback(int qunid, int extid, int userid, const
 }
 
 #define WRITEQUNINFO_TS(k,i) pszTemp=mir_a2u_cp(i.c_str(),936); WRITEC_TS(k,pszTemp); mir_free(pszTemp)
-#if 0 // UPGRADE_DISABLE
-void _ftUpdateBuddyIP(const int qqid, const unsigned int ip, const unsigned short port) {
-	HANDLE hContact=FindContact(qqid);
-	if (hContact) {
-		DBWriteContactSettingDword(hContact,m_szModuleName,"IP",ip);
-		DBWriteContactSettingWord(hContact,m_szModuleName,"Port",port);
-	}
-}
 
-void _ftReceivedFileRequest(const int qqid, const unsigned int sessionid, const char* file, const int fileSize, const unsigned char type) {
-#if 0
-	if(type == QQ_TRANSFER_FILE) {
-		int tFileNameLen = strlen(file);
-		char tComment[40];
-		int tCommentLen = mir_snprintf(tComment, sizeof(tComment), Translate("%ld bytes"), fileSize);
-		ft_t* ft=new ft_t();
-		char* szBlob = (char*)malloc(sizeof(ft) + tFileNameLen + tCommentLen + 2 );
-
-		ft->file=file;
-		ft->qqid=qqid;
-		ft->sessionid=sessionid;
-		ft->size=fileSize;
-
-		*( PDWORD )szBlob = ( DWORD )ft;
-		util_convertFromGBK((char*)file);
-		strcpy(szBlob + sizeof(DWORD), file);
-		strcpy(szBlob + sizeof(DWORD) + tFileNameLen + 1, tComment );
-
-		PROTORECVEVENT pre;
-		pre.flags = 0;
-		pre.timestamp = (DWORD)time(NULL);
-		pre.szMessage = (char*)szBlob;
-		pre.lParam = (LPARAM)type;
-
-		CCSDATA ccs;
-		ccs.hContact = FindContact(qqid);
-		ccs.szProtoService = PSR_FILE;
-		ccs.wParam = sessionid;
-		ccs.lParam = ( LPARAM )&pre;
-		CallService(MS_PROTO_CHAINRECV, 0, (LPARAM)&ccs);
-	}
-
-	HANDLE hContact=FindContact(qqid);
-	if (hContact) {
-		if(QQNetwork::fileManager){
-			util_log(0,"EvaMain::slotReceivedFileRequest: -- new session: %d\n", sessionid);
-			list<string> dirList;
-			list<string> fileList;
-			list<unsigned int> sizeList;
-			char szPath[MAX_PATH];
-			CallService(MS_FILE_GETRECEIVEDFILESFOLDER,(WPARAM)hContact,(LPARAM)szPath);
-
-			dirList.push_back(szPath);
-			fileList.push_back(file);
-			sizeList.push_back(fileSize);
-			// create udp download session, and wait for ip notification from your friend
-			QQNetwork::fileManager->newSession(qqid, sessionid, dirList, fileList, sizeList, true, type);
-
-			if(type == QQ_TRANSFER_IMAGE){
-				EvaIPAddress eip(qqNsThread->qqn->getIP());
-				util_log(0,"%s(): Recieved QQ_TRANSFER_IMAGE",__FUNCTION__);
-				QQNetwork::fileManager->saveFileTo(qqid,sessionid,szPath);
-				SendFileExRequestPacket *packet = new SendFileExRequestPacket(QQ_IM_EX_REQUEST_ACCEPTED);
-				packet->setReceiver(qqid);
-				packet->setTransferType(type);
-				packet->setWanIp(htonl(eip.IP()));
-				packet->setSessionId(sessionid);
-				network->append(packet);
-				util_log(0,"EvaPacketManager::doAcceptFileRequest -- sent\n");
-				return;
-			}
-
-		}
-	}
-#endif
-}
-
-void _ftNotifyAddressRequest(const int qq, const unsigned int session, const unsigned int synsession, const unsigned int ip, const unsigned short port, const unsigned int myip, const unsigned short myport);
-
-void _ftReceivedFileAccepted(const int qqid, const unsigned int sessionid, const unsigned int wanip, const bool accepted, const unsigned char type) {
-#if 0
-	if (ft_t* ft=ftSessions[sessionid]) {
-		string filename=ft->file;
-		if(filename.empty()) return; // we haven't got the request
-
-		if(accepted){
-			// here we start udp upload session while buddy is waiting your ip notification
-			// if user is using proxy, we send ip notification directly
-			NETLIBUSERSETTINGS nlus={sizeof(NETLIBUSERSETTINGS)};
-			CallService(MS_NETLIB_GETUSERSETTINGS,(WPARAM)hNetlibUser,(LPARAM)&nlus);
-			//if(nlus.useProxy==1)
-			_ftNotifyAddressRequest(qqid, sessionid, 0, 0, 0, 0, 0);
-			/*else
-			QQNetwork::fileManager->startSession(qqid, sessionid);*/
-		} else {
-			QQNetwork::fileManager->stopThread(qqid, sessionid);
-			if (ft_t* ft=ftSessions[sessionid]) {
-				ProtoBroadcastAck(m_szModuleName,FindContact(qqid),ACKTYPE_FILE,ACKRESULT_FAILED,(HANDLE)ft,0);
-				ftSessions.erase(sessionid);
-				delete ft;
-			}
-		}
-		util_log(0,"receivedFileAccepted.\n");
-	}
-#endif
-}
-
-void _ftReceivedFileAgentInfo(const int qqid, const short sequence, const unsigned int sessionid, const unsigned int wanip, const unsigned short port, const char* agentkey) {
-#if 0
-	if(ft_t* ft=ftSessions[sequence]){
-		HANDLE hContact=FindContact(qqid);
-		ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE,ACKRESULT_CONNECTING,(HANDLE)ft,0);
-		/*
-		in_addr ia;
-		ia.S_un.S_addr=htonl(wanip);
-		*/
-		unsigned int ip=htonl(wanip);
-		// buddy ask you to download the file from relay server
-		QQNetwork::fileManager->changeToAgent(qqid, sequence);util_log(0,"EvaMain::slotReceivedFileAgentInfo -- changeToAgent\n");
-		QQNetwork::fileManager->changeSessionTo(qqid, sequence, sessionid);util_log(0,"EvaMain::slotReceivedFileAgentInfo -- changeSessionTo\n");
-		QQNetwork::fileManager->setBuddyAgentKey(qqid, sessionid, (unsigned char*)agentkey);util_log(0,"EvaMain::slotReceivedFileAgentInfo -- setBuddyAgentKey\n");
-		QQNetwork::fileManager->setAgentServer(qqid, sessionid, htonl(wanip), port);util_log(0,"EvaMain::slotReceivedFileAgentInfo -- setAgentServer\n");
-		QQNetwork::fileManager->startSession(qqid, sessionid); // we start agent download session
-		util_log(0,"EvaMain::slotReceivedFileAgentInfo -- startSession\n");
-		util_log(0,"EvaMain::slotReceivedFileAgentInfo: -- ip:%s\tport:%d\told:%d\tnew:%d\n", 
-			inet_ntoa(/*ia*/*(in_addr*)&ip), port, sequence, sessionid);
-		
-		ftSessions.erase(sequence);
-		ftSessions[sessionid]=ft;
-		ft->sessionid=sessionid;
-	}
-#endif
-}
-
-void _ftReceivedFileNotifyIpEx(const int qqid, const bool isSender, const unsigned int sessionid, const unsigned char type, const unsigned int ip1, const unsigned int port1, const unsigned int ip2, const unsigned int port2, const unsigned int ip3, const unsigned int port3, const unsigned int lip1, const unsigned int lport1, const unsigned int lip2, const unsigned int lport2, const unsigned int lip3, const unsigned int lport3, const unsigned int syncip, const unsigned int syncport, const unsigned int syncsession) {
-#if 0
-	if(isSender) {  // true means buddy started udp upload session
-		// we should start udp download session, but now
-		// we simply ask buddy to use relay server :)
-		HANDLE hContact=FindContact(qqid);
-		ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE,ACKRESULT_INITIALISING,(HANDLE)ftSessions[sessionid],0);
-		SendIpExNotifyPacket *packet = new SendIpExNotifyPacket(true);
-		packet->setReceiver(qqid);
-		packet->setSessionId(sessionid);
-		packet->setSender(false);
-		packet->setTransferType(type);
-
-		packet->setWanIp1(0);
-		packet->setWanPort1(0);
-		packet->setWanIp2(0);
-		packet->setWanPort2(0);
-		packet->setWanIp3(0);
-		packet->setWanPort3(0);
-
-		packet->setLanIp1(0);
-		packet->setLanPort1(0);
-		packet->setLanIp2(0);
-		packet->setLanPort3(0);
-		packet->setLanIp3(0);
-		packet->setLanPort3(0);
-
-		packet->setSyncIp(0);
-		packet->setSyncPort(0);
-		packet->setSyncSession(0);
-
-		network->append(packet);
-		util_log(0,"IP Notification packet Sent.\n");
-
-	} else { // if I am the sender, I should start udp session connecting to buddy directly
-		// but now I ask relay server to do the job
-		QQNetwork::fileManager->changeToAgent(qqid,sessionid);
-		QQNetwork::fileManager->updateIp(qqid,sessionid,ip1);
-		QQNetwork::fileManager->startSession(qqid,sessionid);
-	}
-#endif
-}
-
-void _ftNotifyTransferStatus(const int qq, const unsigned int session, const unsigned int size, const unsigned int sent, const int elapsed) {
-#if 0
-	if (ft_t* ft=ftSessions[session]) {
-		PROTOFILETRANSFERSTATUS pfts={sizeof(PROTOFILETRANSFERSTATUS)};
-
-		char szFile[MAX_PATH], szDir[MAX_PATH];
-
-		//strcpy(szFile,ft->file.c_str()/*fileManager->getFileName(qq,session,true).c_str()*/);
-		strcpy(szFile,QQNetwork::fileManager->getFileName(qq,session,true).c_str());
-		if (!*szFile) return;
-
-		strcpy(szDir,szFile);
-		*strrchr(szDir,'\\')=0;
-
-		pfts.currentFile=szFile;
-		pfts.sending=QQNetwork::fileManager->getThread(qq,session)->getThreadType()%2;
-		pfts.workingDir=szDir;
-		pfts.currentFileProgress=pfts.totalProgress=sent;
-		pfts.currentFileSize=pfts.totalBytes=size;
-		pfts.hContact= FindContact(qq);
-		pfts.totalFiles=1;
-		ProtoBroadcastAck(m_szModuleName,pfts.hContact, ACKTYPE_FILE, ACKRESULT_DATA,(HANDLE)ft, (LPARAM) & pfts);
-	}
-#endif
-}
-
-// buddy qq, agent session id, agent ip, agent port
-void _ftNotifyAgentRequest(const int qq, const unsigned int oldsession, const unsigned int newsession, const unsigned int ip, const unsigned short port, const unsigned char type) {
-#if 0
-	if (ft_t* ft=ftSessions[oldsession]) {
-		ftSessions.erase(oldsession);
-		ftSessions[newsession]=ft;
-		ft->sessionid=newsession;
-
-		util_log(0,"notifyAgentRequest: qq=%d, oldsession=%d, newsession=%d, ip=%d, port=%d, type=%d",qq,oldsession,newsession,ip,port,type);
-		if (qq == Packet::getQQ()) return;
-
-		if (ft->hWndPopup) PUChangeTextW(ft->hWndPopup,L"Notify agent to transfer");
-
-		SendFileNotifyAgentPacket *packet = new SendFileNotifyAgentPacket();
-		packet->setMsgSequence(oldsession);
-		packet->setReceiver(qq);
-		packet->setTransferType(type);
-		packet->setAgentSession(newsession);
-		packet->setAgentServer(htonl(ip), port);
-		util_log(0,"EvaPacketManager::doNotifyAgentTransfer Sent. -- id:%d, ip:%8x, port:%d, session:0x%8x\n",qq, ip, port, newsession);
-		network->append(packet);
-	}
-#endif
-}
-
-void _ftNotifyTransferSessionChanged(const int qq, const unsigned int oldsession, const unsigned int newsession) {
-	util_log(0,"notifyTransferSessionChanged: qq=%d, oldsession=%d, newsession=%d",qq,oldsession,newsession);
-}
-
-#if 0
-void _ftAskResume(void* data2) {
-	ft_t* data=(ft_t*)data2;
-
-	switch (MessageBox(NULL,_T("File already exists.\n\nChoose 'Yes' to resume, 'No' to overwrite or 'Cancel' to cancel operation."),_T("File Already Exists"),MB_ICONQUESTION | MB_YESNOCANCEL)) {
-				case IDYES:
-					QQNetwork::fileManager->slotFileTransferResume((unsigned int)data->qqid,data->sessionid/*m_FileNoList[(unsigned int)data]*/ /*ar->qq,ar->session*/,true);
-					break;
-				case IDNO:
-					QQNetwork::fileManager->slotFileTransferResume((unsigned int)data->qqid,data->sessionid/*m_FileNoList[(unsigned int)data]*/ /*ar->qq,ar->session*/,false);
-					break;
-				default:
-					QQNetwork::fileManager->stopThread((unsigned int)data->qqid,data->sessionid/*m_FileNoList[(unsigned int)data]*/ /*ar->qq,ar->session*/);
-					CallProtoService(m_szModuleName,PSS_FILECANCEL,(WPARAM)(unsigned int)data,0);
-					break;
-	}
-}
-#endif
-
-void _ftNotifyTransferNormalInfo(const int qq, const unsigned int session, EvaFileStatus status, const string dir, const string name, const unsigned int size, const unsigned char type) {
-#if 0
-	if (ft_t* ft=ftSessions[session]) {
-		HANDLE hContact=FindContact(qq);
-		switch (status) {
-		case ESResume: 
-			{
-				mir_forkthread(_ftAskResume,(void*)ft/*ar*/);
-				ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE, ACKRESULT_NEXTFILE, (HANDLE)ft, 0);
-				break;
-			}
-		case ESSendFinished:
-		case ESReceiveFinished:
-			{
-				if (type==QQ_TRANSFER_FILE) 
-					ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE, ACKRESULT_SUCCESS, (HANDLE)ft, 0);
-				else {
-					list<ReceivedNormalIM>::iterator iter;
-					char szPath[MAX_PATH];
-					std::list<CustomizedPic>::iterator iter2;
-					CallService(MS_FILE_GETRECEIVEDFILESFOLDER,(WPARAM)hContact,(LPARAM)szPath);
-					strcat(szPath,"\\");
-
-					for (iter=storedIM.begin(); iter!=storedIM.end(); iter++) {
-						EvaHtmlParser parser;
-						std::list<CustomizedPic> picList = parser.parseCustomizedPics((char*)iter->getMessage().c_str(),false);
-
-						for(iter2=picList.begin(); iter2!=picList.end(); iter2++) {
-							strcpy(strrchr(szPath,'\\'),iter2->fileName.c_str());
-							if (_access(szPath,0) && *szPath=='{') break;
-						}
-						if (iter2==picList.end()) {
-							ReceivedNormalIM im=*iter;
-							// All found
-							imCallback(QQ_RECV_IM_TO_BUDDY,&im);
-							storedIM.erase(iter);
-							iter=storedIM.begin();
-						}
-					}
-				}
-				ftSessions.erase(session);
-				delete ft;
-				break;
-			}
-		case ESError:
-			{
-				if (type==QQ_TRANSFER_FILE) ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE, ACKRESULT_FAILED, (HANDLE)ft, 0);
-				ftSessions.erase(session);
-				delete ft;
-
-				break;
-			}
-		}
-	}
-#endif
-}
-
-void _ftNotifyAddressRequest(const int qq, const unsigned int session, const unsigned int synsession, const unsigned int ip, const unsigned short port, const unsigned int myip, const unsigned short myport) {
-#if 0
-	util_log(0,"notifyAddressRequest: qq=%d, session=%d, synsession=%d, ip=%d, port=%d, myip=%d, myport=%d",qq,session,synsession,ip,port,myip,myport);
-	bool ok = false;
-	if(ft_t* ft=ftSessions[session]){
-		bool isSender = QQNetwork::fileManager->isSender(qq, session, &ok);
-		if(!ok) return;
-		if (ft->hWndPopup) PUChangeTextW(ft->hWndPopup,L"Sending IP Notify");
-		unsigned char type = QQNetwork::fileManager->getTransferType(qq, session);
-		// we send our ip information to buddy
-		// 		packetManager->doNotifyIpEx(id, isSender, session, 
-		// 					user->getLoginWanIp(), user->getLoginWanPort()+100,
-		// 					user->getLoginWanIp(), user->getLoginWanPort()+101,
-		// 					myIp, myPort,
-		// 					0x0a010113, user->getLoginLanPort()+15,
-		// 					0, 0, 0x0a010113, user->getLoginLanPort()+50, synIp, synPort, synSession);
-		/*packetManager->doNotifyIpEx(id, isSender, session, type, 
-			0, 0,
-			0, 0,
-			0, 0,
-			0, 0,
-			0, 0, 0, 0, 0, 0, 0);*/
-		HANDLE hContact=FindContact(qq);
-		ProtoBroadcastAck(m_szModuleName,hContact,ACKTYPE_FILE,ACKRESULT_INITIALISING,(HANDLE)ft,0);
-		SendIpExNotifyPacket *packet = new SendIpExNotifyPacket(true);
-		packet->setReceiver(qq);
-		packet->setSessionId(session);
-		packet->setSender(isSender);
-		packet->setTransferType(type);
-
-		packet->setWanIp1(0);
-		packet->setWanPort1(0);
-		packet->setWanIp2(0);
-		packet->setWanPort2(0);
-		packet->setWanIp3(0);
-		packet->setWanPort3(0);
-
-		packet->setLanIp1(0);
-		packet->setLanPort1(0);
-		packet->setLanIp2(0);
-		packet->setLanPort3(0);
-		packet->setLanIp3(0);
-		packet->setLanPort3(0);
-
-		packet->setSyncIp(0);
-		packet->setSyncPort(0);
-		packet->setSyncSession(0);
-
-		network->append(packet);
-		util_log(0,"IP Notification packet Sent.\n");
-
-	}
-#endif
-}
-#endif // UPGRADE_DISABLE
-
-#if 0
-void CNetwork::_loginCallback(LoginReplyPacket* packet) {
-	//GETSETTINGS();
-	const unsigned char replyCode=packet->getReplyCode();
-
-	switch (replyCode) {
-		case QQ_LOGIN_REPLY_OK:
-			{
-				DBVARIANT dbv;
-
-#if 0
-				if (ServiceExists(MS_POPUP_ADDPOPUPW)) {
-					POPUPDATAW ppd={0};
-					time_t tm=(time_t)packet->getLastLoginTime();
-
-					_tcscpy(ppd.lpwzContactName,m_tszUserName);
-					swprintf(ppd.lpwzText,TranslateT("Last Login: %s\nClock Skew: %ds"),_tctime(&tm),m_clockSkew);
-					/*
-					swprintf(ppd.lpwzText+wcslen(ppd.lpwzText),TranslateT("Last IP: %S:%d\n"),EvaIPAddress(packet->getMyIP()).toString().c_str(),packet->getMyPort());
-					swprintf(ppd.lpwzText+wcslen(ppd.lpwzText),TranslateT("Current IP: %S:%d"),EvaIPAddress(packet->getLastLoginIP()).toString().c_str(),packet->getLastLoginTime());
-					*/
-					ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-					CallService(MS_POPUP_ADDPOPUPW,(WPARAM)&ppd,0);
-				}
-#endif
-				EnableMenuItems(TRUE);
-
-				/*
-				if (!READ_B2(NULL,QQ_NOAUTOSERVER)) {
-					char szTemp[MAX_PATH];
-					sprintf(szTemp,"%s://%s:%d",Packet::isUDP()?"udp":"tcp",getHost().c_str(),getPort());
-					WRITE_S(NULL,QQ_LOGINSERVER2,szTemp);
-				}
-				*/
-
-				append(new EvaRequestKeyPacket(QQ_REQUEST_FILE_AGENT_KEY));
-
-				m_myInfoRetrieved=false;
-				m_downloadGroup=false;
-				append(new GetUserInfoPacket(m_myqq));
-
-				if (READ_B2(NULL,QQ_STATUSASPERSONAL)==1 && !READ_TS2(NULL,"PersonalSignature",&dbv)) {
-					LPSTR pszMsg;
-					pszMsg=mir_u2a_cp(dbv.ptszVal,936);
-					//util_convertFromNative(&pszMsg,dbv.ptszVal);
-
-					if (*pszMsg==0) {
-						append(new SignaturePacket(QQ_SIGNATURE_DELETE));
-					} else {
-						SignaturePacket *packet = new SignaturePacket(QQ_SIGNATURE_MODIFY);
-						packet->setSignature(pszMsg);
-						append(packet);
-					}
-					//free(pszMsg);
-					mir_free(pszMsg);
-					DBFreeVariant(&dbv);
-				} else {
-					std::map<unsigned int, unsigned int> list;
-					SignaturePacket *packet = new SignaturePacket(QQ_SIGNATURE_REQUEST);
-					list[packet->getQQ()] = 0;
-					packet->setMembers(list);
-					append(packet);
-				}
-
-				{
-					char szTemp[MAX_PATH]={0};
-					const unsigned char* pszKey=Packet::getClientKey();
-					for (int c=0; c<32; c++) {
-						sprintf(szTemp+strlen(szTemp),"%02x",*pszKey++);
-					}
-					util_log(0,"Client key: %s",szTemp);
-				}
-
-#ifdef MIRANDAQQ_IPC
-				NotifyEventHooks(hIPCEvent,QQIPCEVT_LOGGED_IN,NULL);
-#endif
-				break;
-			}
-		case QQ_LOGIN_REPLY_MISC_ERROR:
-		case QQ_LOGIN_REPLY_PWD_ERROR:
-		case QQ_LOGIN_REPLY_NEED_REACTIVATE:
-			{
-				LPTSTR szMsg;
-				util_log(0,"%s(): Login failed: %s",__FUNCTION__,packet->getReplyMessage().c_str());
-				//util_convertToNative(&szMsg,packet->getReplyMessage().c_str());
-				szMsg=mir_a2u_cp(packet->getReplyMessage().c_str(),936);
-				// Reconnect plugin does not recognize LOGINERR_WRONGPROTOCOL and will reconnect, so send LOGINERR_WRONTPASSWORD also
-				ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,/*replyCode==QQ_LOGIN_REPLY_PWD_ERROR?*/LOGINERR_WRONGPASSWORD/*:LOGINERR_WRONGPROTOCOL*/);
-				SetStatus(ID_STATUS_OFFLINE);
-
-				MessageBox(NULL,szMsg,NULL,MB_ICONERROR|MB_SYSTEMMODAL);
-				if (replyCode==QQ_LOGIN_REPLY_NEED_REACTIVATE) {
-					if (wcsstr(szMsg,L"im.qq.com"))
-						MessageBox(NULL,TranslateT("Please switch server. If it doesn't help, then your QQ number can only be used in QQ2007/TM2007. No unofficial clients can be used."),NULL,MB_ICONERROR);
-					else
-						CallService(MS_UTILS_OPENURL,(WPARAM)0,(LPARAM)"http://jihuo.qq.com/");
-				}
-				mir_free(szMsg);
-				break;
-			}
-	}
-}
-#endif
-
-void CNetwork::_changeStatusCallback(ChangeStatusReplyPacket* packet) {
-	if (packet->isAccepted()) BroadcastStatus(m_iDesiredStatus);
-}
-
-void CNetwork::_getUserInfoCallback(GetUserInfoReplyPacket* packet) {
-	ContactInfo info=packet->contactInfo();
-	if (info.count()!=0) {
-		unsigned int qqid=htonl(*(unsigned int*)(info.at(ContactInfo::Info_qqID)+2));
-
-		HANDLE hContact=FindContact(qqid);
-		//GETSETTINGS();
-
-		util_log(0,"TEST: QQID=%d for=%d",packet->getQQ(),qqid);
-
-		if (qqid==0 || hContact==NULL) {
-			util_log(0,"Malformed user info reply!");
-		} else {
-			// Note: evauserinfo now have all data in UTF-8, so direct write to database is possible
-			char szTemp[16];
-			const char* pszTemp;
-
-			WRITEINFO_U8S("Nick",info.Info_nick);
-			WRITEINFO_U8S("ZIP",info.Info_zipcode);
-			WRITEINFO_U8S("Address",info.Info_address);
-			WRITEINFO_U8S("Telephone",info.Info_telephone);
-			WRITEINFO_U8S("Email",info.Info_email);
-			WRITEINFO_U8S("Occupation",info.Info_occupation);
-			WRITEINFO_U8S("Homepage",info.Info_homepage);
-			WRITEINFO_U8S("Mobile",info.Info_mobile);
-			WRITEINFO_U8S("About",info.Info_intro);
-			WRITEINFO_U8S("College",info.Info_college);
-			pszTemp=info.at(ContactInfo::Info_birth)+2;
-			sprintf(szTemp,"%d/%d/%d",htonl(*(unsigned int*)pszTemp),pszTemp[4],pszTemp[5]);
-			WRITEINFO_U8S("Birthday",info.Info_college);
-			WRITEINFO_U8S("Country",info.Info_country);
-			WRITEINFO_U8S("City",info.Info_city);
-			WRITEINFO_U8S("Province",info.Info_province);
-			WRITEINFO_W("Language1",info.Info_language1);
-			WRITEINFO_W("Language2",info.Info_language2);
-			WRITEINFO_W("Language3",info.Info_language3);
-			WRITEC_W("Age",*(unsigned char*)(info.at(info.Info_age)+2));
-			WRITEINFO_D("Flag",info.Info_subscr);
-
-			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-			dr->hContact=hContact;
-			dr->ackType=ACKTYPE_GETINFO;
-			dr->ackResult=ACKRESULT_SUCCESS;
-			dr->aux=1;
-			dr->aux2=NULL;
-			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-
-		}
-	}
-}
-#if 0
-void CNetwork::_getFriendListCallback(GetFriendListReplyPacket* packet) {
-	friendItemList gotList = packet->getFriendList();
-	friendItemList::iterator iter;
-	QQFriend frd;
-	HANDLE hContact;
-	LPTSTR nick;
-	bool fCleanNickname=READ_B2(NULL,QQ_REMOVENICKCHARS);
-	//GETSETTINGS();
-
-	for(iter = gotList.begin(); iter!= gotList.end(); ++iter){
-		frd.setFriendItem(*iter);
-
-		hContact=AddContact(frd.getQQ(),false,false);
-		// Basic info
-		WRITEC_W("Age",frd.getAge()); // This one should be Byte, Word for historical reason
-		WRITEC_B("CommonFlag",frd.getCommonFlag());
-		WRITEC_B("ExtFlag",frd.getExtFlag());
-		WRITEC_W("Face",frd.getFace());
-		WRITEC_B("Gender",frd.getGender());
-		WRITEC_D("UpdateTS",(DWORD)time(NULL));
-
-		nick=mir_a2u_cp(frd.getNick().c_str(),936);
-		//util_convertToNative(&nick,frd.getNick().c_str());
-		if (fCleanNickname) util_clean_nickname(nick);
-
-		// Add identity if needed
-#if 0
-		if (!qqSettings->DisableContactIdentity) {
-			DBVARIANT dbv;
-			if (!READ_TS2(NULL,"Nick",&dbv)) {
-				nick=(LPTSTR)realloc(nick,(_tcslen(nick)+_tcslen(dbv.ptszVal)+4)*sizeof(TCHAR));
-				_stprintf(nick+_tcslen(nick),_T(" (%s)"),dbv.ptszVal);
-				DBFreeVariant(&dbv);
-			}
-		}
-#endif
-		WRITEC_TS("Nick",nick);
-		//free(nick);
-		mir_free(nick);
-	}
-}
-#endif
-
-void CNetwork::_requestExtraInfoCallback(RequestExtraInfoReplyPacket* packet) {
-	int count = 0;
-	std::map<unsigned int, unsigned int> list;
-	std::map<unsigned int, unsigned __int64> members = packet->getMembers();
-	std::map<unsigned int, unsigned __int64>::iterator iter;
-	HANDLE hContact;
-	//GETSETTINGS();
-
-	for(iter = members.begin(); iter!= members.end(); ++iter){
-		hContact=FindContact(iter->first);
-		if (hContact) {
-			//util_log(0,"ASSERT: QQ %d, extra=0x%x",iter->first,iter->second);
-			WRITEC_W("ExtraInfo",(WORD)iter->second);
-			if(iter->second & 0x4000) {
-				count++;
-				list[iter->first] = 0;
-			}
-		}
-	}
-	if (list.size()) {
-		SignaturePacket *packet = new SignaturePacket(QQ_SIGNATURE_REQUEST);
-		packet->setMembers(list);
-		append(packet);
-	}
-
-	if(packet->getOffset()!=QQ_FRIEND_LIST_POSITION_END){
-		append(new RequestExtraInfoPacket(packet->getOffset()));
-	} else if (READ_B2(NULL,QQ_AVATARTYPE)==0) {
-		HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
-		std::list<unsigned int> list;
-		std::list<unsigned int> quns;
-
-		while (hContact) {
-			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
-				if (READC_W2("ExtraInfo") & QQ_EXTAR_INFO_USER_HEAD)
-					list.push_back(READC_D2(UNIQUEIDSETTING));
-				else if (READC_B2("IsQun")==1)
-					quns.push_back(READC_D2(UNIQUEIDSETTING));
-			}
-
-			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
-		}
-
-		for (std::list<unsigned int>::iterator iter=quns.begin(); iter!=quns.end(); iter++)
-			list.push_back(*iter);
-
-		if (list.size()) {
-			m_userhead=new CUserHead(this);
-			m_userhead->setQQList(list);
-			m_userhead->connect();
-		}
-	}
-}
-
-#if 0
-void CNetwork::_writeIP(HANDLE hContact, int ip) {
-	char szPluginPath[MAX_PATH];
-	LPWSTR szLocation;
-
-	CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\QQWry.dat",(LPARAM)szPluginPath);
-	EvaIPSeeker ipAddr(szPluginPath);
-	//util_convertToNative(&szLocation,ipAddr.getIPLocation(ip).c_str());
-	szLocation=mir_a2u_cp(ipAddr.getIPLocation(ip).c_str(),936);
-	WRITEC_TS("Location",szLocation);
-	mir_free(szLocation);
-}
-#endif
-
-void CNetwork::_writeVersion(HANDLE hContact, int version, const char* iniFile) {
+void CNetwork::_writeVersion(HANDLE hContact, int version, LPCSTR iniFile) {
 	char szTextVersion[MAX_PATH];
 	char szVersion[5]={0};
 	LPWSTR wszVersion;
@@ -1251,7 +222,6 @@ void CNetwork::_writeVersion(HANDLE hContact, int version, const char* iniFile) 
 		GetPrivateProfileStringA("Versions",szVersion,"",szTextVersion,MAX_PATH,iniFile);
 		if (!*szTextVersion) {
 			sprintf(szTextVersion,"QQ Unknown Version (0x%04x)",version);
-			//util_convertToNative(&wszVersion,szTextVersion,FALSE);
 			wszVersion=mir_a2u_cp(szTextVersion,936);
 		} else {
 			*strchr(szTextVersion,'>')=0;
@@ -1261,1798 +231,6 @@ void CNetwork::_writeVersion(HANDLE hContact, int version, const char* iniFile) 
 	}
 	WRITEC_TS("MirVer",wszVersion);
 	mir_free(wszVersion);
-}
-
-void CNetwork::_getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet) {
-	onlineList list = packet->getOnlineFriendList();
-	char szPluginPath[MAX_PATH];
-
-	map<unsigned int, unsigned int> qqlist;
-	CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
-
-	HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
-	map<DWORD,UCHAR> unhandledqqlist;
-	DWORD qqid;
-	int oldStatus;
-	int status;
-
-	while (hContact) {
-		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
-			if (qqid=READC_D2(UNIQUEIDSETTING)) if (!READC_B2("IsQun") && qqid<0x80000000) unhandledqqlist[qqid]=0;
-		}
-
-		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
-	}
-
-	for(onlineList::iterator iter = list.begin(); iter!=list.end(); ++iter){
-		unhandledqqlist[iter->getQQ()]=1;
-		if (hContact=FindContact(iter->getQQ())) {
-			oldStatus=READC_W2("Status");
-			status=ID_STATUS_ONLINE;
-
-			switch (iter->getStatus()) {
-				case QQ_OFFLINE:		status=ID_STATUS_OFFLINE;	break;
-				case QQ_AWAY:			status=ID_STATUS_AWAY;		break;
-				case QQ_HIDDEN:			status=ID_STATUS_INVISIBLE;	break;
-				case QQ_BUSY:			status=ID_STATUS_NA;			break;
-				case QQ_KILLME:			status=ID_STATUS_OCCUPIED;	break;
-				case QQ_QUIET:			status=ID_STATUS_INVISIBLE;	break;
-				case QQ_ONLINE: default:status=ID_STATUS_ONLINE;		break;
-			}
-
-			if (status!=oldStatus && oldStatus!=ID_STATUS_INVISIBLE && status!=ID_STATUS_INVISIBLE) {
-				WRITEC_W("Status",status);
-
-				if (oldStatus!=ID_STATUS_OFFLINE)
-					qqlist[iter->getQQ()]=0;
-				else {
-					// These things should only change when changing from offline to online
-					WRITEC_B("CommFlag",iter->getCommFlag());
-					WRITEC_B("ExtFlag",iter->getExtFlag());
-					//WRITEC_D("TickTS",(DWORD)time(NULL)); // No use now
-
-					_writeVersion(hContact,iter->getUnknown3_13_14(),szPluginPath);
-
-#if 0
-					if (iter->getIP()) {
-						util_log(0,"QQ Contact %d shared IP: 0x%x",iter->getQQ(),iter->getIP());
-						WRITEC_D("IP",iter->getIP());
-						WRITEC_W("Port",iter->getPort());
-						_writeIP(hContact,iter->getIP());
-					}
-#endif
-				}
-			}
-		} else
-			util_log(98,"%s(): Warning: Cannot find contact with QQ=%d! Possibly removed?",__FUNCTION__,iter->getQQ());
-	}
-
-#if 0 // May have problem if this function recalls several times
-	for (map<DWORD,UCHAR>::iterator iter=unhandledqqlist.begin(); iter!=unhandledqqlist.end(); iter++) {
-		if (iter->second==0) {
-			if (hContact=FindContact(iter->first)) {
-				oldStatus=READC_W2("Status");
-				if (oldStatus!=ID_STATUS_OFFLINE && (oldStatus!=ID_STATUS_INVISIBLE || (DWORD)time(NULL)-READC_D2("InvisibleTS")>300)) {
-					DELC("InvisibleTS");
-					WRITEC_W("Status",ID_STATUS_OFFLINE);
-					util_log(0,"Set QQ contact %d to offline.",iter->first);
-				}
-			}
-		}
-	}
-#endif
-
-#if 0 // Handled by myqq?
-	if (qqlist.size()) {
-		SignaturePacket *packet = new SignaturePacket(QQ_SIGNATURE_REQUEST);
-		packet->setMembers(qqlist);
-		append(packet);
-	}
-#endif
-}
-
-//extern HANDLE	hInitChat;
-void CNetwork::_downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* packet) {
-	std::list<DownloadFriendEntry> friends = packet->getGroupedFriends();
-#if 0
-	HANDLE hContact;
-	//GETSETTINGS();
-
-	for(list<DownloadFriendEntry>::iterator iter = friends.begin(); iter!= friends.end(); ++iter){
-		if(!iter->isQun()){
-			hContact=FindContact(iter->getQQ());
-			if (m_downloadGroup && hContact) { // Only continues if download group is performing and user is in contact list
-				DBVARIANT dbv={0};
-				DBGetContactSetting(hContact,"CList","Group",&dbv);
-
-				if (dbv.pszVal && !strcmp(dbv.pszVal+1,"MetaContacts Hidden Group")) { // Don't touch MetaContacts!
-					DBVARIANT dbvNick={0};
-					TCHAR szPath[MAX_PATH];
-					DBGetContactSettingTString(hContact,m_szModuleName,"Nick",&dbv);
-
-					swprintf(szPath,TranslateT("Not moving contact %s (%d) because he/she is maintained by MetaContacts"),dbv.ptszVal,iter->getQQ());
-					ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szPath));
-				} else {
-					util_log(0,"%s(): Contact %d belongs to group %d",__FUNCTION__,iter->getQQ(), iter->getGroupID());
-
-					if (iter->getGroupID()==0) // No group
-						CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)0);
-					else // In group
-						CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)m_hGroupList[iter->getGroupID()-1]);
-				}
-
-				m_qqusers++;
-			}
-		}else{
-			/*
-			if (!m_qunList.getQun(iter->getQQ())) {
-				Qun q(iter->getQQ());
-				m_qunList.add(q);
-			}
-			*/
-		}
-	}
-#endif
-
-	if (packet->getNextStartID()==0 || packet->getLength()!=0x038a) {
-		//list<Qun> quns=m_qunList.getQunList();
-		plist* quns=&m_client.qun_list;
-		HANDLE hContact;
-		DBVARIANT dbv;
-		//DWORD dwQunIgnore;
-
-		// Process new quns from server list
-		// for (list<Qun>::iterator iter=quns.begin(); iter!=quns.end(); iter++) {
-		for (int c=0; c<quns->count; c++) {
-			hContact=FindContact(((qqqun*)quns->items[c])->number);
-			if (!hContact) {
-				hContact=AddContact(((qqqun*)quns->items[c])->number,false,false);
-			}
-
-			if (hContact) {
-				WRITEC_B("IsQun",1);
-				WRITEC_B("ServerQun",1);
-				//DBWriteContactSettingDword(hContact,"Ignore","Mask1",8);
-
-				if (DBGetContactSettingTString(hContact,m_szModuleName,"Nick",&dbv)) {
-					// Info not get
-					WRITEC_B("QunInit",1);
-					// MyQQ Handled it
-					//append(new QunGetInfoPacket(((qqqun*)quns->items[c])->number);
-				} else
-					DBFreeVariant(&dbv);
-			}
-		}
-
-		bool fSuppressQunMsg=READ_B2(NULL,QQ_SUPPRESSQUNMSG);
-
-		// Process quns not in list
-		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
-		while (hContact) {
-			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && READ_B2(hContact,"IsQun")==1) {
-				/*
-				if (!((dwQunIgnore=DBGetContactSettingDword(hContact,"Ignore","Mask1",0))&8))
-					DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore|8);
-				*/
-
-				if (READC_B2("ServerQun")==0 && READC_B2("NoInit")==0) {
-					WRITEC_B("QunInit",1);
-					/*
-					Qun q(READC_D2(UNIQUEIDSETTING));
-					m_qunList.add(q);
-					*/
-					//network->append(new QunGetInfoPacket(*iter));
-					// m_qunInitList.push_back(q.getQunID());
-				} else {
-					DBDeleteContactSetting(hContact,"CList","Hidden");
-					//dwQunIgnore=DBGetContactSettingDword(hContact,"Ignore","Mask1",0);
-					//DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore|8);
-
-					WRITEC_W("Status",READC_B2("NoInit")?ID_STATUS_INVISIBLE:(fSuppressQunMsg?ID_STATUS_DND:DBGetContactSettingWord(hContact,m_szModuleName,"PrevStatus",ID_STATUS_ONLINE)));
-					//DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore);
-#ifdef MIRANDAQQ_IPC
-					NotifyEventHooks(hIPCEvent,(WPARAM)QQIPCEVT_QUN_ONLINE,(LPARAM)hContact);
-#endif
-					//chatInitQun((WPARAM)hContact,0);
-					//NotifyEventHooks(hInitChat, (WPARAM)hContact,0);
-				}
-			}
-
-			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
-		}
-
-		/*
-		if (isInvisible()) 
-			qqDesiredStatus=ID_STATUS_INVISIBLE;
-		*/
-
-		if (m_iDesiredStatus==ID_STATUS_ONLINE||m_iDesiredStatus==ID_STATUS_INVISIBLE) {
-			BroadcastStatus(m_iDesiredStatus);
-		} else {
-			//SetStatus(m_iDesiredStatus);
-			SetServerStatus(m_iDesiredStatus);
-		}
-
-		if (m_qunInitList.size()) prot_qun_get_info(&m_client,m_qunInitList.front(),0); // append(new QunGetInfoPacket(m_qunInitList.front()));
-
-#if 0
-		if (m_downloadGroup) {
-			WCHAR szTemp[MAX_PATH];
-			swprintf(szTemp,TranslateT("Retrieved %d users, %d quns from %d groups."),m_qqusers,/*m_qunList.numQuns()*/m_client.qun_list.size,m_hGroupList.size());
-			ShowNotification(szTemp,NIIF_INFO);
-			m_hGroupList.clear();
-			m_downloadGroup=false;
-		}
-#endif
-	}
-}
-
-#if 0
-void CNetwork::_qunGetInfoCallback(QunReplyPacket* packet) {
-	if (packet->isReplyOK()) {
-		QunInfo info = packet->getQunInfo();
-		int qunid=info.getQunID();
-		Qun* qun=m_qunList.getQun(qunid);
-
-		if (!qun) {
-			m_qunList.add(Qun(qunid));
-			qun=m_qunList.getQun(qunid);
-		}
-
-		std::list<FriendItem> l=qun->getMembers();
-
-		//util_log(0,"Qun %d: Pre: l.size=%d, qun->...getVersionID()=%d, info.getVersionID()=%d",info.getExtID(),qun->getDetails().getVersionID(),info.getVersionID());
-
-		//std::map<int, QunMember>::iterator iter;
-		std::map<unsigned int, QunMember> lst = packet->getMemberList();
-		int cardVersion=qun->getRealNamesVersion();
-
-		util_log(0,"Qun %d: Version=%d, CardVersion=%d, Member Count(Stored:Recv)=%d:%d",info.getExtID(),info.getVersionID(),cardVersion,lst.size(),l.size());
-
-		m_qunList.setDetails(info);
-		m_qunList.setMemberArgs(qunid,lst);
-
-		qun->setRealNamesVersion(cardVersion);
-
-		for(list<FriendItem>::iterator it = l.begin(); it!= l.end(); ++it){
-			for(map<unsigned int, QunMember>::iterator iter= lst.begin(); iter != lst.end(); ++iter)
-				if (iter->second.qqNum==it->getQQ()) {
-					qun->setMember(*it);
-					break;
-				}
-		}
-
-		HANDLE hContact=FindContact(qunid);
-		if (!hContact) {
-			hContact=AddContact(qunid,false,false);
-			if (hContact) {
-				WRITEC_B("IsQun",1);
-				WRITEC_D("QunVersion",info.getVersionID());
-				WRITEC_D("CardVersion",-1);
-			}
-		}
-
-		std::list<unsigned int> toSend;
-		int i=0;
-		bool sent=false;
-		std::map<unsigned int,QunMember>::iterator iter;
-		FriendItem fi;
-		LPTSTR szInfo;
-		TCHAR szNick[MAX_PATH];
-		LPTSTR pszTemp;
-
-		szInfo=mir_a2u_cp(info.getName().c_str(),936);
-		_stprintf(szNick,TranslateT("(QQ Qun) %s"),szInfo);
-		WRITEC_TS("Nick",szNick);
-		mir_free(szInfo);
-
-		LPSTR pszInfo2;
-		pszInfo2=mir_utf8encodecp(info.getNotice().c_str(),936);
-		DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszInfo2);
-		mir_free(pszInfo2);
-
-		if (!READC_B2("HelperControlled")) DBDeleteContactSetting(hContact,"CList","Hidden");
-		//DWORD dwQunIgnore;
-
-		if (READC_W2("Status")==ID_STATUS_OFFLINE) {
-			//dwQunIgnore=DBGetContactSettingDword(hContact,"Ignore","Mask1",0);
-			//DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore|8);
-
-			WRITEC_W("Status",READ_B2(NULL,QQ_SUPPRESSQUNMSG)?ID_STATUS_DND:DBGetContactSettingWord(hContact,m_szModuleName,"PrevStatus",ID_STATUS_ONLINE));
-			//DBWriteContactSettingDword(hContact,"Ignore","Mask1",dwQunIgnore);
-#ifdef MIRANDAQQ_IPC
-			NotifyEventHooks(hIPCEvent,(WPARAM)QQIPCEVT_QUN_ONLINE,(LPARAM)hContact);
-#endif
-		} else {
-#ifdef MIRANDAQQ_IPC
-			NotifyEventHooks(hIPCEvent,(WPARAM)QQIPCEVT_QUN_REFRESHINFO,(LPARAM)hContact);
-#endif
-		}
-
-		WRITEC_B("AuthType",info.getAuthType());
-		WRITEC_W("Category",info.getCategory());
-		WRITEC_D("Creator",info.getCreator());
-		WRITEQUNINFO_TS("Description",info.getDescription());
-		WRITEC_D("ExternalID",info.getExtID());
-		WRITEC_B("Type",info.getType());
-		WRITEC_B("IsAdmin",qun->isAdmin(m_myqq));
-
-		m_qunMemberCountList[qunid]=lst.size();
-		m_currentQunMemberCountList[qunid]=0;
-
-		for(iter= lst.begin(); iter != lst.end(); ++iter){
-			//if (!qun->hasMember(iter->first)) {
-				if(i>0 && i%30==0){
-					QunGetMemberInfoPacket *out=new QunGetMemberInfoPacket(qunid);
-					out->setMemberList(toSend);
-					append(out);
-					toSend.clear();
-					util_log(0,"Qun %d: Sent 30-batch qun member update",qunid);
-					//i = 0;
-					sent=true;
-				}
-
-				toSend.push_back(iter->first);
-				i++;
-			//}
-		}
-		if(toSend.size()) {
-			QunGetMemberInfoPacket *out=new QunGetMemberInfoPacket(qunid);
-			out->setMemberList(toSend);
-			append(out);
-			util_log(0,"Qun %d: Sent last batch(%d) qun member update",qunid,toSend.size());
-			toSend.clear();
-			sent=true;
-		} 
-
-		if (!sent) {
-			// No member update required, update Qun Card
-			append(new QunRequestAllRealNames(qunid));
-		}
-
-		if (m_qunInitList.size() && m_qunInitList.front()==qunid) {
-			m_qunInitList.pop_front();
-			if (m_qunInitList.size()) append(new QunGetInfoPacket(m_qunInitList.front()));
-		}
-	} else if (m_qunInitList.size()) {
-		HANDLE hContact=FindContact(m_qunInitList.front());
-		if (hContact) {
-			TCHAR szTemp[MAX_PATH];
-			LPTSTR pszMsg;
-
-			WRITEC_W("Status",ID_STATUS_INVISIBLE);
-			pszMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
-			DBWriteContactSettingTString(hContact,"CList","StatusMsg",pszMsg);
-
-			_stprintf(szTemp,TranslateT("Unable to initialize qun %d:\n%s"),m_qunInitList.front(),pszMsg);
-			ShowNotification(szTemp,NIIF_WARNING);
-			mir_free(pszMsg);
-		}
-
-		m_qunInitList.pop_front();
-		if (m_qunInitList.size()) append(new QunGetInfoPacket(m_qunInitList.front()));
-	}
-}
-#endif
-void CNetwork::_qunCommandCallback(QunReplyPacket* packet) {
-	int qunid=packet->getQunID();
-
-	switch (packet->getQunCommand()) {
-		// case QQ_QUN_CMD_GET_QUN_INFO: _qunGetInfoCallback(packet); break;
-		case QQ_QUN_CMD_SEND_IM:
-		case QQ_QUN_CMD_SEND_IM_EX:
-		case QQ_QUN_CMD_SEND_TEMP_QUN_IM:
-			{
-				OutPacket* op=m_pendingImList[packet->getSequence()+1];
-
-				util_log(0,"Received Qun IM callback, next seq=0x%x, op=0x%x",packet->getSequence()+1, op);
-
-				if (op) {
-					m_pendingImList.erase(op->getSequence());
-					append(op);
-				} else {
-					HANDLE hContact=FindContact(qunid);
-					util_log(0,"Received IM Send Reply, isReplyOK=%d",packet->isReplyOK()?1:0);
-
-					delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-					dr->hContact=hContact;
-					dr->ackType=ACKTYPE_MESSAGE;
-					dr->aux=packet->getSequence();
-
-					if (packet->isReplyOK()) {
-						Sleep(500);
-						if (READC_B2("NoInit")==1 || READC_W2("Status")==ID_STATUS_INVISIBLE) {
-							DELC("NoInit");
-							WRITEC_W("Status",ID_STATUS_ONLINE);
-						}
-						dr->ackResult=ACKRESULT_SUCCESS;
-						dr->aux2=NULL;
-						ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-
-					} else {
-						// Ack Failed
-						LPWSTR pszUnicode=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
-						LPSTR pszANSI=mir_u2a_cp(pszUnicode,GetACP());
-						ShowNotification(pszUnicode,NIIF_ERROR);
-						dr->ackResult=ACKRESULT_FAILED;
-						dr->aux2=NULL;
-						ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-
-						mir_free(pszUnicode);
-					}
-#ifdef MIRANDAQQ_IPC
-					NotifyEventHooks(hIPCEvent,QQIPCEVT_QUN_MESSAGE_SENT,(LPARAM)hContact);
-#endif
-				}
-			}
-			break;
-#if 0 // TODO
-		case QQ_QUN_CMD_MODIFY_MEMBER:
-			{
-				TCHAR szMsg[MAX_PATH];
-				LPCSTR szServerMsg=strdup(packet->getErrorMessage().c_str());
-				LPTSTR pszServerMsg;
-				HANDLE hContact=FindContact(qunid);
-
-				pszServerMsg=mir_a2u_cp(szServerMsg,936);
-				
-				_stprintf(szMsg,TranslateT("Qun Modification Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
-				ShowNotification(szMsg,NIIF_INFO);
-				WRITEC_D("CardVersion",-1);
-				append(new QunGetInfoPacket(qunid));
-				mir_free(pszServerMsg);
-			}
-			break;
-		case QQ_QUN_CMD_EXIT_QUN: // Requested to exit a Qun or kicked by Qun Admin
-			{
-				TCHAR szMsg[MAX_PATH];
-				LPCSTR szServerMsg=strdup(packet->getErrorMessage().c_str());
-				LPTSTR pszServerMsg;
-				HANDLE hContact=FindContact(qunid);
-				int extID=READC_D2("ExternalID");
-
-				if (!extID) extID=qunid;
-				pszServerMsg=mir_a2u_cp(szServerMsg,936);
-
-				_stprintf(szMsg,TranslateT("Qun Exit Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
-				ShowNotification(szMsg,NIIF_INFO);
-
-				if(packet->isReplyOK()){
-					m_qunList.remove(packet->getQunID());
-					if (hContact) CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact,0);
-				}
-			}
-			break;
-		case QQ_QUN_CMD_GET_MEMBER_INFO: // Requested to get member info on a qun (Multiple members each reply)
-			{
-				if (packet->isReplyOK()) {
-					if (Qun* qun=m_qunList.getQun(qunid)) {
-						const list<FriendItem> lst=packet->getMemberInfoList();
-						m_qunList.setMembers(qunid, lst);
-						m_currentQunMemberCountList[qunid]+=lst.size();
-						if (m_currentQunMemberCountList[qunid]>=m_qunMemberCountList[qunid]) {
-							//CQunListV2* qunList=CQunListV2::getInstance(false);
-							HANDLE hContact=FindContact(qunid);
-
-							util_log(0,"Qun %d: Member info completed, ask for real names",qunid);
-
-							/*
-							if (qunList && qunList->getQunid()==qunid) {
-								qunList->refresh();
-							}
-							*/
-
-							append(new QunRequestAllRealNames(qunid));
-							m_currentQunMemberCountList.erase(qunid);
-						}
-					}
-				}
-			}
-			break;
-		case QQ_QUN_CMD_GET_ONLINE_MEMBER: // Requested to get online members in Qun
-			{
-				if (packet->isReplyOK()) {
-					HANDLE hContact=FindContact(packet->getQunID());
-					m_qunList.setOnlineMembers(packet->getQunID(), packet->getQQNumberList());
-					if (Qun* qun=m_qunList.getQun(packet->getQunID())) {
-#if 0
-						list<FriendItem> fil=qun->getMembers();
-						qunmemberinfo_t qmi[201]={0};
-						qunmemberinfo_t* pQmi=qmi;
-						qunmemberinfo_outter_t qmio={packet->getQunID(),qmi};
-
-						for (list<FriendItem>::iterator iter=fil.begin(); iter!=fil.end(); iter++,pQmi++) {
-							pQmi->memberid=iter->getQQ();
-							pQmi->flag=iter->isOnline()?QQIPCQMFLAG_ONLINE:0;
-							if (iter->isAdmin()) pQmi->flag|=QQIPCQMFLAG_ADMIN;
-							if (iter->isShareHolder()) pQmi->flag|=QQIPCQMFLAG_INVESTOR;
-							if (qun->getDetails().getCreator()==pQmi->memberid) pQmi->flag|=QQIPCQMFLAG_CREATOR;
-						}
-#endif
-
-#ifdef MIRANDAQQ_IPC
-						ipconlinemembers_t iom={hContact,packet->getQunID(),packet->getQQNumberList()};
-						NotifyEventHooks(hIPCEvent,(WPARAM)QQIPCEVT_QUN_UPDATE_ONLINE_MEMBERS,(LPARAM)&iom);
-#endif
-
-						/*
-						if (CQunListV2* qList=CQunListV2::getInstance(false)) {
-							if (qList->getQunid()==qunid) qList->refresh();
-						}
-						*/
-					}
-					WRITEC_B("GetInfoOnline",2);
-					delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-					dr->hContact=hContact;
-					dr->ackType=ACKTYPE_GETINFO;
-					dr->ackResult=ACKRESULT_SUCCESS;
-					dr->aux=1;
-					dr->aux2=NULL;
-					ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-
-				}
-			}
-			break;
-#endif
-		case QQ_QUN_CMD_JOIN_QUN: // Requested to join a Qun
-			switch (packet->getJoinReply()) {
-				// case QQ_QUN_NO_AUTH: // Not seen
-				case QQ_QUN_JOIN_OK: // Qun Admin approved request
-					qun_update_info(&m_client,qun_get(&m_client,qunid,1));
-					break;
-				case QQ_QUN_JOIN_DENIED: // Qun Admin rejected request
-					{
-						TCHAR szMsg[MAX_PATH];
-						LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
-
-						_stprintf(szMsg,TranslateT("Administrator of Qun %d denied your join request\n%s"),qunid,pszServerMsg);
-						ShowNotification(szMsg,NIIF_ERROR);
-						mir_free(pszServerMsg);
-					}
-					break;
-				case QQ_QUN_JOIN_NEED_AUTH: // This Qun need authorization
-					{
-						util_log(0,"2006: Qun need authorization (default), request auth info");
-
-						if (HANDLE hContact=FindContact(m_deferActionData)) {
-							EvaAddFriendGetAuthInfoPacket *packet = new EvaAddFriendGetAuthInfoPacket(READC_D2("ExternalID"), AUTH_INFO_CMD_INFO, true);
-							packet->setVerificationStr("");
-							packet->setSessionStr("");
-							append(packet);
-						} else {
-							util_log(0,"ERROR: hContact==NULL");
-						}
-					}
-					break;
-				case QQ_QUN_CMD_JOIN_QUN_AUTH: // Requested to join a Qun with authorization message
-					if (!packet->isReplyOK()) {
-						TCHAR szMsg[MAX_PATH];
-						LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
-
-						_stprintf(szMsg,TranslateT("Administrator of Qun %d denied your join request\n%s"),qunid,pszServerMsg);
-						ShowNotification(szMsg,NIIF_ERROR);
-						mir_free(pszServerMsg);
-					}
-					break;
-				default:
-					{
-						TCHAR szMsg[MAX_PATH];
-						LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
-
-						_stprintf(szMsg,TranslateT("Add qun result of qun %d:\n%s"),qunid,pszServerMsg);
-						ShowNotification(szMsg,NIIF_INFO);
-						mir_free(pszServerMsg);
-					}
-					break;
-			}
-			m_deferActionType=0;
-			break;
-		case QQ_QUN_CMD_SEARCH_QUN: // Search for a Qun
-			{
-				if (packet->isReplyOK()) {
-					list<QunInfo> lst=packet->getQunInfoList();
-					list<QunInfo>::iterator iter=lst.begin();
-					PROTOSEARCHRESULT psr;
-					char uid[32];
-
-					if (lst.size()) {
-						sprintf(uid,"%d (%d)",iter->getExtID(),iter->getQunID());
-
-						ZeroMemory(&psr, sizeof(psr));
-						psr.cbSize = sizeof(psr);
-						psr.nick = uid;
-						mir_utf8decodecp(psr.firstName=mir_strdup(iter->getName().c_str()),CP_ACP,NULL);
-						mir_utf8decodecp(psr.lastName=mir_strdup(iter->getDescription().c_str()),CP_ACP,NULL);
-						psr.email=mir_u2a(iter->getAuthType()==QQ_QUN_NEED_AUTH?TranslateT("Authentication Required"):iter->getAuthType()==QQ_QUN_NO_AUTH?TranslateT("Authentication Not Required"):TranslateT("No Add"));
-
-						ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);			
-						mir_free(psr.firstName);
-						mir_free(psr.lastName);
-						mir_free(psr.email);
-					}
-
-					ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
-				} else {
-					ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
-				}
-			}
-			break;
-		case QQ_QUN_CMD_REQUEST_ALL_REALNAMES:
-			if(packet->isReplyOK()){
-				if (qqqun* qun=qun_get(&m_client,qunid,0)) {
-					bool fUpdate=false;
-					HANDLE hContact=FindContact(qunid);
-					if (!hContact) break;
-
-					util_log(0,"Qun %d RealNames version: %d -> %d",qunid, qun->realnames_version,packet->getCardVersion());
-
-					if (packet->getCardVersion()!=READC_D2("CardVersion") || READC_D2("QunCardUpdate")==-1) {
-						util_log(0,"Qun %d: Different card version(%d), perform update",qunid,packet->getCardVersion());
-						fUpdate=true;
-					} else if (time(NULL)-READC_D2("QunCardUpdate")>60) {
-						// Same version, no need to update
-						util_log(0,"Qun %d: Same card version(%d), no need to update",qunid,packet->getCardVersion());
-						WRITEC_B("GetInfoOnline",1);
-						delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-						dr->hContact=hContact;
-						dr->ackType=ACKTYPE_GETINFO;
-						dr->ackResult=ACKRESULT_SUCCESS;
-						dr->aux=1;
-						dr->aux2=NULL;
-						ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-
-						fUpdate=false;
-					}
-
-					if (fUpdate) {
-						std::map<int, std::string> nameList = packet->getRealNames();
-						std::map<int, std::string>::iterator it;
-						qunmember* qm;
-						LPSTR pszUTF8;
-
-						// NOTE: The info is still in GBK not UTF-8!
-						for(it = nameList.begin(); it != nameList.end(); ++it){
-							// Crash here
-							qm=qun_member_get(&m_client,qun,it->first,0);
-
-							if (qm) {
-								pszUTF8=mir_utf8encodecp(it->second.c_str(),936);
-								strcpy(qm->nickname,pszUTF8);
-								mir_free(pszUTF8);
-
-
-							}
-						}
-						if(packet->getNextStartIndex()){
-							QunRequestAllRealNames *all = new QunRequestAllRealNames(packet->getQunID());
-							all->setStartIndex(packet->getNextStartIndex());
-							append(all);
-						} else {
-							char szQQID[16];
-							// std::list<FriendItem> fil=qun->getMembers();
-							plist* fil=&qun->member_list;
-							// std::list<FriendItem>::iterator iter;
-							// string realName;
-	#ifdef MIRANDAQQ_IPC
-							ipcmember_t ipcm;
-							ipcmembers_t ipcms={hContact,qunid};
-	#endif
-
-							qun->realnames_version=packet->getCardVersion();
-							WRITEC_D("QunCardUpdate",(DWORD)time(NULL));
-							WRITEC_D("CardVersion",packet->getCardVersion());
-
-							util_log(0,"Writing names for Qun %d",qunid);
-
-	// #ifdef MIRANDAQQ_IPC
-							unsigned int creator=qun->owner;
-							// LPWSTR pwszCreator;
-	// #endif
-
-							// for (iter=fil.begin();iter!=fil.end();iter++) {
-							for (int cc=0; cc<fil->count; cc++) {
-								qm=(qunmember*)fil->items[cc];
-								itoa(qm->number,szQQID,10);
-
-								if (strcmp(szQQID,qm->nickname)) {
-									WRITEC_U8S(szQQID,qm->nickname);
-									
-									if (qm->number==creator) {
-										/*
-										pwszCreator=mir_a2u_cp(realName.c_str(),936);
-										DBWriteContactSettingWString(hContact,m_szModuleName,"CreatorName",pwszCreator);
-										mir_free(pwszCreator);
-										*/
-										WRITEC_U8S("CreatorName",qm->nickname);
-									}
-								}
-								
-	#ifdef MIRANDAQQ_IPC
-
-								ipcm.qqid=qm->number;
-								ipcm.face=qm->face;
-								ipcm.flag=IPCMFLAG_EXISTS+(qm->status!=QQ_OFFLINE?IPCMFLAG_ONLINE:0);
-								if (creator==ipcm.qqid)
-									ipcm.flag|=IPCMFLAG_CREATOR;
-								/*
-								else if (iter->isAdmin())
-									ipcm.flag|=IPCMFLAG_MODERATOR;
-								else if (iter->isShareHolder())
-									ipcm.flag|=IPCMFLAG_INVESTOR;
-									*/
-
-								ipcm.name=realName;
-								ipcms.members.push_back(ipcm);
-	#endif
-							}
-
-	#ifdef MIRANDAQQ_IPC
-							NotifyEventHooks(hIPCEvent,(WPARAM)QQIPCEVT_QUN_UPDATE_NAMES,(LPARAM)&ipcms);
-	#endif
-							WRITEC_B("GetInfoOnline",1);
-							delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-							dr->hContact=hContact;
-							dr->ackType=ACKTYPE_GETINFO;
-							dr->ackResult=ACKRESULT_SUCCESS;
-							dr->aux=1;
-							dr->aux2=NULL;
-							ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-						}
-					}
-
-				}
-			}
-			break;
-#if 0
-		case QQ_QUN_CMD_REQUEST_CARD: // Requested qun card
-			if (Qun* qun=m_qunList.getQun(qunid)) {
-				FriendItem fi(*(qun->getMemberDetails(packet->getTargetQQ())));
-
-				fi.setQunRealName(packet->getRealName());
-				qun->setMember(fi);
-			}
-			break;
-		case QQ_QUN_CMD_ADMIN:
-			{
-				TCHAR szMsg[MAX_PATH];
-				LPCSTR szServerMsg=strdup(packet->getErrorMessage().c_str());
-				LPTSTR pszServerMsg;
-				HANDLE hContact=FindContact(qunid);
-				int extID=READC_D2("ExternalID");
-
-				if (!extID) extID=qunid;
-				pszServerMsg=mir_a2u_cp(szServerMsg,936);
-
-				_stprintf(szMsg,TranslateT("Qun Administration Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
-				ShowNotification(szMsg,NIIF_INFO);
-
-				if(packet->isReplyOK()){
-					append(new QunGetInfoPacket(qunid));
-				}
-
-			}
-			break;
-		case QQ_QUN_CMD_TRANSFER:
-			{
-				TCHAR szMsg[MAX_PATH];
-				LPCSTR szServerMsg=strdup(packet->getErrorMessage().c_str());
-				LPTSTR pszServerMsg;
-				HANDLE hContact=FindContact(qunid);
-				int extID=READC_D2("ExternalID");
-
-				if (!extID) extID=qunid;
-				pszServerMsg=mir_a2u_cp(szServerMsg,936);
-
-				_stprintf(szMsg,TranslateT("Qun Transfer Request for %d %s.\n%s"),qunid,packet->isReplyOK()?TranslateT("succeeded"):TranslateT("failed"),pszServerMsg);
-				ShowNotification(szMsg,NIIF_INFO);
-
-				if(packet->isReplyOK()){
-					append(new QunGetInfoPacket(qunid));
-				}
-
-			}
-			break;
-#endif
-	}
-}
-
-void CNetwork::_imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpacket) {
-	if (subCommand==-1) {
-		int qqid=(int)packet;
-		if (HANDLE hContact=FindContact(qqid)) {
-			if (READC_W2("Status")==ID_STATUS_OFFLINE) {
-				util_log(0,"Set QQ contact %d to invisible",qqid);
-				WRITEC_W("Status",ID_STATUS_INVISIBLE);
-			}
-			if (READC_W2("Status")==ID_STATUS_INVISIBLE) {
-				util_log(0,"Updated invisible TS for QQ contact %d",qqid);
-				WRITEC_D("InvisibleTS",(DWORD)time(NULL));
-			}
-		}
-	} else 
-		switch (packet->getIMType()) {
-			case QQ_RECV_IM_NEWS:
-				if (READ_B2(NULL,QQ_SHOWAD)==1 && ServiceExists(MS_POPUP_ADDPOPUPW)) {
-					ReceivedQQNews news(packet->getBodyData(), packet->getBodyLength());
-					LPTSTR pszMsg;
-					POPUPDATAW ppd={0};
-					pszMsg=mir_a2u_cp(news.getTitle().c_str(),936);
-					_tcscpy(ppd.lpwzContactName,pszMsg);
-					mir_free(pszMsg);
-					pszMsg=mir_a2u_cp(news.getBrief().c_str(),936);
-					_tcscpy(ppd.lpwzText,pszMsg);
-					mir_free(pszMsg);
-					ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-					ppd.PluginWindowProc=_noticePopupProc;
-					pszMsg=mir_a2u_cp(news.getURL().c_str(),936);
-					ppd.PluginData=mir_wstrdup(pszMsg);
-					ppd.iSeconds=60;
-					mir_free(pszMsg);
-					CallService(MS_POPUP_ADDPOPUPW,(WPARAM)&ppd,0);
-				}
-				break;
-			case 0x0012: // QQ Mail
-				if (*(char*)packet->getBodyData()==3) {
-					ReceivedQQMailPacket qmp(packet->getBodyData(),packet->getBodyLength());
-
-					CHAR szUrl[MAX_PATH]="http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=";
-					LPTSTR pszSender,pszTitle,pszURL;
-					
-					pszSender=mir_a2u_cp(qmp.getFrom().c_str(),936);
-					pszTitle=mir_a2u_cp(qmp.getTitle().c_str(),936);
-
-					// http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=xxx&K=xxx
-					itoa(m_myqq,szUrl+strlen(szUrl),10);
-					strcat(szUrl,"&K=");
-					util_fillClientKey(szUrl+strlen(szUrl));
-					strcat(szUrl,"&Mailid=");
-					strcat(szUrl,qmp.getMailID().c_str());
-					pszURL=mir_a2u_cp(szUrl,936);
-
-					POPUPDATAW ppd={0};
-					_tcscpy(ppd.lpwzContactName,TranslateT("You got a new QQ Mail!"));
-					_stprintf(ppd.lpwzText,TranslateT("Sender: %s\nTitle: %s"),pszSender,pszTitle);
-					ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-					ppd.PluginWindowProc=_noticePopupProc;
-					ppd.PluginData=mir_wstrdup(pszURL);
-					ppd.iSeconds=60;
-					CallService(MS_POPUP_ADDPOPUPW,(WPARAM)&ppd,0);
-
-					mir_free(pszSender);
-					mir_free(pszTitle);
-					mir_free(pszURL);
-				}
-				break;
-			case QQ_RECV_IM_SYS_MESSAGE:
-				{
-					// Received System Message
-					ReceivedSystemIM sys(packet->getBodyData(), packet->getBodyLength());		
-
-					switch(sys.getSystemIMType())
-					{
-						case QQ_RECV_IM_KICK_OUT:	// Kick out by server due to duplicated login
-							ShowNotification(TranslateT("You were logged out from QQ network due to duplicated login"),NIIF_ERROR);
-							ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_OTHERLOCATION);
-							GoOffline();
-							break;
-						default:
-							{
-								LPTSTR pszTemp=mir_a2u_cp(sys.getMessage().c_str(),936);
-								ShowNotification(pszTemp,NIIF_WARNING);
-								mir_free(pszTemp);
-							}
-					}
-				}
-				break;
-			case QQ_RECV_IM_QUN_IM:
-			case QQ_RECV_IM_TEMP_QUN_IM:
-			case QQ_RECV_IM_UNKNOWN_QUN_IM:
-			case QQ_RECV_IM_QUN_IM_09:
-				{
-					ReceivedQunIM* im=(ReceivedQunIM*)auxpacket;
-					int qunID=packet->getSender();
-					
-					_qunImCallback2(qunID,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
-
-					if (!m_conservative) {
-						HANDLE hContact;
-						hContact=FindContact(qunID);
-						if (READC_D2("QunVersion")!=im->getVersionID()) {
-							WRITEC_D("QunVersion",im->getVersionID());
-							WRITEC_D("QunCardUpdate",-1);
-
-							prot_qun_get_info(&m_client,qunID,0);
-						} else {
-							if (qun_get(&m_client,qunID,0)!=NULL) {
-								util_log(0,"qunImCallback(): QunVersion=%d, versionID=%d",READC_D2("QunVersion"),im->getVersionID());
-								_updateQunCard(hContact, qunID);
-							}
-						}
-					}
-				}
-				break;
-			case QQ_RECV_IM_TO_BUDDY:
-			case QQ_RECV_IM_TO_UNKNOWN:
-			case QQ_RECV_IM_FROM_BUDDY_2006:
-			case QQ_RECV_IM_BUDDY_09:
-			case QQ_RECV_IM_BUDDY_09SP1:
-			case 0x1f: // Temp
-				switch (subCommand) {
-					case QQ_IM_EX_UDP_REQUEST:
-						{
-							/*
-							ReceivedFileIM* received=(ReceivedFileIM*)auxpacket;
-							util_log(0,"QQ_IM_EX_UDP_REQUEST");
-#if 0
-							_ftUpdateBuddyIP(packet->getSender(),received->getWanIp(),received->getWanPort());
-							_ftReceivedFileRequest(packet->getSender(), received->getSessionId(), received->getFileName().c_str(), received->getFileSize(), received->getTransferType());
-#endif
-							WCHAR szPath[MAX_PATH];
-							DBVARIANT dbv;
-							if (HANDLE hContact=FindContact(packet->getSender())) {
-								LPWSTR szFileName=mir_a2u_cp(received->getFileName().c_str(),936);
-								dbv.ptszVal=NULL;
-								READC_TS2("Nick",&dbv);
-								swprintf(szPath,TranslateT("You received a file/pic transfer request from %s(%d), which MIMQQ2 is not supported\n\nFilename: %s"),dbv.ptszVal?dbv.ptszVal:L"",packet->getSender(),szFileName);
-								if (dbv.ptszVal) DBFreeVariant(&dbv);
-								mir_free(szFileName);
-								ShowNotification(szPath,NIIF_WARNING);
-
-								SendFileExRequestPacket *packet2 = new SendFileExRequestPacket(QQ_IM_EX_REQUEST_CANCELLED);
-								packet2->setReceiver(packet->getSender());
-								packet2->setTransferType(received->getTransferType());
-								packet2->setSessionId(received->getSessionId());
-								append(packet2);
-
-							}
-							*/
-						}
-						break;
-					case QQ_IM_EX_REQUEST_ACCEPTED:
-						util_log(0,"QQ_IM_EX_REQUEST_ACCEPTED");
-						/*
-						{
-							ReceivedFileIM* received=(ReceivedFileIM*)auxpacket;
-
-							_ftReceivedFileAccepted(packet->getSender(), received->getSessionId(), 
-								received->getWanIp(), true, received->getTransferType());
-						}
-						*/
-						break;
-					case QQ_IM_EX_REQUEST_CANCELLED:
-						/*
-						{
-							ReceivedFileIM* received=(ReceivedFileIM*)auxpacket;
-							util_log(0,"EvaPacketManager::processReceiveIM -- cmd canceled\n");
-
-							_ftReceivedFileAccepted(packet->getSender(), received->getSessionId(), 
-							received->getWanIp(), false, received->getTransferType());
-						}
-						*/
-						break;
-					case QQ_IM_NOTIFY_FILE_AGENT_INFO:
-						/*
-						{
-							ReceivedFileIM* received=(ReceivedFileIM*)auxpacket;
-							util_log(0,"QQ_IM_NOTIFY_FILE_AGENT_INFO");
-							_ftReceivedFileAgentInfo(packet->getSender(), received->getSequence(), received->getSessionId(), 
-								received->getWanIp(), received->getWanPort(), (char*)received->getAgentServerKey());
-						}
-						*/
-						break;
-					case QQ_IM_EX_NOTIFY_IP:
-						/*
-						{
-							ReceivedFileExIpIM* received=(ReceivedFileExIpIM*)auxpacket;
-
-							util_log(0,"QQ_IM_EX_NOTIFY_IP");
-							_ftReceivedFileNotifyIpEx(packet->getSender(), received->isSender(),
-								received->getSessionId(), received->getTransferType(),
-								received->getWanIp1(), received->getWanPort1(),
-								received->getWanIp2(), received->getWanPort2(),
-								received->getWanIp3(), received->getWanPort3(),
-								received->getLanIp1(), received->getLanPort1(),
-								received->getLanIp2(), received->getLanPort2(),
-								received->getLanIp3(), received->getLanPort3(),
-								received->getSyncIp(), received->getSyncPort(), received->getSyncSession()
-								);
-						}
-						*/
-						break;
-					default:
-						_imCallback(packet->getIMType(),auxpacket);
-				}
-				break;
-
-			//case QQ_RECV_IM_CREATE_QUN:
-			case QQ_RECV_IM_ADDED_TO_QUN:
-			case QQ_RECV_IM_DELETED_FROM_QUN:// these three type of notifications has no messages
-			case QQ_RECV_IM_APPROVE_JOIN_QUN:
-			case QQ_RECV_IM_REQUEST_JOIN_QUN:
-			case QQ_RECV_IM_REJECT_JOIN_QUN:
-			case QQ_RECV_IM_SET_QUN_ADMIN:
-				{
-					ReceivedQunIMJoinRequest join(packet->getIMType(),packet->getBodyData(), packet->getBodyLength());
-					union {
-						TCHAR wszTemp[MAX_PATH*2];
-						CHAR szTemp[MAX_PATH*4];
-					};
-
-					*wszTemp=0;
-					wszTemp[MAX_PATH]=0;
-
-					switch (packet->getIMType()) {
-						case QQ_RECV_IM_APPROVE_JOIN_QUN: 
-							{
-								swprintf(wszTemp,TranslateT("You have been approved to join Qun %d."),packet->getSender());
-								ShowNotification(wszTemp,NIIF_INFO);
-#if 0 // TODO
-								append(new QunGetInfoPacket(packet->getSender()));
-#endif
-								break;
-							}
-						case QQ_RECV_IM_REQUEST_JOIN_QUN:
-							_sysRequestJoinQunCallback(packet->getSender(),join.getExtID(),join.getSender(), join.getMessage().c_str(),join.getToken(),join.getTokenLength());
-							break;
-						case QQ_RECV_IM_REJECT_JOIN_QUN:
-							_sysRejectJoinQunCallback(packet->getSender(),join.getExtID(),join.getSender(), join.getMessage().c_str());
-							break;
-						case QQ_RECV_IM_SET_QUN_ADMIN:
-							switch (join.getCommander()) {
-								case QQ_QUN_SET_ADMIN:
-									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator assigned %d to be administrator."),join.getSender());
-									break;
-								case QQ_QUN_UNSET_ADMIN:
-									swprintf(wszTemp+MAX_PATH,TranslateT("The Qun Creator revoked administrator identity of %d."),join.getSender());
-									break;
-							}
-							break;
-						case QQ_RECV_IM_ADDED_TO_QUN:
-						case QQ_RECV_IM_DELETED_FROM_QUN:
-							{
-								LPTSTR pszComment=mir_a2u_cp(join.getMessage().c_str(),936);
-
-								switch (packet->getIMType()) {
-									case QQ_RECV_IM_DELETED_FROM_QUN:
-										if (join.getCommander()==0)
-											swprintf(wszTemp+MAX_PATH,TranslateT("%d left this Qun."),join.getSender());
-										else
-											swprintf(wszTemp+MAX_PATH,TranslateT("%d(%s) removed %d from this Qun."),join.getCommander(),pszComment,join.getSender());
-										break;
-									case QQ_RECV_IM_ADDED_TO_QUN:
-										_stprintf(wszTemp+MAX_PATH,TranslateT("%d(%s) added %d to this Qun."),join.getCommander(),pszComment,join.getSender());
-										break;
-								}
-
-								mir_free(pszComment);
-							}
-							break;
-
-					}
-
-					if (wszTemp[MAX_PATH]) {
-						PROTORECVEVENT pre;
-						CCSDATA ccs;
-						HANDLE hContact=FindContact(packet->getSender());
-
-						WideCharToMultiByte(CP_ACP,0,wszTemp+MAX_PATH,-1,szTemp,MAX_PATH*2,NULL,NULL);
-						memmove(szTemp+strlen(szTemp)+1,wszTemp+MAX_PATH,sizeof(WCHAR)*(wcslen(wszTemp+MAX_PATH)+1));
-
-						pre.szMessage = szTemp;
-						pre.flags = PREF_UNICODE;
-						pre.timestamp = (DWORD)time(NULL);
-						pre.lParam = 0;
-
-						ccs.hContact=hContact;
-						ccs.szProtoService = PSR_MESSAGE;
-						ccs.wParam = 0;
-						ccs.lParam = ( LPARAM )&pre;
-						CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
-
-						WRITEC_D("CardVersion",-1);
-#if 0 // TODO
-						append(new QunGetInfoPacket(packet->getSender()));
-#endif
-					}
-					break;
-				}
-				break;
-			case QQ_RECV_IM_SIGNATURE_CHANGED:
-				{
-					util_log(0,"Received QQ_RECV_IM_SIGNATURE_CHANGED!");
-
-					SignatureChangedPacket sig(packet->getBodyData(), packet->getBodyLength());
-					HANDLE hContact=FindContact(sig.getQQ());
-					if (hContact) {
-						LPCSTR pszSignature=sig.getSignature().c_str();
-						bool fSong=pszSignature[strlen(pszSignature)-1]==1;
-
-						// NOTE: This message is now in UTF-8
-
-						WRITEC_U8S("PersonalSignature",pszSignature);
-
-						if (hContact) {
-							if (fSong) {
-								WRITEC_U8S("ListeningTo",pszSignature);
-							} else {
-								DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszSignature);
-								DELC("ListeningTo");
-							}
-						}
-
-					}
-
-					break;
-				}
-			case 0x1e: // Signature acknowledge
-				break;
-			/*
-			case 0x70: // Unknown
-			case 0x12:
-				{
-					FILE* fp=fopen("f:\\mimqq-0x70.txt","wb");
-					fwrite(packet->getBodyData(),packet->getBodyLength(),1,fp);
-					fclose(fp);
-				}
-				*/
-				break;
-		}
-}
-
-void CNetwork::_sendImCallback(SendIMReplyPacket* packet,SendTextIMPacket* /*im*/) {
-	OutPacket* op=m_pendingImList[packet->getSequence()+1];
-
-	util_log(0,"Received IM callback, next seq=0x%x, op=0x%x",packet->getSequence()+1, op);
-
-	if (op) {
-		m_pendingImList.erase(op->getSequence());
-		m_imSender[op->getSequence()]=m_imSender[packet->getSequence()];
-		append(op);
-	} else {
-		delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-		dr->hContact=FindContact(m_imSender[packet->getSequence()]/*im->getReceiver()*/);
-		dr->ackType=ACKTYPE_MESSAGE;
-		dr->ackResult=ACKRESULT_SUCCESS;
-		dr->aux=packet->getSequence();
-		dr->aux2=NULL;
-		ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-	}
-	m_imSender.erase(packet->getSequence());
-}
-
-void CNetwork::_signatureOpCallback(SignatureReplyPacket* packet) {
-	switch(packet->getType()) {
-		// TODO: Modify/Delete my signature
-		case QQ_SIGNATURE_MODIFY:
-			if(packet->isChangeAccepted()) {
-				map<unsigned int, unsigned int> qqlist;
-				SignaturePacket* sp=new SignaturePacket(QQ_SIGNATURE_REQUEST);
-				qqlist[m_myqq]=0;
-				sp->setMembers(qqlist);
-				append(sp);
-			}
-			break;
-		case QQ_SIGNATURE_DELETE:
-			if(packet->isChangeAccepted()) {
-				DBDeleteContactSetting(NULL,m_szModuleName,"PersonalSignature");
-			}
-			break;
-		case QQ_SIGNATURE_REQUEST:{
-			std::map<unsigned int, SignatureElement> members = packet->getMembers();
-			std::map<unsigned int, SignatureElement>::iterator iter;
-			HANDLE hContact;
-
-			for(iter = members.begin(); iter!= members.end(); ++iter){
-				// Time is iter->second.lastModifyTime, may not used by MirandaQQ
-				hContact=FindContact(iter->first);
-				if (hContact || iter->first==m_myqq) { // Only writes status message if contact is in my list
-					LPTSTR szSign;
-					LPCSTR pszSignature=iter->second.signature.c_str();
-					bool fSong=pszSignature[strlen(pszSignature)-1]==1;
-
-					szSign=mir_a2u_cp(string(pszSignature,strlen(pszSignature)-(fSong?1:0)).c_str(),936);
-					//util_convertToNative(&szSign,string(pszSignature,strlen(pszSignature)-(fSong?1:0)).c_str());
-					WRITEC_TS("PersonalSignature",szSign);
-
-					if (hContact) {
-						if (fSong) {
-							WRITEC_TS("ListeningTo",szSign);
-							//DBDeleteContactSetting(hContact,"CList","StatusMsg");
-						} else {
-							DBWriteContactSettingTString(hContact,"CList","StatusMsg",szSign);
-							DELC("ListeningTo");
-						}
-					}
-					if (iter->first==m_myqq) WRITEC_TS("StatusMsg",szSign);
-
-					//free(szSign);
-					mir_free(szSign);
-				}
-			}
-			// TODO: Do this still needed as I request a subset of members each time?
-			//doRequestSignature(packet->nextStartID());
-			break;
-		}
-	}
-}
-
-#if 0
-void CNetwork::_getLevelCallback(EvaGetLevelReplyPacket* packet) {
-	std::list<LevelUserItem> friends = packet->getLevelList();
-	
-	HANDLE hContact;
-	
-	for (std::list<LevelUserItem>::iterator iter=friends.begin(); iter!=friends.end(); iter++) {
-		hContact=FindContact(iter->qqNum);
-		struct tm *newtime;
-		time_t ot=iter->onlineTime;
-		int sun, moon, star;
-
-		newtime = localtime(&ot);   // Convert time to struct tm form
-		EvaUtil::calcSuns(iter->level,&sun,&moon,&star);
-
-		util_log(0,"%d is Level %d, %d hrs online, Sun=%d, Moon=%d, Star=%d, remain=%d",iter->qqNum, iter->level,iter->onlineTime/3600,sun,moon,star,iter->timeRemainder);
-
-		if(iter->qqNum == m_myqq){
-			WRITE_D(NULL,"OnlineMins",iter->onlineTime);
-			WRITE_W(NULL,"Level",iter->level);
-			WRITE_W(NULL,"HoursToLevelUp",iter->timeRemainder);
-		}
-
-		if (hContact) {
-			WRITEC_D("OnlineMins",iter->onlineTime);
-			WRITEC_W("Level",iter->level);
-			WRITEC_W("HoursToLevelUp",iter->timeRemainder);
-			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-			dr->hContact=hContact;
-			dr->ackType=ACKTYPE_GETINFO;
-			dr->ackResult=ACKRESULT_SUCCESS;
-			dr->aux=1;
-			dr->aux2=NULL;
-			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-		}
-	}
-
-}
-#endif
-
-void CNetwork::_friendChangeStatusCallback(FriendChangeStatusPacket* packet) {
-	int newStatus;
-	HANDLE hContact=FindContact(packet->getQQ());
-
-	if (hContact) { // Only handles if the buddy is in my contact list
-		int oldStatus=READ_W2(hContact,"Status");
-
-		switch (packet->getStatus()) {
-			case QQ_OFFLINE:		newStatus=ID_STATUS_OFFLINE;	break;
-			case QQ_AWAY:			newStatus=ID_STATUS_AWAY;		break;
-			case QQ_HIDDEN:			newStatus=ID_STATUS_INVISIBLE;	break;
-			case QQ_BUSY:			newStatus=ID_STATUS_NA;			break;
-			case QQ_KILLME:			newStatus=ID_STATUS_OCCUPIED;	break;
-			case QQ_QUIET:			newStatus=ID_STATUS_INVISIBLE;	break;
-			case QQ_ONLINE: default:newStatus=ID_STATUS_ONLINE;		break;
-		}
-
-		if (oldStatus!=newStatus) {
-			//in_addr ia;
-			int ip=htonl(packet->getIP());
-
-			//if (newStatus!=ID_STATUS_OFFLINE) {
-			if (oldStatus==ID_STATUS_OFFLINE) {
-				char szPluginPath[MAX_PATH];
-
-				CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
-
-				std::map<unsigned int, unsigned int> list;
-#if 0 // TODO
-				SignaturePacket *packet2 = new SignaturePacket(QQ_SIGNATURE_REQUEST);
-				list[packet->getQQ()] = 0;
-				packet2->setMembers(list);
-				append(packet2);
-#endif
-				_writeVersion(hContact,packet->getUnknown3_13_14(),szPluginPath);
-
-#if 0
-				if (packet->getIP()) {
-					//ia.S_un.S_addr=htonl(packet->getIP());
-					WRITEC_D("IP",packet->getIP());
-					WRITEC_W("Port",packet->getPort());
-					_writeIP(hContact,packet->getIP());
-				}
-#endif
-				util_log(0,"%s(): Contact %d changed status to %d. IP=%s",__FUNCTION__,packet->getQQ(),newStatus,/*packet->getIP()?inet_ntoa(ia):""*/inet_ntoa(*(in_addr*)&ip));
-			}
-
-			DBWriteContactSettingWord(hContact,m_szModuleName,"Status",newStatus);
-		}
-	}
-}
-
-#if 0
-void CNetwork::_tempSessionOpCallback(TempSessionOpReplyPacket* packet) {
-	delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
-	dr->hContact=FindContact(packet->getReceiver()+0x80000000);
-	dr->ackType=ACKTYPE_MESSAGE;
-	dr->ackResult=ACKRESULT_SUCCESS;
-	dr->aux=1;
-	dr->aux2=NULL;
-	ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
-}
-#endif
-
-void CNetwork::_weatherOpCallback(WeatherOpReplyPacket* packet) {
-	time_t tm;
-	LPTSTR lpwzShortDesc, lpwzWind, lpwzHint;
-
-	WCHAR szMsg[2048];
-	list<Weather> weathers=packet->getWeathers();
-	list<Weather>::iterator iter;
-
-	LPWSTR lpwzProvince=mir_a2u_cp(packet->getProvince().c_str(),936);
-	LPWSTR lpwzCity=mir_a2u_cp(packet->getCity().c_str(),936);
-	LPWSTR lpwzTime;
-
-	_stprintf(szMsg,TranslateT("Weather of %s %s:\n\n"),lpwzProvince,lpwzCity);
-	mir_free(lpwzProvince);
-	mir_free(lpwzCity);
-
-	for (iter=weathers.begin(); iter!=weathers.end(); iter++) {
-		tm=(time_t)(iter)->getTime();
-		lpwzShortDesc=mir_a2u_cp(iter->getShortDesc().c_str(),936);
-		lpwzWind=mir_a2u_cp(iter->getWind().c_str(),936);
-		lpwzHint=mir_a2u_cp(iter->getHint().c_str(),936);
-		lpwzTime=_tctime(&tm);
-		*wcsstr(lpwzTime,L"00:")=0;
-		_stprintf(szMsg+_tcslen(szMsg),TranslateT("%sCondition: %s\nWind: %s\nMax: %d Min: %d\n%s\n\n"),_tctime(&tm),lpwzShortDesc,lpwzWind,(iter)->getHighTemperature(),(iter)->getLowTemperature(),lpwzHint);
-	}
-	
-	ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
-}
-
-void CNetwork::_searchUserCallback(SearchUserReplyPacket* packet) {
-	std::list<OnlineUser> list=packet->getUsers();
-	std::list<OnlineUser>::iterator iter;
-
-	PROTOSEARCHRESULT psr;
-	char uid[16];
-
-	for(iter = list.begin(); iter!=list.end(); ++iter) {
-		sprintf(uid,"%d",iter->getQQ());
-
-		ZeroMemory(&psr, sizeof(psr));
-		psr.cbSize = sizeof(psr);
-		psr.nick = uid;
-		psr.firstName=mir_strdup(iter->getNick().c_str());
-		util_convertFromGBK(psr.firstName);
-		psr.lastName=mir_strdup(iter->getProvince().c_str());
-		util_convertFromGBK(psr.lastName);
-
-		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);
-		mir_free(psr.firstName);
-		mir_free(psr.lastName);
-	}
-
-	if (m_deferActionType=='s') {
-		QunSearchPacket* packet=new QunSearchPacket();
-		packet->setExtID(m_deferActionData);
-		append(packet);
-	} else
-		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
-}
-
-void CNetwork::_addFriendCallback(EvaAddFriendExReplyPacket* packet) {
-	TCHAR szMsg[MAX_PATH];
-	if (m_deferActionType=='a' && m_deferActionData) {
-		switch (packet->getAuthStatus()) {
-			case QQ_ADD_FRIEND_EX_ALREADY_IN_LIST:
-				ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(TranslateT("Contact is already in contact list.")));
-				m_deferActionType=0;
-				break;
-			case QQ_AUTH_NO_AUTH: // Add Successful
-				util_log(0,"QQ_AUTH_NO_AUTH, refresh friend list");
-				// append(new GetFriendListPacket());
-				// prot_buddy_update_list(&m_client,0);
-				//prot_user_request_token( &m_client, m_deferActionData, OP_ADDBUDDY, 1, 0 );
-
-				m_deferActionType=0;
-				break;
-			case QQ_AUTH_NO_ADD: // Adding not allowed
-				{
-					swprintf(szMsg,TranslateT("QQ User %d does not allow others to add him/her."),m_deferActionData);
-					ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
-					m_deferActionType=0;
-					break;
-				}
-			case QQ_AUTH_NEED_AUTH: // Need authorization
-				{
-					HANDLE hContact=FindContact(m_deferActionData);
-					/*DBVARIANT dbv={0};
-
-					if (hContact) DBGetContactSetting(hContact,m_szModuleName,"AuthReason",&dbv);
-					if (!hContact || !dbv.pszVal || !*dbv.pszVal)*/ 
-					if (m_deferActionAux==0) {
-						ASKDLGPARAMS* adp=(ASKDLGPARAMS*)malloc(sizeof(ASKDLGPARAMS));
-						adp->network=this;
-						adp->command=QQ_CMD_ADD_FRIEND_AUTH;
-						adp->hContact=hContact;
-						DialogBoxParam(hinstance,MAKEINTRESOURCE(IDD_CHANGESIGNATURE),NULL,ModifySignatureDlgProc,(LPARAM)adp);
-					} /*else {
-						AddFriendAuthPacket *packet=new AddFriendAuthPacket(m_deferActionData,QQ_MY_AUTH_REQUEST);
-						util_convertToGBK(dbv.pszVal);
-						packet->setMessage(dbv.pszVal);
-						util_log(0,"QQ_AUTH_NEED_AUTH, send auth request, reason=%s",dbv.pszVal);
-						append(packet);
-						DBFreeVariant(&dbv);
-					}*/
-					break;
-				}
-		}
-	}
-}
-
-#if 0
-void CNetwork::_systemMessageCallback(SystemNotificationPacket* packet) {
-	switch (packet->getType()) {
-		case QQ_MSG_SYS_ADD_FRIEND_APPROVED: // Your friend approved you to add him/her
-			{
-				WCHAR szMsg[MAX_PATH];
-				HANDLE hContact=FindContact(packet->getFromQQ());
-
-				swprintf(szMsg,TranslateT("Your add friend request to %d have been approved."),packet->getFromQQ());
-				DELC("Reauthorize");
-				DELC("AuthReason");
-				ShowNotification(szMsg,NIIF_INFO);
-				append(new GetFriendListPacket());
-			}
-			break;
-		case QQ_MSG_SYS_BEING_ADDED: // You are being added by other party
-			{
-				unsigned int uid=packet->getFromQQ();
-				DBEVENTINFO dbei={sizeof(dbei),m_szModuleName,(DWORD)time(NULL),0,EVENTTYPE_ADDED,sizeof(DWORD)+sizeof(HANDLE)+4};
-				PBYTE pCurBlob;
-				HANDLE hContact=FindContact(uid);
-
-				if (!hContact) AddContact(uid,true,false);
-
-				pCurBlob=dbei.pBlob=(PBYTE)malloc(dbei.cbBlob);
-				/*blob is: uin(DWORD), hContact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ) */
-				memcpy(pCurBlob,&uid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
-				memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
-				*(char *)pCurBlob = 0; pCurBlob++;
-				*(char *)pCurBlob = 0; pCurBlob++;
-				*(char *)pCurBlob = 0; pCurBlob++;
-				*(char *)pCurBlob = 0;
-
-				CallService(MS_DB_EVENT_ADD,(WPARAM)(HANDLE)NULL,(LPARAM)&dbei);
-
-			}
-			break;
-		case QQ_MSG_SYS_ADD_FRIEND_REJECTED: // Your friend rejected your add request
-			{
-				LPWSTR lpwzMsg=mir_a2u_cp(packet->getMessage().c_str(),936);
-				ShowNotification(lpwzMsg,NIIF_ERROR);
-				mir_free(lpwzMsg);
-			}
-			break;
-		case QQ_MSG_SYS_ADD_FRIEND_REQUEST: // Your friend would like to add you to his/her list
-		case QQ_MSG_SYS_ADD_FRIEND_REQUEST_EX:
-			if (READ_B2(NULL,QQ_BLOCKEMPTYREQUESTS)==0) {
-				CCSDATA ccs;
-				PROTORECVEVENT pre;
-				int qqid=packet->getFromQQ();
-				HANDLE hContact=FindContact(qqid);
-				char* msg=mir_strdup(packet->getMessage().c_str());
-				char* szBlob;
-				char* pCurBlob;
-
-				if (!hContact) { // The buddy is not in my list, get information on buddy
-					hContact=AddContact(qqid,true,false);
-					append(new GetUserInfoPacket(qqid));
-				}
-				//util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,szMsg);
-
-				ccs.szProtoService=PSR_AUTH;
-				ccs.hContact=hContact;
-				ccs.wParam=0;
-				ccs.lParam=(LPARAM)&pre;
-				pre.flags=0;
-				pre.timestamp=(DWORD)time(NULL);
-				pre.lParam=sizeof(DWORD)+4+sizeof(HANDLE)+strlen(msg)+5;
-
-				/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
-				// Leak
-				pCurBlob=szBlob=(char *)mir_alloc(pre.lParam);
-				memcpy(pCurBlob,&qqid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
-				memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
-				strcpy((char *)pCurBlob," "); pCurBlob+=2;
-				strcpy((char *)pCurBlob," "); pCurBlob+=2;
-				strcpy((char *)pCurBlob," "); pCurBlob+=2;
-				strcpy((char *)pCurBlob," "); pCurBlob+=2;
-				//strcpy((char *)pCurBlob,szMsg);
-				strcpy((char *)pCurBlob,msg);
-				util_convertFromGBK(pCurBlob);
-				pre.szMessage=(char *)szBlob;
-
-				util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,pCurBlob);
-
-				CallService(MS_PROTO_CHAINRECV,0,(LPARAM)&ccs);
-
-				mir_free(szBlob);
-				mir_free(msg);
-			}
-			break;
-	}
-}
-
-void CNetwork::_deleteMeCallback(DeleteMeReplyPacket* packet) {
-	TCHAR szMsg[MAX_PATH];
-
-	swprintf(szMsg,TranslateT("Your request to be removed from %d %s."),packet->getQQ(),packet->isDeleted()?TranslateT("succeeded"):TranslateT("failed"));
-	ShowNotification(szMsg,NIIF_INFO);
-}
-#endif
-
-void CNetwork::_groupNameOpCallback(GroupNameOpReplyPacket* packet) {
-	int hGroupMax=0;
-
-	if(packet->isDownloadReply()){
-		std::list<std::string>::iterator iter;
-		std::list<std::string> names = packet->getGroupNames();
-		// CLIST_INTERFACE* ci=(CLIST_INTERFACE*)CallService(MS_CLIST_RETRIEVE_INTERFACE,0,0);
-		int id;
-		unsigned short currentGroupSize=0;
-		LPSTR pszGroupWrite=NULL;
-
-		for(iter = names.begin(); iter != names.end(); ++iter){
-			id=util_group_name_exists(iter->c_str(),-1);
-			if (m_downloadGroup/* && ci*/) { // Download group is performing
-				if (id==-1) { // This group is not in contact list
-					util_log(0,"%s(): Creating new group: %s",__FUNCTION__,iter->c_str());
-					m_hGroupList[hGroupMax]=(HANDLE)CallService(MS_CLIST_GROUPCREATE, 0, 0);
-					//CallService(MS_CLIST_GROUPRENAME, (WPARAM)m_hGroupList[m_hGroupMax], (LPARAM)groupname);
-					//ci->pfnRenameGroup((int)m_hGroupList[hGroupMax],szGroupname);
-					DBVARIANT dbv;
-					char szIndex[16];
-					itoa((int)m_hGroupList[hGroupMax]-1,szIndex,10);
-					DBGetContactSettingUTF8String(NULL,"CListGroups",szIndex,&dbv);
-					if (currentGroupSize<=iter->length()+1) {
-						currentGroupSize=iter->length()+2;
-						if (pszGroupWrite) {
-							pszGroupWrite=(LPSTR)mir_realloc(pszGroupWrite,currentGroupSize);
-						} else {
-							pszGroupWrite=(LPSTR)mir_alloc(currentGroupSize);
-						}
-					}
-					*pszGroupWrite=*dbv.pszVal;
-					DBFreeVariant(&dbv);
-					strcpy(pszGroupWrite+1,iter->c_str());
-					DBWriteContactSettingUTF8String(NULL,"CListGroups",szIndex,pszGroupWrite);
-				} else { // This group is already in contact list, record group ID
-					m_hGroupList[hGroupMax]=(HANDLE)(id+1);
-				}
-				hGroupMax++;
-			}
-		}
-
-		if (pszGroupWrite) mir_free(pszGroupWrite);
-		// TODO
-		// append(new DownloadGroupFriendPacket());
-		if (m_downloadGroup) {
-			HANDLE hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
-			int gid;
-			int moved=0;
-
-			while (hContact) {
-				if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0)))
-					if (READC_B2("IsQun")==0) {
-						gid=READC_B2("GID");
-						DBVARIANT dbv={0};
-						DBGetContactSettingUTF8String(hContact,"CList","Group",&dbv);
-						unsigned int uin=READC_D2(UNIQUEIDSETTING);
-
-						if (dbv.pszVal && !strcmp(dbv.pszVal+1,"MetaContacts Hidden Group")) { // Don't touch MetaContacts!
-							TCHAR szPath[MAX_PATH];
-
-							swprintf(szPath,TranslateT("Not moving contact %d because he/she is maintained by MetaContacts"),uin);
-							ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szPath));
-						} else {
-							util_log(0,"%s(): Contact %d belongs to group %d",__FUNCTION__,uin,gid);
-
-							if (gid==0) // No group
-								CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)0);
-							else // In group
-								CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)m_hGroupList[gid-1]);
-						}
-						moved++;
-					}
-
-				hContact = ( HANDLE )CallService( MS_DB_CONTACT_FINDNEXT, ( WPARAM )hContact, 0 );
-			}
-
-			WCHAR szTemp[MAX_PATH];
-			swprintf(szTemp,TranslateT("Process %d users in %d groups."),moved,m_hGroupList.size());
-			ShowNotification(szTemp,NIIF_INFO);
-			m_hGroupList.clear();
-			m_downloadGroup=false;
-
-		}
-	}else{
-		/*
-		map<unsigned int, unsigned int> destlist;
-		UploadGroupFriendPacket* packet=new UploadGroupFriendPacket();
-
-		for(map<int,HANDLE>::iterator iter=m_hGroupList.begin(); iter!=m_hGroupList.end(); iter++) {
-			destlist[(unsigned int)iter->first]=(unsigned int)iter->second;
-		}
-
-		packet->setGroupedFriends(destlist);
-		append(packet);
-		*/
-	}
-
-}
-
-#if 0
-void CNetwork::_uploadGroupFriendCallback(UploadGroupFriendReplyPacket* packet) {
-	if (packet->uploadOk()) {
-		WCHAR szTemp[MAX_PATH];
-		swprintf(szTemp,TranslateT("%d users and %d groups uploaded to server."),m_hGroupList.size(),m_qqusers);
-		ShowNotification(szTemp,NIIF_INFO);
-	} else {
-		ShowNotification(TranslateT("Failed upload contact list"),NIIF_ERROR);
-	}
-	m_qqusers=0;
-	m_downloadGroup=false;
-	m_hGroupList.clear();
-}
-#endif
-void CNetwork::_deleteFriendCallback(DeleteFriendReplyPacket* packet) {
-	ShowNotification(packet->isDeleted()?TranslateT("Specified contact has been removed from server list."):TranslateT("Failed to remove specified contact from server list."),packet->isDeleted()?NIIF_INFO:NIIF_ERROR);
-}
-#if 0
-void CNetwork::_keepAliveCallback(KeepAliveReplyPacket*) {
-	if (++m_keepaliveCount>2) {
-		m_keepaliveCount=0;
-		append(new GetOnlineFriendsPacket());
-	}
-}
-
-void CNetwork::_requestLoginTokenExCallback(RequestLoginTokenExReplyPacket* packet) {
-	if (packet->getReplyCode() == QQ_LOGIN_TOKEN_NEED_VERI) {
-		XGraphicVerifyCode* code=new XGraphicVerifyCode();
-		code->setSessionToken(packet->getToken(), packet->getTokenLength());
-		code->setData(packet->getData(), packet->getDataLength());
-
-		removePacket(0);
-
-		CodeVerifyWindow* win=new CodeVerifyWindow(code);
-		delete win;
-	}
-}
-#endif
-
-void __cdecl CNetwork::_addFriendAuthGraphicalVerification(LPVOID adp) {
-	DialogBoxParam(hinstance,MAKEINTRESOURCE(IDD_CHANGESIGNATURE),NULL,ModifySignatureDlgProc,(LPARAM)adp);
-}
-
-void __cdecl CNetwork::_tempSessionGraphicalVerification(LPVOID adp) {
-	CodeVerifyWindow cvw((ASKDLGPARAMS*)adp);
-}
-
-void CNetwork::_addFriendAuthInfoCallback(EvaAddFriendGetAuthInfoReplyPacket* packet) {
-	ASKDLGPARAMS* adp=NULL;
-
-	if(packet->getSubCommand() == AUTH_INFO_CMD_CODE){
-		util_log(0,"auth info cmd code reply");
-		if(packet->getReplyCode() == 0x01){
-			PostMessage(CodeVerifyWindow::getHwnd(packet->getSequence()),WM_USER+1,0,0);
-			return;
-		}
-	}
-
-	switch (packet->getReplyCode()) {
-		case AUTH_INFO_TYPE_GRAPHIC:
-			if (!m_codeVerifyWindow) {
-				adp=(ASKDLGPARAMS*)malloc(sizeof(ASKDLGPARAMS));
-				adp->network=this;
-				adp->fAux=true;
-			}
-		case AUTH_INFO_TYPE_CODE:
-			{
-				if (packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_TEMP_SESSION && !adp) {
-					if (CodeVerifyWindow::getHwnd(packet->getSequence())) {
-						SendMessage(CodeVerifyWindow::getHwnd(packet->getSequence()),WM_USER+2,packet->getCodeLength(),(LPARAM)packet->getCode());
-					} else {
-						m_savedTempSessionMsg->setAuthInfo(packet->getCode(),packet->getCodeLength()); 
-						append(m_savedTempSessionMsg);
-						m_savedTempSessionMsg=NULL;
-					}
-				} else {
-					HANDLE hContact=NULL;
-					if (packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_QUN || packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_USER) {
-						hContact=FindContact(m_deferActionData);
-					} else
-						hContact=FindContact(0x80000000+m_savedTempSessionMsg->getReceiver());
-					/*else if (packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_TEMP_SESSION)
-						hContact=FindContact(m_savedTempSessionMsg->getReceiver());*/
-
-					//DBVARIANT dbv={0};
-					if (!hContact) return;
-
-					if (CodeVerifyWindow::getHwnd(packet->getSequence())) {
-						SendMessage(CodeVerifyWindow::getHwnd(packet->getSequence()),WM_USER+2,packet->getCodeLength(),(LPARAM)packet->getCode());
-						break;
-					}
-
-					if (!adp) {
-						adp=(ASKDLGPARAMS*)malloc(sizeof(ASKDLGPARAMS));
-						adp->fAux=false;
-					}
-					adp->network=this;
-					adp->command=packet->getSubSubCommand();
-					adp->hContact=hContact;
-					adp->nAux=packet->getCodeLength();
-					adp->pAux=mir_alloc(adp->nAux);
-					memcpy(adp->pAux,packet->getCode(),adp->nAux);
-					if (packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_QUN/* || packet->getSubSubCommand()==AUTH_INFO_SUB_CMD_USER*/) {
-						//mir_forkthread(_addFriendAuthGraphicalVerification,adp);
-						ForkThread((ThreadFunc)&CNetwork::_addFriendAuthGraphicalVerification,adp);
-						m_client.process=P_LOGIN;
-					} else if (packet->getSubSubCommand()!=AUTH_INFO_SUB_CMD_USER) {
-						//mir_forkthread(_tempSessionGraphicalVerification,adp);
-						ForkThread((ThreadFunc)&CNetwork::_tempSessionGraphicalVerification,adp);
-						m_client.process=P_LOGIN;
-					} else
-						free(adp); // AUTH_INFO_SUB_CMD_USER Handled by myqq natively
-				}
-			}
-			break;
-	}
-}
-
-void CNetwork::callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam) {
-	switch (command) {
-		/*
-		case QQ_CMD_REQUEST_LOGIN_TOKEN_EX: _requestLoginTokenExCallback((RequestLoginTokenExReplyPacket*)wParam);
-		case QQ_CMD_LOGIN: _loginCallback((LoginReplyPacket*)wParam); break;
-		case QQ_CMD_KEEP_ALIVE: _keepAliveCallback((KeepAliveReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_CHANGE_STATUS: _changeStatusCallback((ChangeStatusReplyPacket*)wParam); break;
-		case QQ_CMD_GET_USER_INFO: _getUserInfoCallback((GetUserInfoReplyPacket*)wParam); break;
-		/*
-		case QQ_CMD_GET_FRIEND_LIST: _getFriendListCallback((GetFriendListReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_GET_FRIEND_ONLINE: _getOnlineFriendCallback((GetOnlineFriendReplyPacket*)wParam); break;
-		/*
-		case QQ_CMD_DOWNLOAD_GROUP_FRIEND: _downloadGroupFriendCallback((DownloadGroupFriendReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_REQUEST_EXTRA_INFORMATION: _requestExtraInfoCallback((RequestExtraInfoReplyPacket*)wParam); break;
-		case QQ_CMD_SIGNATURE_OP: _signatureOpCallback((SignatureReplyPacket*)wParam); break;
-		case QQ_CMD_RECV_IM: case QQ_CMD_RECV_IM_09: _imCallback(subcommand,(ReceiveIMPacket*)wParam,(void*)lParam); break;
-		case QQ_CMD_QUN_CMD: _qunCommandCallback((QunReplyPacket*)wParam); break;
-		case QQ_CMD_RECV_MSG_FRIEND_CHANGE_STATUS: _friendChangeStatusCallback((FriendChangeStatusPacket*)wParam); break;
-		case QQ_CMD_SEARCH_USER: _searchUserCallback((SearchUserReplyPacket*)wParam); break;
-		/*
-		case QQ_CMD_GET_LEVEL: _getLevelCallback((EvaGetLevelReplyPacket*)wParam); break;
-		case QQ_CMD_RECV_MSG_SYS: _systemMessageCallback((SystemNotificationPacket*)wParam); break;
-		*/
-		case QQ_CMD_ADD_FRIEND_EX: _addFriendCallback((EvaAddFriendExReplyPacket*)wParam); break;
-		case QQ_CMD_ADD_FRIEND_AUTH_INFO: _addFriendAuthInfoCallback((EvaAddFriendGetAuthInfoReplyPacket*)wParam); break;
-		case QQ_CMD_DELETE_FRIEND: _deleteFriendCallback((DeleteFriendReplyPacket*)wParam); break;
-		/*
-		case QQ_CMD_DELETE_ME: _deleteMeCallback((DeleteMeReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_GROUP_NAME_OP: _groupNameOpCallback((GroupNameOpReplyPacket*)wParam); break;
-		case QQ_CMD_SEND_IM: _sendImCallback((SendIMReplyPacket*)wParam,(SendTextIMPacket*)lParam); break;
-		/*
-		case QQ_CMD_TEMP_SESSION_OP: _tempSessionOpCallback((TempSessionOpReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_WEATHER: _weatherOpCallback((WeatherOpReplyPacket*)wParam); break;
-		/*
-		case QQ_CMD_UPLOAD_GROUP_FRIEND: _uploadGroupFriendCallback((UploadGroupFriendReplyPacket*)wParam); break;
-		*/
-		case QQ_CMD_LOGIN_GET_LIST: _downloadGroupFriendCallback((DownloadGroupFriendReplyPacket*)wParam); break;
-	}
 }
 
 bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int session) {
@@ -3130,14 +308,6 @@ bool CNetwork::uhCallbackHub(int msg, int qqid, const char* md5, unsigned int se
 
 void CNetwork::qunPicCallbackHub(int msg, int qunid, void* aux) {
 	switch (msg) {
-#if 0
-		case 0: // Received qunpic
-			{
-				ReceivedQunIM* im=(ReceivedQunIM*)aux;
-				qunImCallback2(qunid,im->getSenderQQ(),im->hasFontAttribute(),im->isBold(),im->isItalic(),im->isUnderline(),im->getFontSize(),im->getRed(),im->getGreen(),im->getBlue(),im->getSentTime(),im->getMessage());
-			}
-			break;
-#endif
 		case 1: // Posted qunpic
 			{
 				HANDLE hContact=FindContact(qunid);
@@ -3191,11 +361,14 @@ void CNetwork::qunPicCallbackHub(int msg, int qunid, void* aux) {
 					if (pszSend2)
 						sendStr+=pszSend2;
 
-					// Message is already in GBK encoding
+					// Message is already in UTF-8 encoding
 					util_log(0,"Send String=%s",sendStr.c_str());
-					QunSendIMExPacket* p=new QunSendIMExPacket(qunid);
-					p->setMessage(sendStr.c_str());
-					append(p);
+					
+					HANDLE hContact=FindContact(qunid);
+					if (hContact) {
+						SendMsg(hContact,PREF_UTF | (1<<30), sendStr.c_str());
+					}
+
 					free(pszSend);
 					sentList->clear();
 				}
@@ -3213,54 +386,6 @@ void CNetwork::qunPicCallbackHub(int msg, int qunid, void* aux) {
 			break;
 	}
 }
-#if 0
-void _ftCustomEvent(QCustomEvent* e) {
-	switch(e->type()){
-	case Eva_FileNotifyAgentEvent:{
-		EvaFileNotifyAgentEvent *ae = (EvaFileNotifyAgentEvent *)e;
-		_ftNotifyAgentRequest(ae->getBuddyQQ(), ae->getOldSession(), ae->getAgentSession(),
-			ae->getAgentIp(), ae->getAgentPort(), ae->getTransferType());
-								  }
-								  break;
-	case Eva_FileNotifyStatusEvent:{
-		EvaFileNotifyStatusEvent *se = (EvaFileNotifyStatusEvent *)e;
-		_ftNotifyTransferStatus(se->getBuddyQQ(), se->getSession(),
-			se->getFileSize(), se->getBytesSent(), se->getTimeElapsed());
-								   }
-								   break;
-	case Eva_FileNotifySessionEvent:{
-		EvaFileNotifySessionEvent *se = (EvaFileNotifySessionEvent *)e;
-		_ftNotifyTransferSessionChanged(se->getBuddyQQ(), se->getOldSession(), se->getNewSession());
-									}
-									break;
-	case Eva_FileNotifyNormalEvent:{
-		EvaFileNotifyNormalEvent *ne = (EvaFileNotifyNormalEvent *)e;
-		_ftNotifyTransferNormalInfo(ne->getBuddyQQ(), ne->getSession(), ne->getStatus(),
-			ne->getDir(), ne->getFileName(), ne->getFileSize(), ne->getTransferType());
-								   }
-								   break;
-	case Eva_FileNotifyAddressEvent:{
-		printf("EvaFileManager::customEvent -- Eva_FileNotifyAddressEvent Got!");
-		EvaFileNotifyAddressEvent *ae = (EvaFileNotifyAddressEvent *)e;
-		_ftNotifyAddressRequest(ae->getBuddyQQ(), ae->getSession(), ae->getSynSession(), 
-			ae->getIp(), ae->getPort(), ae->getMyIp(), ae->getMyPort());
-									}
-									break;
-	default:
-		break;
-	}
-}
-
-void ftCallbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam) {
-	switch (command) {
-		case 0: // CustomEvent
-			{
-				_ftCustomEvent((QCustomEvent*)wParam);
-				break;
-			}
-	}
-}
-#endif
 
 void __cdecl CNetwork::delayReport(LPVOID lpData) {
 	delayReport_t* dr=(delayReport_t*)lpData;
@@ -3279,134 +404,120 @@ void CNetwork::_qunMsgCallback(qqclient* qq, uint uid, uint int_uid, time_t t, c
 	// Dummy function: Handled with libeva
 }
 
-void CNetwork::_eventCallback(char* msg) {
-	util_log(0,"_eventCallback: %s",msg);
+void CNetwork::processProcess(LPSTR pszArgs) {
+	bool handled=false;
 
-	LPSTR pszArgs=strstr(msg,"^$");
-	*pszArgs=0;
-	pszArgs+=2;
+	switch (atoi(pszArgs)) {
+		case P_INIT:
+			// BroadcastStatus(ID_STATUS_CONNECTING);
+			break;
+		case P_LOGGING:
+			// BroadcastStatus(m_iStatus+1);
+			break;
+		case P_VERIFYING: 
+			if (m_deferActionType!='A') {
+				XGraphicVerifyCode* code=new XGraphicVerifyCode();
+				code->m_network=this;
+				code->setType(XGVC_TYPE_LOGIN);
 
-	if (!strcmp(msg,"process")) {
-		bool handled=false;
+				CodeVerifyWindow* win=new CodeVerifyWindow(code);
+				delete win;
+			} else
+				m_client.process=P_LOGIN;
 
-		switch (atoi(pszArgs)) {
-			case P_INIT:
-				// BroadcastStatus(ID_STATUS_CONNECTING);
-				break;
-			case P_LOGGING:
-				// BroadcastStatus(m_iStatus+1);
-				break;
-			case P_VERIFYING: 
-				if (m_deferActionType!='A') {
-					XGraphicVerifyCode* code=new XGraphicVerifyCode();
-					code->m_network=this;
+			break;
+		case P_LOGIN:
+			// BroadcastStatus(m_iDesiredStatus);
+			m_client.login_finish = 1;	//we can recv message now.
+			EnableMenuItems(TRUE);
+			WRITE_D(NULL,"LoginTS",time(NULL));
 
-					CodeVerifyWindow* win=new CodeVerifyWindow(code);
-					delete win;
-				} else
-					m_client.process=P_LOGIN;
+			if (!this->m_conservative) {
+				// TODO: Leave for now
+				// append(new RequestExtraInfoPacket());
 
-				break;
-			case P_LOGIN:
-				// BroadcastStatus(m_iDesiredStatus);
-				m_client.login_finish = 1;	//we can recv message now.
-				EnableMenuItems(TRUE);
-				WRITE_D(NULL,"LoginTS",time(NULL));
-
-				if (!this->m_conservative) {
-					append(new RequestExtraInfoPacket());
-
-					if (!*(LPDWORD)m_client.data.file_key) {
-						prot_user_get_key(&m_client,QQ_REQUEST_FILE_AGENT_KEY);
-					}
+				if (!*(LPDWORD)m_client.data.file_key) {
+					prot_user_get_key(&m_client,QQ_REQUEST_FILE_AGENT_KEY);
 				}
-				break;
-			case P_DENIED:
-				ShowNotification(TranslateT("The server does not allow you to login."),NIIF_ERROR);
+			}
+			break;
+		case P_DENIED:
+			ShowNotification(TranslateT("The server does not allow you to login."),NIIF_ERROR);
+			handled=true;
+		case P_WRONGPASS:
+			if (!handled) {
+				ShowNotification(TranslateT("Password incorrect."),NIIF_ERROR);
 				handled=true;
-			case P_WRONGPASS:
-				if (!handled) {
-					ShowNotification(TranslateT("Password incorrect."),NIIF_ERROR);
-					handled=true;
+			}
+		case P_ERROR: // Packet timeout or generic error
+			if (!handled) {
+				if (m_iStatus<ID_STATUS_ONLINE || m_client.login_finish==0) {
+					ShowNotification(TranslateT("Connection to server timed out."),NIIF_ERROR);
 				}
-			case P_ERROR: // Packet timeout or generic error
-				if (!handled) {
-					if (m_iStatus<ID_STATUS_ONLINE || m_client.login_finish==0) {
-						// if (/*m_client.network==TCP || */m_iStatus>ID_STATUS_CONNECTING+10 && m_iStatus<ID_STATUS_OFFLINE)
-							ShowNotification(TranslateT("Connection to server timed out."),NIIF_ERROR);
-						/*else {
-							if (m_iStatus>=ID_STATUS_ONLINE) m_iStatus=ID_STATUS_CONNECTING;
+				handled=true;
+			}
+		case P_BUSY:
+			if (!handled) {
+				ShowNotification(TranslateT("You have logged in from another location."),NIIF_ERROR);
+				handled=true;
+			}
+			ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_WRONGPASSWORD);
+			SetStatus(ID_STATUS_OFFLINE);
+			EnableMenuItems(FALSE);
+			break;
+	}
+}
 
-							BroadcastStatus(m_iStatus+1);
-							util_log(0,"Connection timed out, retrying...");
-							m_client.process = P_LOGGING;
-							//prot_login_a4(&m_client);
-							prot_login_touch(&m_client);
-							return;
-						}*/
-					}
-					handled=true;
-				}
-			case P_BUSY:
-				if (!handled) {
-					ShowNotification(TranslateT("You have logged in from another location."),NIIF_ERROR);
-					handled=true;
-				}
-				ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_WRONGPASSWORD);
-				SetStatus(ID_STATUS_OFFLINE);
-				EnableMenuItems(FALSE);
-				break;
+void CNetwork::processClusterInfo(LPSTR pszArgs) {
+	if (qqqun* q=qun_get_by_ext(&m_client,strtoul(pszArgs,NULL,10))) {
+		HANDLE hContact=AddContact(q->number,false,false);
+		
+		// MIMQQ2 aware: remove qunver/cardver
+		if (READC_B2("MIMQQVersion")!=3) {
+			util_log(0,"%s(): Found incompatible qun %d, requesting new info.",__FUNCTION__,q->number);
+			DELC("QunVersion");
+			DELC("CardVersion");
+			
+			if (READC_B2("MIMQQVersion")==2) RemoveAllCardNames(hContact);
+			WRITEC_B("MIMQQVersion",3);
 		}
-	} else if (!strcmp(msg,"clusterinfo")) {
-		if (qqqun* q=qun_get_by_ext(&m_client,atoi(pszArgs))) {
-			HANDLE hContact=AddContact(q->number,false,false);
-			
-			// MIMQQ2 aware: remove qunver/cardver
-			if (READC_B2("MIMQQVersion")!=3) {
-				util_log(0,"%s(): Found incompatible qun %d, requesting new info.",__FUNCTION__,q->number);
-				DELC("QunVersion");
-				DELC("CardVersion");
-				
-				if (READC_B2("MIMQQVersion")==2) RemoveAllCardNames(hContact);
-				WRITEC_B("MIMQQVersion",3);
-			}
-						
-			WCHAR wszTemp[MAX_PATH];
-			CHAR szTemp[MAX_PATH];
-			wcscpy(wszTemp,TranslateT("QQ Qun"));
-			LPSTR pszTemp=mir_utf8encodeW(wszTemp);
-			sprintf(szTemp,"(%s) %s",pszTemp,q->name);
-			mir_free(pszTemp);
-			WRITEC_U8S("Nick",szTemp);
-			DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",q->ann);
-			WRITEC_B("AuthType",q->auth_type);
-			WRITEC_W("Category",q->category);
-			WRITEC_D("Creator",q->owner);
-			WRITEC_U8S("Description",q->intro);
-			WRITEC_D("ExternalID",q->ext_number);
-			WRITEC_B("Type",q->type);
-			WRITEC_W("MemberCount",q->member_list.count);
-			WRITEC_W("MaxMember",q->max_member);
-			WRITEC_W("Status",ID_STATUS_ONLINE);
-			WRITEC_B("IsQun",1);
-			
-			WRITEC_D("QunVersion",q->version);
-			// WRITEC_D("CardVersion",q->realnames_version);
-			q->realnames_version=READC_D2("CardVersion");
+					
+		WCHAR wszTemp[MAX_PATH];
+		CHAR szTemp[MAX_PATH];
+		wcscpy(wszTemp,TranslateT("QQ Qun"));
+		LPSTR pszTemp=mir_utf8encodeW(wszTemp);
+		sprintf(szTemp,"(%s) %s",pszTemp,q->name);
+		mir_free(pszTemp);
+		WRITEC_U8S("Nick",szTemp);
+		DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",q->ann);
+		WRITEC_B("AuthType",q->auth_type);
+		WRITEC_W("Category",q->category);
+		WRITEC_D("Creator",q->owner);
+		WRITEC_U8S("Description",q->intro);
+		WRITEC_D("ExternalID",q->ext_number);
+		WRITEC_B("Type",q->type);
+		WRITEC_W("MemberCount",q->member_list.count);
+		WRITEC_W("MaxMember",q->max_member);
+		WRITEC_W("Status",ID_STATUS_ONLINE);
+		WRITEC_B("IsQun",1);
+		
+		WRITEC_D("QunVersion",q->version);
+		// WRITEC_D("CardVersion",q->realnames_version);
+		q->realnames_version=READC_D2("CardVersion");
 
-			if (qunmember* qm=qun_member_get(&m_client,q,m_myqq,0)) {
-				WRITEC_B("IsAdmin",(qm->role & 1)?1:0);
-			}
+		if (qunmember* qm=qun_member_get(&m_client,q,m_myqq,0)) {
+			WRITEC_B("IsAdmin",(qm->role & 1)?1:0);
+		}
 
-			if (READC_B2("SilentQun")==1) WRITEC_W("Status",ID_STATUS_DND);
+		if (READC_B2("SilentQun")==1) WRITEC_W("Status",ID_STATUS_DND);
 
-			if (q->realnames_version==0) {
-				q->realnames_version=-1;
-				WRITEC_D("CardVersion",-1);
-				util_log(0,"Qun %d: Member info completed, ask for real names",q->number);
-				append(new QunRequestAllRealNames(q->number));
-			}
-
+		if (q->realnames_version==0) {
+			q->realnames_version=-1;
+			WRITEC_D("CardVersion",-1);
+			util_log(0,"Qun %d: Member info completed, ask for real names",q->number);
+			// append(new QunRequestAllRealNames(q->number));
+			prot_qun_get_membername(&m_client,q->number,0);
+		} else {
 			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
 			dr->hContact=hContact;
 			dr->ackType=ACKTYPE_GETINFO;
@@ -3415,29 +526,1281 @@ void CNetwork::_eventCallback(char* msg) {
 			dr->aux2=NULL;
 			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
 		}
-	} else if (!strcmp(msg,"buddylist")) {
-		qqbuddy* qb;
-		HANDLE hContact;
-		time_t t=time(NULL);
+	}
+}
 
-		for (int c=0; c<m_client.buddy_list.count; c++) {
-			qb=(qqbuddy*)m_client.buddy_list.items[c];
-			hContact=AddContact(qb->number,false,false);
-			if (*qb->nickname && strtoul(qb->nickname,NULL,10)!=qb->number) {
-				if (READC_D2("UpdateTS")>=t) {
-					DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",qb->signature);
-				} else {
-					WRITEC_U8S("Nick",qb->nickname);
-					WRITEC_B("Gender",qb->sex);
-					WRITEC_U8S("Alias",qb->alias);
-					WRITEC_B("GID",qb->gid);
-					WRITEC_D("UpdateTS",t);
+void CNetwork::processBuddyList(LPSTR pszArgs) {
+	qqbuddy* qb;
+	HANDLE hContact;
+	time_t t=time(NULL);
+	int oldStatus;
+	int status;
+	char szPluginPath[MAX_PATH];
+
+	CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
+
+	for (int c=0; c<m_client.buddy_list.count; c++) {
+		qb=(qqbuddy*)m_client.buddy_list.items[c];
+		hContact=AddContact(qb->number,false,false);
+		if (*qb->nickname && strtoul(qb->nickname,NULL,10)!=qb->number) {
+			if (READC_D2("UpdateTS")>=t) {
+				DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",qb->signature);
+			} else {
+				WRITEC_U8S("Nick",qb->nickname);
+				WRITEC_B("Gender",qb->sex);
+				WRITEC_U8S("Alias",qb->alias);
+				WRITEC_B("GID",qb->gid);
+				WRITEC_D("UpdateTS",t);
+
+				LPCSTR szSign=qb->signature;
+				bool fSong=szSign[strlen(szSign)-1]==1;
+
+				WRITEC_U8S("PersonalSignature",szSign);
+
+				if (hContact) {
+					if (fSong) {
+						WRITEC_U8S("ListeningTo",szSign);
+					} else {
+						DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",szSign);
+						DELC("ListeningTo");
+					}
+				}
+				if (qb->number==m_myqq) WRITEC_U8S("StatusMsg",szSign);
+
+				oldStatus=READC_W2("Status");
+				status=ID_STATUS_OFFLINE; //ID_STATUS_ONLINE;
+
+				switch (qb->status) {
+					case QQ_OFFLINE:		status=ID_STATUS_OFFLINE;	break;
+					case QQ_AWAY:			status=ID_STATUS_AWAY;		break;
+					case QQ_HIDDEN:			status=ID_STATUS_INVISIBLE;	break;
+					case QQ_BUSY:			status=ID_STATUS_NA;			break;
+					case QQ_KILLME:			status=ID_STATUS_OCCUPIED;	break;
+					case QQ_QUIET:			status=ID_STATUS_INVISIBLE;	break;
+					case QQ_ONLINE: /*default:*/status=ID_STATUS_ONLINE;		break;
 				}
 
-				// Status update handed with libeva
+				if (status!=oldStatus && oldStatus!=ID_STATUS_INVISIBLE && status!=ID_STATUS_INVISIBLE) {
+					WRITEC_W("Status",status);
+
+					if (oldStatus==ID_STATUS_OFFLINE) {
+						// These things should only change when changing from offline to online
+						_writeVersion(hContact,qb->version,szPluginPath);
+					}
+				}
 			}
 		}
-	} else if (!strcmp(msg,"grouplist")) {
-		// TODO
+	}
+
+	qqqun* qq;
+
+	for (int c=0; c<m_client.qun_list.count; c++) {
+		qq=(qqqun*)m_client.qun_list.items[c];
+
+		if (hContact=AddContact(qq->number,false,false)) WRITEC_W("Status",ID_STATUS_ONLINE);
+	}
+
+	if (m_downloadGroup) {
+		HANDLE hContact = (HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, 0, 0);
+		int gid;
+		int moved=0;
+
+		while (hContact) {
+			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0)))
+				if (READC_B2("IsQun")==0) {
+					gid=READC_B2("GID");
+					DBVARIANT dbv={0};
+					DBGetContactSettingUTF8String(hContact,"CList","Group",&dbv);
+					unsigned int uin=READC_D2(UNIQUEIDSETTING);
+
+					if (dbv.pszVal && !strcmp(dbv.pszVal+1,"MetaContacts Hidden Group")) { // Don't touch MetaContacts!
+						TCHAR szPath[MAX_PATH];
+
+						swprintf(szPath,TranslateT("Not moving contact %d because he/she is maintained by MetaContacts"),uin);
+						ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szPath));
+					} else {
+						util_log(0,"%s(): Contact %d belongs to group %d",__FUNCTION__,uin,gid);
+
+						if (gid==0) // No group
+							CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)0);
+						else // In group
+							CallService(MS_CLIST_CONTACTCHANGEGROUP, (WPARAM)hContact, (LPARAM)m_hGroupList[gid-1]);
+					}
+					moved++;
+				}
+
+			hContact = ( HANDLE )CallService( MS_DB_CONTACT_FINDNEXT, ( WPARAM )hContact, 0 );
+		}
+
+		WCHAR szTemp[MAX_PATH];
+		swprintf(szTemp,TranslateT("Process %d users in %d groups."),moved,m_hGroupList.size());
+		ShowNotification(szTemp,NIIF_INFO);
+		m_hGroupList.clear();
+		m_downloadGroup=false;
+
+	}
+
+	if (!m_uhTriggered) {
+		m_uhTriggered=true;
+
+		// TODO: Move back to requestextrainfo
+		std::list<unsigned int> list;
+		std::list<unsigned int> quns;
+		HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+		while (hContact) {
+			if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+				/*if (READC_W2("ExtraInfo") & QQ_EXTAR_INFO_USER_HEAD)
+					list.push_back(READC_D2(UNIQUEIDSETTING));
+				else*/ if (READC_B2("IsQun")==1)
+					quns.push_back(READC_D2(UNIQUEIDSETTING));
+				else
+					list.push_back(READC_D2(UNIQUEIDSETTING));
+			}
+
+			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
+		}
+
+		if (list.size()) {
+			m_userhead=new CUserHead(this);
+			m_userhead->setQQList(list);
+			m_userhead->connect();
+		}
+	}
+}
+
+void CNetwork::processGroupList(LPSTR pszArgs) {
+	qqgroup* qg;
+	int id;
+	unsigned short currentGroupSize=0;
+	LPSTR pszGroupWrite=NULL;
+	int hGroupMax=0;
+
+	for (int c=0; c<m_client.group_list.count; c++) {
+		qg=(qqgroup*)m_client.group_list.items[c];
+
+		id=util_group_name_exists(qg->name,-1);
+		if (m_downloadGroup/* && ci*/) { // Download group is performing
+			if (id==-1) { // This group is not in contact list
+				util_log(0,"%s(): Creating new group: %s",__FUNCTION__,qg->name);
+				m_hGroupList[hGroupMax]=(HANDLE)CallService(MS_CLIST_GROUPCREATE, 0, 0);
+				//CallService(MS_CLIST_GROUPRENAME, (WPARAM)m_hGroupList[m_hGroupMax], (LPARAM)groupname);
+				//ci->pfnRenameGroup((int)m_hGroupList[hGroupMax],szGroupname);
+				DBVARIANT dbv;
+				char szIndex[16];
+				itoa((int)m_hGroupList[hGroupMax]-1,szIndex,10);
+				DBGetContactSettingUTF8String(NULL,"CListGroups",szIndex,&dbv);
+				if (currentGroupSize<=strlen(qg->name)+1) {
+					currentGroupSize=strlen(qg->name)+2;
+					if (pszGroupWrite) {
+						pszGroupWrite=(LPSTR)mir_realloc(pszGroupWrite,currentGroupSize);
+					} else {
+						pszGroupWrite=(LPSTR)mir_alloc(currentGroupSize);
+					}
+				}
+				*pszGroupWrite=*dbv.pszVal;
+				DBFreeVariant(&dbv);
+				strcpy(pszGroupWrite+1,qg->name);
+				DBWriteContactSettingUTF8String(NULL,"CListGroups",szIndex,pszGroupWrite);
+			} else { // This group is already in contact list, record group ID
+				m_hGroupList[hGroupMax]=(HANDLE)(id+1);
+			}
+			hGroupMax++;
+		}
+
+	}
+
+	if (pszGroupWrite) mir_free(pszGroupWrite);
+
+}
+
+void CNetwork::processBuddyStatus(LPSTR pszArgs) {
+	int newStatus;
+	uint qqid;
+	HANDLE hContact=FindContact(qqid=strtoul(pszArgs,NULL,10));
+	qqbuddy* qb=buddy_get(&m_client,qqid,false);
+
+	if (hContact!=NULL && qb!=NULL) { // Only handles if the buddy is in my contact list
+		int oldStatus=READ_W2(hContact,"Status");
+
+		switch (qb->status) {
+			case QQ_OFFLINE:		newStatus=ID_STATUS_OFFLINE;	break;
+			case QQ_AWAY:			newStatus=ID_STATUS_AWAY;		break;
+			case QQ_HIDDEN:			newStatus=ID_STATUS_INVISIBLE;	break;
+			case QQ_BUSY:			newStatus=ID_STATUS_NA;			break;
+			case QQ_KILLME:			newStatus=ID_STATUS_OCCUPIED;	break;
+			case QQ_QUIET:			newStatus=ID_STATUS_INVISIBLE;	break;
+			case QQ_ONLINE: default:newStatus=ID_STATUS_ONLINE;		break;
+		}
+
+		if (oldStatus!=newStatus) {
+			if (oldStatus==ID_STATUS_OFFLINE) {
+				int ip=htonl(qb->ip);
+				char szPluginPath[MAX_PATH];
+
+				CallService(MS_UTILS_PATHTOABSOLUTE,(WPARAM)"Plugins\\qqVersion.ini",(LPARAM)szPluginPath);
+
+				std::map<unsigned int, unsigned int> list;
+#if 0 // TODO
+				SignaturePacket *packet2 = new SignaturePacket(QQ_SIGNATURE_REQUEST);
+				list[packet->getQQ()] = 0;
+				packet2->setMembers(list);
+				append(packet2);
+#endif
+				_writeVersion(hContact,qb->version,szPluginPath);
+
+				util_log(0,"%s(): Contact %d changed status to %d. IP=%s",__FUNCTION__,qb->number,newStatus,/*packet->getIP()?inet_ntoa(ia):""*/inet_ntoa(*(in_addr*)&ip));
+			}
+
+			WRITEC_W("Status",newStatus);
+		}
+	}
+}
+
+void CNetwork::processStatus(LPSTR pszArgs) {
+	BroadcastStatus(m_iDesiredStatus);
+}
+
+void CNetwork::processBuddyInfo(LPSTR pszArgs) {
+	uint qqid;
+	HANDLE hContact=FindContact(qqid=strtoul(pszArgs,NULL,10));
+	qqbuddy* qb=buddy_get(&m_client,qqid,false);
+
+	if (hContact!=NULL && qb!=NULL) {
+		WRITEC_U8S("Nick",qb->nickname);
+		WRITEC_U8S("ZIP",qb->post_code);
+		WRITEC_U8S("Address",qb->address);
+		WRITEC_U8S("Telephone",qb->homephone);
+		WRITEC_U8S("Email",qb->email);
+		WRITEC_U8S("Occupation",qb->occupation);
+		WRITEC_U8S("Homepage",qb->homepage);
+		WRITEC_U8S("Mobile",qb->mobilephone);
+		WRITEC_U8S("About",qb->brief);
+		WRITEC_U8S("College",qb->school);
+		LPSTR pszTemp=qb->birth;
+		char szTemp[MAX_PATH];
+		sprintf(szTemp,"%d/%d/%d",htonl(*(unsigned int*)pszTemp),pszTemp[4],pszTemp[5]);
+		WRITEC_U8S("Birthday",szTemp);
+		WRITEC_U8S("Country",qb->country);
+		WRITEC_U8S("City",qb->city);
+		WRITEC_U8S("Province",qb->province);
+		WRITEC_W("Age",qb->age);
+		WRITEC_B("Flag",qb->flag);
+
+		delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
+		dr->hContact=hContact;
+		dr->ackType=ACKTYPE_GETINFO;
+		dr->ackResult=ACKRESULT_SUCCESS;
+		dr->aux=1;
+		dr->aux2=NULL;
+		ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
+	}
+}
+
+void CNetwork::processSearchUid(LPSTR pszArgs) {
+	PROTOSEARCHRESULT psr={sizeof(psr)};
+	LPSTR ppszArgs[5];
+	int c=0;
+	union {
+		char uid[16];
+		wchar_t wuid[16];
+	};
+	bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
+
+	// sprintf( event, "search_uid_reply^$%d^$%d^$%s^$%d%$%s", num, (int)status, name, no_auth_len, no_auth);
+
+	if (strcmp(pszArgs,"0")) {
+		while (pszArgs) {
+			ppszArgs[c++]=pszArgs;
+			if (pszArgs=strstr(pszArgs,"^$")) {
+				*pszArgs=0;
+				pszArgs+=2;
+			}
+		}
+
+		psr.nick=uid;
+
+		if (fUTF8) {
+			swprintf(wuid,L"%S",ppszArgs[0]);
+			psr.firstName=(LPSTR)mir_utf8decodeW(ppszArgs[2]);
+			psr.flags=PSR_UNICODE;
+		} else {
+			strcpy(uid,ppszArgs[0]);
+			psr.firstName=mir_utf8decodecp(mir_strdup(ppszArgs[2]),CP_ACP,NULL);
+		}
+
+		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);
+		mir_free(psr.firstName);
+	}
+
+	if (m_deferActionType=='s') {
+		prot_qun_search(&m_client,m_deferActionData);
+	} else
+		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
+}
+
+void CNetwork::processQunSearch(LPSTR pszArgs) {
+	PROTOSEARCHRESULT psr={sizeof(psr)};
+	LPSTR ppszArgs[9];
+	union {
+		char uid[32];
+		wchar_t wuid[32];
+	};
+	bool fUTF8=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)>=0x00090000;
+	int c=0;
+	// sprintf( event, "search_uid_reply^$%d^$%d^$%s^$%d%$%s", num, (int)status, name, no_auth_len, no_auth);
+
+	if (strcmp(pszArgs,"0")) {
+		while (pszArgs) {
+			ppszArgs[c++]=pszArgs;
+			if (pszArgs=strstr(pszArgs,"^$")) {
+				*pszArgs=0;
+				pszArgs+=2;
+			}
+		}
+
+		psr.nick = uid;
+
+		if (fUTF8) {
+			psr.flags=PSR_UNICODE;
+			swprintf(wuid,L"%S (%S)",ppszArgs[1],ppszArgs[2]);
+			psr.firstName=(LPSTR)mir_utf8decodeW(ppszArgs[6]);
+			psr.lastName=(LPSTR)mir_utf8decodeW(ppszArgs[8]);
+			psr.email=(LPSTR)(*ppszArgs[7]=='2'/*QQ_QUN_NEED_AUTH*/?TranslateT("Authentication Required"):*ppszArgs[7]=='1'/*QQ_QUN_NO_AUTH*/?TranslateT("Authentication Not Required"):TranslateT("No Add"));
+		} else {
+			sprintf(uid,"%s (%s)",ppszArgs[1],ppszArgs[2]);
+			psr.firstName=mir_utf8decodecp(mir_strdup(ppszArgs[6]),CP_ACP,NULL);
+			psr.lastName=mir_utf8decodecp(mir_strdup(ppszArgs[8]),CP_ACP,NULL);
+			psr.email=mir_u2a(*ppszArgs[7]=='2'/*QQ_QUN_NEED_AUTH*/?TranslateT("Authentication Required"):*ppszArgs[7]=='1'/*QQ_QUN_NO_AUTH*/?TranslateT("Authentication Not Required"):TranslateT("No Add"));
+		}
+
+		ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);
+		mir_free(psr.firstName);
+		mir_free(psr.lastName);
+		mir_free(psr.email);
+	}
+
+	ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
+}
+
+void CNetwork::processRequestAddBuddy(LPSTR pszArgs) {
+	if (*pszArgs=='2') {
+		LPSTR pszUin=strstr(pszArgs,"^$");
+		WCHAR szMsg[MAX_PATH];
+		*pszUin=0;
+		pszUin+=2;
+
+		swprintf(szMsg,TranslateT("QQ User %s does not allow others to add him/her."),pszUin);
+		ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
+		m_deferActionType=0;
+	} else if (*pszArgs=='3') {
+		LPSTR pszUin=strstr(pszArgs,"^$");
+		WCHAR szMsg[MAX_PATH];
+		*pszUin=0;
+		pszUin+=2;
+
+		swprintf(szMsg,TranslateT("You need to answer a question in order to add QQ User %s, however MirandaQQ does not support it yet."),pszUin);
+		ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
+		m_deferActionType=0;
+	} else {
+		util_log(0,"Unknown response",pszArgs);
+	}
+}
+
+void CNetwork::processRequestToken(LPSTR pszArgs) {
+	if (*pszArgs=='0') {
+		ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(TranslateT("You have entered an incorrect verification code.")));
+	} else {
+		XGraphicVerifyCode* code=new XGraphicVerifyCode();
+		code->m_network=this;
+		code->setType(XGVC_TYPE_ADDUSER);
+
+		CodeVerifyWindow* win=new CodeVerifyWindow(code);
+		delete win;
+	}
+}
+
+void CNetwork::processDelBuddy(LPSTR pszArgs) {
+	ShowNotification(*pszArgs=='0'?TranslateT("Specified contact has been removed from server list."):TranslateT("Failed to remove specified contact from server list."),*pszArgs=='0'?NIIF_INFO:NIIF_ERROR);
+}
+
+void CNetwork::processBroadcast(LPSTR pszArgs) {
+	LPSTR pszFrom=strstr(pszArgs,"^$")+2;
+	LPSTR pszTo=strstr(pszFrom,"^$")+2;
+	LPSTR pszMsg=strstr(pszTo,"^$")+2;
+
+	switch (atoi(pszArgs)) {
+		case QQ_SERVER_BUDDY_ADDED_DEPRECATED: // You are being added by other party
+			{
+				DWORD uid=strtoul(pszFrom,NULL,10);
+				DBEVENTINFO dbei={sizeof(dbei),m_szModuleName,(DWORD)time(NULL),0,EVENTTYPE_ADDED,sizeof(DWORD)+sizeof(HANDLE)+4};
+				PBYTE pCurBlob;
+				HANDLE hContact=FindContact(uid);
+
+				if (!hContact) AddContact(uid,true,false);
+
+				pCurBlob=dbei.pBlob=(PBYTE)malloc(dbei.cbBlob);
+				/*blob is: uin(DWORD), hContact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ) */
+				memcpy(pCurBlob,&uid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
+				memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
+				*(char *)pCurBlob = 0; pCurBlob++;
+				*(char *)pCurBlob = 0; pCurBlob++;
+				*(char *)pCurBlob = 0; pCurBlob++;
+				*(char *)pCurBlob = 0;
+
+				CallService(MS_DB_EVENT_ADD,(WPARAM)(HANDLE)NULL,(LPARAM)&dbei);
+			}
+			break;
+		case QQ_SERVER_BUDDY_ADD_REQUEST_DEPRECATED:  // Your friend would like to add you to his/her list
+		case QQ_SERVER_BUDDY_ADD_REQUEST:
+			if (READ_B2(NULL,QQ_BLOCKEMPTYREQUESTS)==0) {
+				CCSDATA ccs;
+				PROTORECVEVENT pre;
+				pre.flags=CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000?0:PREF_UTF;
+				DWORD qqid=strtoul(pszFrom,NULL,10);
+				HANDLE hContact=FindContact(qqid);
+				char* msg=(pre.flags&PREF_UTF)?mir_strdup(pszMsg):mir_strdup(mir_utf8decodecp(pszMsg,936,NULL));
+				char* szBlob;
+				char* pCurBlob;
+
+				if (!hContact) { // The buddy is not in my list, get information on buddy
+					hContact=AddContact(qqid,true,false);
+					// append(new GetUserInfoPacket(qqid));
+				}
+				//util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,szMsg);
+
+				ccs.szProtoService=PSR_AUTH;
+				ccs.hContact=hContact;
+				ccs.wParam=0;
+				ccs.lParam=(LPARAM)&pre;
+				pre.timestamp=(DWORD)time(NULL);
+
+				pre.lParam=sizeof(DWORD)+4+sizeof(HANDLE)+strlen(msg)+5;
+
+				/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
+				// Leak
+				pCurBlob=szBlob=(char *)mir_alloc(pre.lParam);
+				memcpy(pCurBlob,&qqid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
+				memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
+				strcpy((char *)pCurBlob," "); pCurBlob+=2;
+				strcpy((char *)pCurBlob," "); pCurBlob+=2;
+				strcpy((char *)pCurBlob," "); pCurBlob+=2;
+				strcpy((char *)pCurBlob," "); pCurBlob+=2;
+				//strcpy((char *)pCurBlob,szMsg);
+				strcpy((char *)pCurBlob,msg);
+				if (!(pre.flags&PREF_UTF)) {
+					util_convertFromGBK(pCurBlob);
+				}
+				pre.szMessage=(char *)szBlob;
+
+				util_log(0,"%s(): QQID=%u, msg=%s",__FUNCTION__,qqid,pCurBlob);
+
+				CallService(MS_PROTO_CHAINRECV,0,(LPARAM)&ccs);
+
+				mir_free(szBlob);
+				mir_free(msg);
+			}
+			break;
+
+		case QQ_SERVER_BUDDY_ADDED_ME: // Your friend approved you to add him/her
+		case QQ_SERVER_BUDDY_ADDED: // Successful add actively
+			{
+				WCHAR szMsg[MAX_PATH];
+				DWORD qqid=strtoul(pszFrom,NULL,10);
+				HANDLE hContact=FindContact(qqid);
+
+				swprintf(szMsg,TranslateT("Your add friend request to %u have been approved."),qqid);
+				DELC("Reauthorize");
+				DELC("AuthReason");
+				ShowNotification(szMsg,NIIF_INFO);
+			}
+			break;
+		case QQ_SERVER_BUDDY_REJECTED_ME: // Your friend rejected your add request
+			{
+				LPWSTR lpwzMsg=mir_utf8decodeW(pszMsg);
+				ShowNotification(lpwzMsg,NIIF_ERROR);
+				mir_free(lpwzMsg);
+			}
+			break;
+		case QQ_SERVER_BUDDY_ADDING_EX: // Other side added you succfully
+		case QQ_SERVER_BUDDY_ADDED_ANSWER:
+			{
+				// WCHAR szMsg[MAX_PATH];
+				DWORD qqid=strtoul(pszFrom,NULL,10);
+				HANDLE hContact=AddContact(qqid,true,false);
+
+				DWORD cbBlob;
+				PBYTE pBlob, pCurBlob;
+
+				/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ) */
+				cbBlob=sizeof(DWORD)+sizeof(HANDLE)+4;
+				pCurBlob=pBlob=(PBYTE)_alloca(cbBlob);
+				memcpy(pCurBlob,&qqid,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
+				memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
+				*(pCurBlob++)=0;
+				*(pCurBlob++)=0;
+				*(pCurBlob++)=0;
+				*(pCurBlob++)=0;
+
+				DBEVENTINFO dbei = {0};
+
+				dbei.cbSize = sizeof(dbei);
+				dbei.szModule = m_szModuleName;
+				dbei.timestamp = time(NULL);
+				dbei.flags = 0;
+				dbei.eventType = EVENTTYPE_ADDED;
+				dbei.cbBlob = cbBlob;
+				dbei.pBlob = pBlob;
+
+				CallService(MS_DB_EVENT_ADD, (WPARAM)NULL, (LPARAM)&dbei);
+
+				/*
+				swprintf(szMsg,TranslateT("Your friend %u added you."),qqid);
+				ShowNotification(szMsg,NIIF_INFO);
+				*/
+			}
+			break;
+		case QQ_SERVER_NOTICE:
+			{
+				LPWSTR lpwzMsg=mir_utf8decodeW(pszMsg);
+				ShowNotification(lpwzMsg,NIIF_INFO);
+				mir_free(lpwzMsg);
+			}
+			break;
+		case QQ_SERVER_NEW_CLIENT:
+			util_log(0, "QQ Server has newer client version: %s",pszMsg);
+			break;
+		default:
+			util_log(0, "Received unknown system message: %02x",atoi(pszArgs));
+			break;
+	}
+}
+
+void CNetwork::processLoginTouchRedirect(LPSTR pszArgs) {
+	m_client.server_port=getPort();
+	redirect(m_client.server_ip,m_client.server_port);
+}
+
+void CNetwork::processClusterMemberNames(LPSTR pszArgs) {
+	DWORD qunid=strtoul(pszArgs,NULL,10);
+	if (qqqun* qun=qun_get(&m_client,qunid,0)) {
+		bool fUpdate=true;
+		HANDLE hContact=FindContact(qunid);
+		if (!hContact) return;
+
+		util_log(0,"Qun %u RealNames version: %u=>%u",qunid, READC_D2("CardVersion"), qun->realnames_version);
+
+		if (READC_D2("CardVersion")==qun->realnames_version && time(NULL)-READC_D2("QunCardUpdate")>60) {
+			// Same version, no need to update
+			util_log(0,"Qun %u: Same card version(%u), no need to update",qunid,qun->realnames_version);
+			WRITEC_B("GetInfoOnline",1);
+			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
+			dr->hContact=hContact;
+			dr->ackType=ACKTYPE_GETINFO;
+			dr->ackResult=ACKRESULT_SUCCESS;
+			dr->aux=1;
+			dr->aux2=NULL;
+			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
+
+			fUpdate=false;
+		}
+
+		if (fUpdate) {
+			plist members=qun->member_list;
+			char szID[16];
+			
+			WRITEC_D("QunCardUpdate",(DWORD)time(NULL));
+			WRITEC_D("CardVersion",qun->realnames_version);
+
+			util_log(0,"Writing names for Qun %u(%u)",qun->ext_number,qunid);
+
+			qunmember* qm;
+
+			for (int c=0; c<members.count; c++) {
+				qm=(qunmember*)members.items[c];
+				ultoa(qm->number,szID,10);
+				WRITEC_U8S(szID,qm->nickname);
+
+				if (qm->number==qun->owner) {
+					WRITEC_U8S("CreatorName",qm->nickname);
+				}
+
+				qm++;
+			}
+
+			WRITEC_B("GetInfoOnline",1);
+			delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
+			dr->hContact=hContact;
+			dr->ackType=ACKTYPE_GETINFO;
+			dr->ackResult=ACKRESULT_SUCCESS;
+			dr->aux=1;
+			dr->aux2=NULL;
+			ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
+		}
+	}
+}
+
+void CNetwork::processIMSendMsgReply(LPSTR pszArgs) {
+	DWORD dwSeq=strtoul(pszArgs,NULL,10);
+
+	/*
+	OutPacket* op=m_pendingImList[dwSeq+1];
+
+	util_log(0,"Received IM callback, next seq=0x%x, op=0x%x",dwSeq+1, op);
+
+	if (op) {
+		m_pendingImList.erase(op->getSequence());
+		m_imSender[op->getSequence()]=m_imSender[dwSeq];
+		append(op);
+	} else*/ {
+		delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
+		dr->hContact=FindContact(m_imSender[dwSeq]/*im->getReceiver()*/);
+		dr->ackType=ACKTYPE_MESSAGE;
+		dr->ackResult=ACKRESULT_SUCCESS;
+		dr->aux=dwSeq;
+		dr->aux2=NULL;
+		ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
+	}
+	// m_imSender.erase(dwSeq);
+}
+
+#define READDWORD(x) x=strtoul(ppszArgs,NULL,10); ppszArgs=strstr(ppszArgs,"^$")+2
+
+void CNetwork::processBuddyIMTextAdv(LPSTR pszArgs) {
+	// sprintf(tmp,"buddyimtextadv^$%u^$%d^$%d^$%d^$%d^$%d^$%02x^$%02x^$%02x^$%d^$%d^$%s^$%s",msg->from,msg->msg_id,msg->slice_count,msg->slice_no,(unsigned char)msg->auto_reply,hasFontAttribute,red,green,blue,fontSize,format,szFont,msg->msg_content);
+	LPSTR ppszArgs=pszArgs;
+	DWORD dwFrom, dwMsgID, dwSliceCount, dwSliceNumber, dwAutoReply, dwHasFontAttr;
+	int red=0, green=0, blue=0, fontSize=12, format=0;
+	LPSTR pszFont;
+	LPSTR pszMsg;
+
+	READDWORD(dwFrom);
+	READDWORD(dwMsgID);
+	READDWORD(dwSliceCount);
+	READDWORD(dwSliceNumber);
+	READDWORD(dwAutoReply);
+	READDWORD(dwHasFontAttr);
+	READDWORD(red);
+	READDWORD(green);
+	READDWORD(blue);
+	READDWORD(fontSize);
+	READDWORD(format);
+
+	pszFont=ppszArgs;
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+	ppszArgs[-2]=0;
+
+	pszMsg=ppszArgs;
+
+	/////////
+	LPSTR msg=(LPSTR)mir_alloc(strlen(pszMsg)+64);
+
+	PROTORECVEVENT pre;
+	CCSDATA ccs;
+
+	*msg=0;
+	if (g_enableBBCode && dwHasFontAttr!=0) {
+		sprintf(msg,"[color=#%02x%02x%02x]",(BYTE)red,(BYTE)green,(BYTE)blue);
+
+		if (format & 1) strcat(msg,"[b]");
+		if (format & 2) strcat(msg,"[i]");
+		if (format & 4) strcat(msg,"[u]");
+	}
+
+	strcat(msg,pszMsg);
+
+	if (g_enableBBCode && dwHasFontAttr!=0) {
+		if (format & 4) strcat(msg,"[/u]");
+		if (format & 2) strcat(msg,"[/i]");
+		if (format & 1) strcat(msg,"[/b]");
+		strcat(msg,"[/color]");
+	}
+
+	HANDLE hContact=FindContact(dwFrom);
+	if (!hContact) {
+		hContact=AddContact(dwFrom,true,false);
+		prot_buddy_get_info(&m_client,dwFrom);
+	}
+
+	pre.flags=PREF_UTF;
+	pre.szMessage=msg;
+
+	pre.timestamp = (DWORD) time(NULL);
+	pre.lParam = 0;
+
+	ccs.hContact=hContact;
+	ccs.szProtoService = PSR_MESSAGE;
+	ccs.wParam = 0;
+	ccs.lParam = ( LPARAM )&pre;
+	CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
+			
+	mir_free(msg);
+	// WRITEC_W("Sequence",received->getSequence());
+	// WRITEC_S("FileSessionKey",(char*)received->getBuddyFileSessionKey());
+}
+
+std::string convertToShow(const std::string &src, const unsigned char type)
+{
+	std::string converted = "";
+	unsigned int start = 0;
+	char *uuid = NULL; // uuid format: {12345678-1234-1234-1234-123456789ABC}
+	if(type == QQ_IM_IMAGE_REPLY){
+		uuid = new char[39]; // 38 + 1
+		memcpy(uuid, src.c_str(), 38);
+		uuid[38] = 0x00; // just make it as a string
+		start+=38;
+		start+=2; // 2 unknown bytes: 0x13 0x4c (always)
+	}
+	for(uint i=start; i<src.length()-1; i++){
+	// Here it is length()-1 to cut off the extra space at the end of every message (always)
+		if(src[i]==0x14){
+			converted+=EvaUtil::smileyToText((unsigned short)(unsigned char)src[++i]);
+			converted+=' ';
+		}else if(src[i]==0x15){
+				int t=0;
+				char *tmp = new char[src.length()+1];
+				strcpy(tmp, src.c_str());
+				converted+=EvaUtil::customSmileyToText(tmp + i, &t, uuid);
+				i+=(t-1); // get rid of 0x15
+				delete tmp;
+			} else
+				converted+=src[i];
+	}
+	// starkwong: oldherl's patch on SVN 47 damages long messages, so add a dirty fix here (not perfect)
+	if (src[src.length()-1]!=0x20) converted+=src[src.length()-1];
+
+	if(uuid) delete []uuid;
+	return converted;
+}
+
+void CNetwork::processQunIMAdv(LPSTR pszArgs) {
+	// sprintf(tmp,"qunimadv^$%u^$%u^$%d^$%d^$%d^$%u^$%u^$%d^$%02x^$%02x^$%02x^$%d^$%d^$%s^$%s",msg->qun_number,msg->from,msg->msg_id,msg->slice_count,msg->slice_no,qun_version,sent_time,has_font_attr,red,green,blue,font_size,format,font_name,msg->msg_content);
+
+	LPSTR ppszArgs=pszArgs;
+	DWORD dwQun, dwFrom, dwMsgID, dwSliceCount, dwSliceNumber, dwQunVersion, dwSentTime, dwHasFontAttr;
+	int red=0, green=0, blue=0, fontSize=12, format=0;
+	LPSTR pszFont;
+	LPSTR pszMsg;
+
+	READDWORD(dwQun);
+	READDWORD(dwFrom);
+	READDWORD(dwMsgID);
+	READDWORD(dwSliceCount);
+	READDWORD(dwSliceNumber);
+	READDWORD(dwQunVersion);
+	READDWORD(dwSentTime);
+	READDWORD(dwHasFontAttr);
+	READDWORD(red);
+	READDWORD(green);
+	READDWORD(blue);
+	READDWORD(fontSize);
+	READDWORD(format);
+
+	pszFont=ppszArgs;
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+	ppszArgs[-2]=0;
+
+	pszMsg=ppszArgs;
+
+	/////////
+	string strShow=convertToShow(string(pszMsg), QQ_IM_NORMAL_REPLY);
+
+	// TODO: Fragments
+#if 0
+	if (received->getNumFragments()>1)
+	{
+		unsigned short ropID = received->getMessageID();
+
+		//push fragment inormation into map
+		unsigned short total = received->getNumFragments();
+		pcMsgCache[ropID].total = total;
+		pcMsgCache[ropID].content[received->getSeqOfFragments()] = received->getMessage().c_str();
+
+		if (total == pcMsgCache[ropID].content.size())
+		{
+			//all fragments received
+			string allText = "";
+			for (int idx=0; idx<total; idx++) 
+				allText += pcMsgCache[ropID].content[idx];
+			pcMsgCache.erase(ropID);
+			received->setMessage(allText);
+		} else
+		{
+			delete received;
+			return;
+		}
+
+	}
+#endif
+
+	if (!this->m_conservative) {
+		EvaHtmlParser parser;
+		std::list<CustomizedPic> picList = parser.parseCustomizedPics((char*)strShow.c_str(),true);
+
+		if (dwFrom==m_myqq) {
+			if (strstr(parser.getConvertedMessage().c_str(),"[img]")) {
+				delayReport_t* dr=(delayReport_t*)mir_alloc(sizeof(delayReport_t));
+				dr->hContact=FindContact(dwQun);
+				dr->ackType=ACKTYPE_MESSAGE;
+				dr->ackResult=ACKRESULT_SUCCESS;
+				dr->aux=1;
+				dr->aux2=NULL;
+				ForkThread((ThreadFunc)&CNetwork::delayReport,dr);
+			}
+
+			return;
+		}
+
+		if(picList.size()){
+			LPWSTR pwszFileName;
+			strShow.assign(parser.getConvertedMessage());
+
+			for (list<CustomizedPic>::iterator iter=picList.begin(); iter!=picList.end();) {
+				pwszFileName=mir_utf8decodeW(iter->tmpFileName.c_str());
+				if (GetFileAttributesW(pwszFileName)!=INVALID_FILE_ATTRIBUTES)
+					// File exists
+					iter=picList.erase(iter);
+				else if (iter->sessionID==0 || iter->ip==0 || iter->port==0)
+					// Error on sending side (Continue may crash MIMQQ2 QunImage thread)
+					iter=picList.erase(iter);
+				else
+					iter++;
+				mir_free(pwszFileName);
+			}
+			if (picList.size()) {
+				// Still items in picList
+				EvaAskForCustomizedPicEvent *event = new EvaAskForCustomizedPicEvent();
+				event->setPicList(picList);
+				event->setQunID(dwQun);
+				//CQunImage::PostEvent(event);
+				if (!m_qunimage) m_qunimage=new CQunImage(this);
+				m_qunimage->customEvent(event);
+			}
+		}
+
+		HANDLE hContact;
+		hContact=FindContact(dwQun);
+		if (READC_D2("QunVersion")!=dwQunVersion) {
+			util_log(0,"Qun %u: QunVersion differ (%u!=%u), requesting update",dwQun,READC_D2("QunVersion"),dwQunVersion);
+			WRITEC_D("QunVersion",dwQunVersion);
+			WRITEC_D("QunCardUpdate",-1);
+
+			prot_qun_get_info(&m_client,dwQun,0);
+		}
+	}
+
+	_qunImCallback2(dwQun,dwFrom,dwHasFontAttr!=0,format&0x01,format&0x02,format&0x04,fontSize,red,green,blue,dwSentTime,strShow);
+
+}
+
+void CNetwork::processNews(LPSTR pszArgs) {
+	// news^$title^$brief^$url
+
+	LPSTR pszNews, pszBrief, pszUrl;
+	pszNews=pszArgs;
+	pszBrief=strstr(pszNews,"^$")+2; pszBrief[-2]=0;
+	pszUrl=strstr(pszBrief,"^$")+2; pszUrl[-2]=0;
+
+	// **********
+
+	if (/*READ_B2(NULL,QQ_SHOWAD)==1 &&*/ ServiceExists(MS_POPUP_ADDPOPUPW)) {
+		POPUPDATAW ppd={0};
+		LPWSTR pwszMsg;
+		_tcscpy(ppd.lpwzContactName,pwszMsg=mir_utf8decodeW(pszNews));
+		mir_free(pwszMsg);
+		_tcscpy(ppd.lpwzText,pwszMsg=mir_utf8decodeW(pszBrief));
+		mir_free(pwszMsg);
+		ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+		ppd.PluginWindowProc=_noticePopupProc;
+		ppd.PluginData=mir_utf8decodeW(pszUrl);
+		ppd.iSeconds=60;
+		CallService(MS_POPUP_ADDPOPUPW,(WPARAM)&ppd,0);
+	}
+}
+
+void CNetwork::processMail(LPSTR pszArgs) {
+	// mail^$mailid^$sender^$title
+
+	LPSTR pszMailID, pszSender, pszTitle;
+	pszMailID=pszArgs;
+	pszSender=strstr(pszMailID,"^$")+2; pszSender[-2]=0;
+	pszTitle=strstr(pszSender,"^$")+2; pszTitle[-2]=0;
+
+	// **********
+	WCHAR szUrl[MAX_PATH]=L"http://mail.qq.com";
+	LPWSTR pwszSender=mir_utf8decodeW(pszSender);
+	LPWSTR pwszTitle=mir_utf8decodeW(pszTitle);
+
+	// swprintf(szUrl,L"http://mail.qq.com/cgi-bin/login?Fun=clientread&Uin=%u&K=%S&Mailid=%S",m_myqq,EvaUtil:: m_client.data.im_key, pszMailID);
+	POPUPDATAW ppd={0};
+	_tcscpy(ppd.lpwzContactName,TranslateT("You got a new QQ Mail!"));
+	_stprintf(ppd.lpwzText,TranslateT("Sender: %s\nTitle: %s"),pwszSender,pwszTitle);
+	ppd.lchIcon=(HICON)LoadImage(hinstance, MAKEINTRESOURCE(IDI_TM), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+	ppd.PluginWindowProc=_noticePopupProc;
+	ppd.PluginData=mir_wstrdup(szUrl);
+	ppd.iSeconds=60;
+	CallService(MS_POPUP_ADDPOPUPW,(WPARAM)&ppd,0);
+
+	mir_free(pwszSender);
+	mir_free(pwszTitle);
+}
+
+void CNetwork::processQunJoin(LPSTR pszArgs) {
+	// qunjoin^$intid^$imtype^$extid^$subject^$commander^$type^$exttype^$msg^$codelen^$code^$tokenlen^$token
+	unsigned char imtype, type, exttype;
+	DWORD intid;
+	DWORD extid;
+	DWORD subject;
+	DWORD commander;
+	WORD codelen, tokenlen;
+	LPSTR pszCode, pszToken;
+	LPSTR pszMsg;
+	LPSTR ppszArgs=pszArgs;
+
+	intid=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	imtype=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	extid=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	subject=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	commander=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	type=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	exttype=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	pszMsg=ppszArgs;
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+	ppszArgs[-2]=0;
+
+	codelen=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	pszCode=ppszArgs;
+	ppszArgs+=codelen+2;
+
+	tokenlen=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	pszToken=ppszArgs;
+	ppszArgs+=tokenlen+2;
+
+	// *********
+	TCHAR wszTemp[MAX_PATH]={0};
+
+	switch (imtype) {
+		case QQ_RECV_IM_APPROVE_APPLY_ADD_TO_QUN: 
+			{
+				swprintf(wszTemp,TranslateT("You have been approved to join Qun %u."),extid);
+				ShowNotification(wszTemp,NIIF_INFO);
+				qun_update_info(&m_client,qun_get(&m_client,intid,1));
+				break;
+			}
+		case QQ_RECV_IM_APPLY_ADD_TO_QUN:
+			_sysRequestJoinQunCallback(intid,extid,subject,pszMsg,(LPBYTE)pszToken,tokenlen/*,(LPBYTE)pszCode,codelen*/);
+			break;
+		case QQ_RECV_IM_REJECT_JOIN_QUN:
+			_sysRejectJoinQunCallback(intid,extid,subject,pszMsg);
+			break;
+		case QQ_RECV_IM_SET_QUN_ADMIN:
+			switch (exttype) {
+				case QQ_QUN_SET_ADMIN:
+					swprintf(wszTemp+1,TranslateT("The Qun Creator assigned %u to be administrator."),subject);
+					break;
+				case QQ_QUN_UNSET_ADMIN:
+					swprintf(wszTemp+1,TranslateT("The Qun Creator revoked administrator identity of %u."),subject);
+					break;
+			}
+			break;
+		case QQ_RECV_IM_ADDED_TO_QUN:
+		case QQ_RECV_IM_DELETED_FROM_QUN:
+			{
+				LPWSTR pwszComment=mir_utf8decodeW(pszMsg);
+
+				switch (imtype) {
+					case QQ_RECV_IM_DELETED_FROM_QUN:
+						if (commander==0)
+							swprintf(wszTemp+1,TranslateT("%u left this Qun."),subject);
+						else
+							swprintf(wszTemp+1,TranslateT("%u(%s) removed %d from this Qun."),commander,pwszComment,subject);
+						break;
+					case QQ_RECV_IM_ADDED_TO_QUN:
+						_stprintf(wszTemp+1,TranslateT("%u(%s) added %d to this Qun."),commander,pwszComment,subject);
+						break;
+				}
+
+				mir_free(pwszComment);
+			}
+			break;
+	}
+
+	if (wszTemp[1]) {
+		PROTORECVEVENT pre;
+		CCSDATA ccs;
+		HANDLE hContact=FindContact(intid);
+		LPSTR pszTemp=mir_utf8encodeW(wszTemp+1);
+
+		pre.szMessage = pszTemp;
+		pre.flags = PREF_UTF;
+		pre.timestamp = (DWORD)time(NULL);
+		pre.lParam = 0;
+
+		ccs.hContact=hContact;
+		ccs.szProtoService = PSR_MESSAGE;
+		ccs.wParam = 0;
+		ccs.lParam = ( LPARAM )&pre;
+		CallService(MS_PROTO_CHAINRECV, 0, ( LPARAM )&ccs );
+
+		WRITEC_D("CardVersion",-1);
+		qun_update_info(&m_client,qun_get(&m_client,intid,1));
+
+		mir_free(pszTemp);
+	}
+}
+
+void CNetwork::processBuddySignature(LPSTR pszArgs) {
+	// buddysignature^$uin^$time^$signature
+
+	DWORD uid;
+	DWORD tm;
+	LPSTR pszSignature;
+	LPSTR ppszArgs=pszArgs;
+
+	uid=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	tm=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	pszSignature=ppszArgs;
+
+	// **********
+
+	HANDLE hContact=FindContact(uid);
+	if (hContact) {
+		bool fSong=pszSignature[strlen(pszSignature)-1]==1;
+
+		WRITEC_U8S("PersonalSignature",pszSignature);
+
+		if (fSong) {
+			WRITEC_U8S("ListeningTo",pszSignature);
+		} else {
+			DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszSignature);
+			DELC("ListeningTo");
+		}
+	}
+}
+
+void CNetwork::processBuddyWriting(LPSTR pszArgs) {
+	DWORD uid=strtoul(pszArgs,NULL,10);
+
+	util_log(0,"Received typing notification from %u",uid);
+
+	if (HANDLE hContact=FindContact(uid)) {
+		CallService(MS_PROTO_CONTACTISTYPING, (WPARAM)hContact, 5); // 5 secs
+	}
+}
+
+void CNetwork::processWeather(LPSTR pszArgs) {
+	// weather^$province^$city^$count^$time^$short_desc^$wind^$low^$high^$hints^$...
+	LPSTR pszProvince;
+	LPSTR pszCity;
+	int count;
+	DWORD tm;
+	LPSTR pszShortDesc;
+	LPSTR pszWind;
+	int low;
+	int high;
+	LPSTR pszHints;
+	LPSTR ppszArgs=pszArgs;
+
+	WCHAR szMsg[2048];
+	LPWSTR pszMsg=szMsg;
+
+	// **********
+	pszProvince=ppszArgs;
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+	ppszArgs[-2]=0;
+
+	pszCity=ppszArgs;
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+	ppszArgs[-2]=0;
+
+	count=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	LPWSTR lpwzProvince=mir_utf8decodeW(pszProvince);
+	LPWSTR lpwzCity=mir_utf8decodeW(pszCity);
+	LPWSTR lpwzTime;
+	LPWSTR lpwzShortDesc;
+	LPWSTR lpwzWind;
+	LPWSTR lpwzHint;
+
+	_stprintf(szMsg,TranslateT("Weather of %s %s:\n\n"),lpwzProvince,lpwzCity);
+	mir_free(lpwzProvince);
+	mir_free(lpwzCity);
+
+	for (int c=0; c<count; c++) {
+		tm=strtoul(ppszArgs,NULL,10);
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+
+		pszShortDesc=ppszArgs;
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+		ppszArgs[-2]=0;
+
+		pszWind=ppszArgs;
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+		ppszArgs[-2]=0;
+
+		low=atoi(ppszArgs);
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+
+		high=atoi(ppszArgs);
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+
+		pszHints=ppszArgs;
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+		ppszArgs[-2]=0;
+
+		lpwzShortDesc=mir_utf8decodeW(pszShortDesc);
+		lpwzWind=mir_utf8decodeW(pszWind);
+		lpwzHint=mir_utf8decodeW(pszHints);
+		lpwzTime=_tctime((time_t*)&tm);
+		*wcsstr(lpwzTime,L"00:")=0;
+		pszMsg+=_stprintf(pszMsg,TranslateT("%sCondition: %s\nWind: %s\nMax: %d Min: %d\n%s\n\n"),lpwzTime,lpwzShortDesc,lpwzWind,high,low,lpwzHint);
+		mir_free(lpwzShortDesc);
+		mir_free(lpwzWind);
+		mir_free(lpwzHint);
+	}
+
+	ForkThread((ThreadFunc)&CNetwork::ThreadMsgBox,mir_tstrdup(szMsg));
+}
+
+void CNetwork::processQunMyJoin(LPSTR pszArgs) {
+	// qunjoin2^$intid^$code^$extid^$result
+	// qunjoin2^$intid^$code^$msg
+
+	DWORD dwIntID, dwExtID;
+	unsigned char code, result;
+	LPSTR ppszArgs=pszArgs;
+
+	dwIntID=strtoul(ppszArgs,NULL,10);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	code=atoi(ppszArgs);
+	ppszArgs=strstr(ppszArgs,"^$")+2;
+
+	if (code==0) {
+		dwExtID=strtoul(ppszArgs,NULL,0);
+		ppszArgs=strstr(ppszArgs,"^$")+2;
+
+		result=atoi(ppszArgs);
+
+		switch (result) {
+			// case QQ_QUN_NO_AUTH: // Not seen
+			case QQ_QUN_JOIN_OK: // Qun Admin approved request
+				qun_update_info(&m_client,qun_get(&m_client,dwIntID,1));
+				break;
+			case QQ_QUN_JOIN_DENIED: // Qun Admin rejected request
+				{
+					// TODO: How does it happen with error msg filled? Impossible
+					TCHAR szMsg[MAX_PATH];
+					// LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
+
+					_stprintf(szMsg,TranslateT("Administrator of Qun %u denied your join request"),dwExtID);
+					ShowNotification(szMsg,NIIF_ERROR);
+					//mir_free(pszServerMsg);
+				}
+				break;
+
+			case QQ_QUN_JOIN_NEED_AUTH: // This Qun need authorization
+				{
+					util_log(0,"2006: Qun need authorization (default), request auth info");
+
+					// TODO: No longer valid
+					/*
+					if (HANDLE hContact=FindContact(m_deferActionData)) {
+						prot_user_request_token(&m_client,m_deferActionData,
+						EvaAddFriendGetAuthInfoPacket *packet = new EvaAddFriendGetAuthInfoPacket(READC_D2("ExternalID"), AUTH_INFO_CMD_INFO, true);
+						packet->setVerificationStr("");
+						packet->setSessionStr("");
+						append(packet);
+					} else {
+						util_log(0,"ERROR: hContact==NULL");
+					}
+					*/
+				}
+				break;
+				/* TODO: code==0 can't go here!
+			case QQ_QUN_CMD_JOIN_QUN_AUTH: // Requested to join a Qun with authorization message
+				if (!packet->isReplyOK()) {
+					TCHAR szMsg[MAX_PATH];
+					LPTSTR pszServerMsg=mir_a2u_cp(packet->getErrorMessage().c_str(),936);
+
+					_stprintf(szMsg,TranslateT("Administrator of Qun %d denied your join request\n%s"),qunid,pszServerMsg);
+					ShowNotification(szMsg,NIIF_ERROR);
+					mir_free(pszServerMsg);
+				}
+				break;
+				*/
+		}
+	} else {
+		TCHAR szMsg[MAX_PATH];
+		LPTSTR pszServerMsg=mir_utf8decodeW(ppszArgs);
+
+		_stprintf(szMsg,TranslateT("Add qun result of qun %d:\n%s"),dwIntID,pszServerMsg);
+		ShowNotification(szMsg,NIIF_INFO);
+		mir_free(pszServerMsg);
+	}
+}
+
+void CNetwork::registerCallbacks() {
+	callbacks["process"]=&CNetwork::processProcess;
+	callbacks["clusterinfo"]=&CNetwork::processClusterInfo;
+	callbacks["buddylist"]=&CNetwork::processBuddyList;
+	callbacks["grouplist"]=&CNetwork::processGroupList;
+	callbacks["buddystatus"]=&CNetwork::processBuddyStatus;
+	callbacks["status"]=&CNetwork::processStatus;
+	callbacks["buddyinfo"]=&CNetwork::processBuddyInfo;
+	callbacks["search_uid_reply"]=&CNetwork::processSearchUid;
+	callbacks["qun_search_reply"]=&CNetwork::processQunSearch;
+	callbacks["request_addbuddy_reply"]=&CNetwork::processRequestAddBuddy;
+	callbacks["request_token_reply"]=&CNetwork::processRequestToken;
+	callbacks["del_buddy_reply"]=&CNetwork::processDelBuddy;
+	callbacks["misc_broadcast"]=&CNetwork::processBroadcast;
+	callbacks["login_touch_redirect"]=&CNetwork::processLoginTouchRedirect;
+	callbacks["clustermembernames"]=&CNetwork::processClusterMemberNames;
+	callbacks["imsendmsg"]=&CNetwork::processIMSendMsgReply;
+	callbacks["buddyimtextadv"]=&CNetwork::processBuddyIMTextAdv;
+	callbacks["qunimadv"]=&CNetwork::processQunIMAdv;
+	callbacks["news"]=&CNetwork::processNews;
+	callbacks["mail"]=&CNetwork::processMail;
+	callbacks["qunjoin"]=&CNetwork::processQunJoin;
+	callbacks["buddysignature"]=&CNetwork::processBuddySignature;
+	callbacks["buddywriting"]=&CNetwork::processBuddyWriting;
+	callbacks["weather"]=&CNetwork::processWeather;
+	callbacks["qunmyjoin"]=&CNetwork::processQunMyJoin;
+}
+
+void CNetwork::_eventCallback(char* msg) {
+	util_log(0,"_eventCallback: %s",msg);
+
+	LPSTR pszArgs=strstr(msg,"^$");
+	*pszArgs=0;
+	pszArgs+=2;
+
+	for (map<LPCSTR,CallbackFunc>::iterator iter=callbacks.begin(); iter!=callbacks.end(); iter++) {
+		if (!strcmp(msg,iter->first)) {
+			(this->*(iter->second))(pszArgs);
+			break;
+		}
 	}
 }

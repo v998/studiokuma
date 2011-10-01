@@ -41,7 +41,7 @@
 
 #ifndef md5_INCLUDED
 #  define md5_INCLUDED
-
+g
 /*
  * This code has some adaptations for the Ghostscript environment, but it
  * will compile and run correctly in any environment with 8-bit chars and

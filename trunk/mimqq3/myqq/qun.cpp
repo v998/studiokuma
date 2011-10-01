@@ -36,7 +36,7 @@ static int member_searcher( const void* p, const void* v )
 
 qunmember* qun_member_get( struct qqclient* qq, qqqun* q, uint number, int create )
 {
-	if( !number )
+	if( !number || !q)
 		return NULL;
 	qunmember* m;
 	m = (qunmember*)list_search( &q->member_list, (void*)number, member_searcher );
@@ -212,7 +212,7 @@ void qun_put_event( qqclient* qq )
 	pthread_mutex_unlock( &qq->qun_list.mutex );
 }
 
-//竵E滤械娜盒畔?009-1-25 11:58
+//更新所有的群信息2009-1-25 11:58
 //Update all qun information
 static int qun_update_searcher( const void* p, const void* v )
 {
@@ -223,7 +223,6 @@ void qun_update_all( struct qqclient* qq )
 {
 	list_search( &qq->qun_list, (void*)qq, qun_update_searcher );
 }
-
 
 static int qun_update_online_searcher( const void* p, const void* v )
 {

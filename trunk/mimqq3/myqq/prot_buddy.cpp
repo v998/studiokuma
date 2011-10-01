@@ -14,6 +14,8 @@
 
 extern "C" {
 #include <time.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "qqclient.h"
 #include "memory.h"
@@ -58,15 +60,17 @@ void prot_buddy_update_list_reply( struct qqclient* qq, qqpacket* p )
 		b->age = get_byte( buf );
 		b->sex = get_byte( buf );
 		uchar name_len = get_byte( buf );	//name_len
+		name_len = MIN( NICKNAME_LEN-1, name_len );
 		get_data( buf,  (uchar*)b->nickname, name_len );	
 		b->nickname[name_len] = 0;
-		buf->pos += 27;
+		buf->pos += 32;//27;
 	}
 	if( next_pos != 0xffff ){
 		prot_buddy_update_list( qq, next_pos );
 	}else{
 		DBG("buddy_count: %d", qq->buddy_list.count );
 		buddy_set_all_off( qq );
+		prot_buddy_update_online( qq, 0 ); // Added by MIM for users offline bug due to multiple list requests
 #ifndef NO_BUDDY_DETAIL_INFO
 		prot_buddy_update_signiture( qq, 0 );
 		prot_buddy_update_account( qq, 0 );
@@ -180,7 +184,7 @@ void prot_buddy_update_signiture_reply( struct qqclient* qq, qqpacket* p )
 	bytebuffer *buf = p->buf;
 	uchar cmd = get_byte( buf );
 	switch( cmd ){
-	case 0x03:
+	case 0x03: // Added in MIMQQ?
 	case 0x83:
 		{
 			uchar result = get_byte( buf );
@@ -202,7 +206,7 @@ void prot_buddy_update_signiture_reply( struct qqclient* qq, qqpacket* p )
 			//	len = MIN( len, SIGNITURE_LEN-1 );
 				get_data( buf,  (uchar*)b->signature, len );
 				b->signature[len] = 0;
-			//	DBG("sign: %s  %s", b->nickname, b->signiture );
+			//	DBG("sign: %s  %s", b->nickname, b->signature );
 			}
 			if( next_pos != 0 && next_pos != 0xffffffff ){
 				//send else
@@ -324,7 +328,7 @@ void prot_buddy_update_alias_reply( struct qqclient* qq, qqpacket* p )
 			uchar result = get_byte( buf );
 			while( buf->pos < buf->len ){
 				uint number = get_int( buf );
-				qqbuddy* b = buddy_get( qq, number, 0 );
+				qqbuddy* b = buddy_get( qq, number, 1 );
 				if( !b ){
 					DBG("b==NULL");
 					return;
@@ -348,8 +352,6 @@ void prot_buddy_update_alias_reply( struct qqclient* qq, qqpacket* p )
 		DBG("unknown cmd = %x", cmd );
 	}
 }
-
-
 #endif
 
 void prot_buddy_request_addbuddy( struct qqclient* qq, uint number )
@@ -385,6 +387,9 @@ void prot_buddy_request_addbuddy_reply( struct qqclient* qq, qqpacket* p )
 			char msg[128];
 			sprintf( msg, "[%u]拒绝被任何人加为好友。", number );
 			buddy_msg_callback( qq, 100, time(NULL), msg );
+
+			sprintf( msg, "request_addbuddy_reply^$%u^$%d", number, flag );
+			qqclient_put_event( qq, msg);
 			break;
 		}
 		case 03:	//answer question
@@ -392,6 +397,9 @@ void prot_buddy_request_addbuddy_reply( struct qqclient* qq, qqpacket* p )
 			char msg[128];
 			sprintf( msg, "[%u]需要回答问题才能加为好友。", number );
 			buddy_msg_callback( qq, 100, time(NULL), msg );
+
+			sprintf( msg, "request_addbuddy_reply^$%u^$%d", number, flag );
+			qqclient_put_event( qq, msg);
 			break;
 		}
 		default:
@@ -402,15 +410,62 @@ void prot_buddy_request_addbuddy_reply( struct qqclient* qq, qqpacket* p )
 
 void prot_buddy_verify_addbuddy( struct qqclient* qq, uchar cmd, uint number )
 {
+	static uchar fill1[] = {
+		0x00, 0x0A, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+	static uchar fill2[] = {
+		0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_ADDBUDDY_VERIFY );
 	if( !p ) return;
 	bytebuffer *buf = p->buf;
+
+	put_byte( buf, cmd );	//command
+	put_int( buf, number );
+
+	if (cmd == 0x03 || cmd == 0x04 || cmd == 0x05) {
+		put_word( buf, 0 );
+	} else {
+		/*
+		if (opt_req->no_auth && opt_req->no_auth_len > 0) {
+			bytes += qq_put16(raw_data + bytes, opt_req->no_auth_len);
+			bytes += qq_putdata(raw_data + bytes, opt_req->no_auth, opt_req->no_auth_len);
+		} else	bytes += qq_put16(raw_data + bytes, 0);
+		*/ 
+		put_word( buf, 0 ); // no_auth
+
+		if( qq->data.user_token.len == 0 ) {
+			put_word( buf, 0 );
+		} else {
+			put_word( buf, qq->data.user_token.len );
+			put_data( buf, qq->data.user_token.data, qq->data.user_token.len );
+		}
+		put_byte( buf, 1 );	/* ALLOW ADD ME FLAG */
+	}
+
+	// bytes += qq_put8(raw_data + bytes, opt_req->group_id);	/* group number */
+	put_byte( buf, 0 ); // group number
+
+	if ( *qq->data.addbuddy_str ) {
+		put_byte( buf, strlen( qq->data.addbuddy_str ) );
+		put_data( buf, (uchar*)qq->data.addbuddy_str, strlen( qq->data.addbuddy_str ) );
+	}
+
+	if (cmd == 0x03 || cmd == 0x04 || cmd == 0x05)
+		put_data( buf, fill2, sizeof(fill2) );
+	else
+		put_data( buf, fill1, sizeof(fill1) );
+
+
+	/*
 	put_byte( buf, cmd );	//command
 	put_int( buf, number );
 	put_word( buf, 0x0000 );
 	switch( cmd ){
-	case 03:	//
-		put_byte( buf, 0x00 );
+	case 03:	// approve and add
+	case 04:	// approve
+	case 05:	// reject
+		put_byte( buf, 0x00 ); // group number
 		break;
 	case 02:	//
 		put_word( buf, qq->data.user_token.len );
@@ -432,6 +487,7 @@ void prot_buddy_verify_addbuddy( struct qqclient* qq, uchar cmd, uint number )
 		put_byte( buf, 0 );
 		break;
 	}
+	*/
 	post_packet( qq, p, SESSION_KEY );
 }
 
@@ -483,14 +539,20 @@ void prot_buddy_del_buddy( struct qqclient* qq, uint number )
 void prot_buddy_del_buddy_reply( struct qqclient* qq, qqpacket* p )
 {
 	bytebuffer *buf = p->buf;
-	if( get_byte( buf ) != 0 ){
+	char msg[128];
+	uchar ret;
+
+	if( ret=get_byte( buf ) != 0 ){
 		DBG("Failed to del buddy %u.", qq->data.operating_number );
 	}else{
-		char msg[128];
+		// char msg[128];
 		buddy_remove( qq, qq->data.operating_number );
 		sprintf( msg, "删除好友[%u]成功。", qq->data.operating_number );
 		buddy_msg_callback( qq, 100, time(NULL), msg );
 	}
+
+	sprintf( msg, "del_buddy_reply^$%d", (int)ret);
+	qqclient_put_event( qq, msg );
 }
 
 //获取业务信息
@@ -517,36 +579,36 @@ void prot_buddy_get_info( struct qqclient* qq, uint number )
 	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_BUDDY_INFO );
 	if( !p ) return;
 	bytebuffer *buf = p->buf;
-	put_word( buf, 0x0001 );
-	put_int( buf, number );
-	buf->pos += 22;	//22 zeros
+	put_word( buf, 0x0001 );   //003C协议版本号
+	put_int( buf, number );    //QQ号
+	buf->pos += 22;	//22 zeros //腾讯保留
 	put_word( buf, 0x001A );	//entry count  4E和52是标记分隔符
 	put_word( buf, 0x4E22 );	//nickname
 	put_word( buf, 0x4E25 );	//邮政编码
 	put_word( buf, 0x4E26 );	//地址
 	put_word( buf, 0x4E27 );	//家庭电话
-	put_word( buf, 0x4E29 );	//
-	put_word( buf, 0x4E2A );	//
+	put_word( buf, 0x4E29 );	//性别
+	put_word( buf, 0x4E2A );	//真实名称
 	put_word( buf, 0x4E2B );	//email
 	put_word( buf, 0x4E2C );	//occupation
 	put_word( buf, 0x4E2D );	//主页
-	put_word( buf, 0x4E2E );	//
-	put_word( buf, 0x4E2F );	//
+	put_word( buf, 0x4E2E );	//国家编码，中国为31
+	put_word( buf, 0x4E2F );	//头像索引，例如237=237/3=79=0x4F
 	put_word( buf, 0x4E30 );	//手机
 	put_word( buf, 0x4E31 );	//资料可见度
 	put_word( buf, 0x4E33 );	//个人说明
 	put_word( buf, 0x4E35 );	//毕业学校
-	put_word( buf, 0x4E36 );	//
-	put_word( buf, 0x4E37 );	//
-	put_word( buf, 0x4E38 );	//
-	put_word( buf, 0x4E3F );	//
-	put_word( buf, 0x4E40 );	//
+	put_word( buf, 0x4E36 );	//星座
+	put_word( buf, 0x4E37 );	//生肖
+	put_word( buf, 0x4E38 );	//血型
+	put_word( buf, 0x4E3F );	//生日
+	put_word( buf, 0x4E40 );	//国家编码+省市编码
 	put_word( buf, 0x4E41 );	//第1语言
 	put_word( buf, 0x4E42 );	//第2语言
 	put_word( buf, 0x4E43 );	//第3语言
 	put_word( buf, 0x4E45 );	//年龄
-	put_word( buf, 0x520B );	//会员信息
-	put_word( buf, 0x520F );	//
+	put_word( buf, 0x520B );	//会员标志
+	put_word( buf, 0x520F );	//客户端标识
 	post_packet( qq, p, SESSION_KEY );
 }
 
@@ -571,65 +633,154 @@ void prot_buddy_get_info_reply( struct qqclient* qq, qqpacket* p )
 		len = get_word(buf);
 		switch(type){
 		case 0x4E22://nickname
-			if( len<NICKNAME_LEN )
+			if( len<NICKNAME_LEN ) {
 				get_data(buf, (uchar*)b->nickname, len);
+				b->nickname[len]=0;
+			}
 			break;
 		case 0x4E25://post code
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->post_code, len);
+				b->post_code[len]=0;
+			}
 			break;
 		case 0x4E26://address
-			if( len<64 )
+			if( len<64 ) {
 				get_data(buf, (uchar*)b->address, len);
+				b->address[len]=0;
+			}
 			break;
 		case 0x4E27://homephone
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->homephone, len);
+				b->homephone[len]=0;
+			}
 			break;
 		case 0x4E28://email
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->email, len);
+				b->email[len]=0;
+			}
 			break;
 		case 0x4E30://mobile
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->mobilephone, len);
+				b->mobilephone[len]=0;
+			}
 			break;
 		case 0x4E2C://occupation
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->occupation, len);
+				b->occupation[len]=0;
+			}
 			break;
 		case 0x4E2D://homepage
-			if( len<64 )
+			if( len<64 ) {
 				get_data(buf, (uchar*)b->homepage, len);
+				b->homepage[len]=0;
+			}
 			break;
 		case 0x4E33://brief
-			if( len<256 )
+			if( len<256 ) {
 				get_data(buf, (uchar*)b->brief, len);
+				b->brief[len]=0;
+			}
 			break;
 		case 0x4E35://school
-			if( len<32 )
+			if( len<32 ) {
 				get_data(buf, (uchar*)b->school, len);
+				b->school[len]=0;
+			}
 			break;
 		case 0x4E3F://birth
-			if( len<16 )
+			if( len<16 ) {
 				get_data(buf, (uchar*)b->birth, len);
+				b->birth[len]=0;
+			}
 			break;
 		case 0x4E23://country
-			if( len<16 )
+			if( len<16 ) {
 				get_data(buf, (uchar*)b->country, len);
+				b->country[len]=0;
+			}
 			break;
 		case 0x4E24://province
-			if( len<16 )
+			if( len<16 ) {
 				get_data(buf, (uchar*)b->province, len);
+				b->province[len]=0;
+			}
 			break;
 		case 0x4E34://city
-			if( len<16 )
+			if( len<16 ) {
 				get_data(buf, (uchar*)b->city, len);
+				b->city[len]=0;
+			}
 			break;
 		default:
 			buf->pos += len;
 		}
 	}
+
+	// Added by MIMQQ3
+	char event[32];
+	sprintf( event, "buddyinfo^$%d", b->number );
+	qqclient_put_event( qq, event );
 }
 
+// MIMQQ3
+void prot_buddy_search_uid( struct qqclient* qq, uint number )
+{
+	qqpacket* p = packetmgr_new_send( qq, QQ_CMD_SEARCH_UID );
+	if( !p ) return;
+
+	bytebuffer *buf = p->buf;
+	put_byte( buf, 0x03);
+	put_int( buf, number );
+
+	post_packet( qq, p, SESSION_KEY );
+}
+
+void prot_buddy_search_uid_reply( struct qqclient* qq, qqpacket* p )
+{
+	bytebuffer *buf = p->buf;
+	uint num;
+	uchar status;
+	uchar len;
+	ushort icon;
+	ushort no_auth_len;
+	uchar* no_auth;
+	char name[32];
+	char event[260];
+
+	buf->pos = 7;
+	num = get_int(buf);
+
+	if (num!=0) {
+		buf->pos++;
+		status = get_byte(buf);
+	
+		buf->pos+=4;
+		len = get_byte(buf);
+		get_data(buf, (uchar*) name, len);
+		name[len] = 0;
+		icon = get_word(buf);
+
+		buf->pos+=13;
+		no_auth_len = get_word(buf);
+
+		sprintf( event, "search_uid_reply^$%u^$%d^$%s^$%d", num, (int)status, name, no_auth_len);
+
+		if ( no_auth_len > 0) {
+			int offset = strlen( event );
+
+			strcpy( event + offset, "^$" );
+			offset += 2;
+
+			get_data(buf, (uchar*)(event + offset), no_auth_len);
+		} 
+	} else
+		strcpy( event, "search_uid_reply^$0" );
+
+	qqclient_put_event( qq, event );
+}
 } // extern "C"

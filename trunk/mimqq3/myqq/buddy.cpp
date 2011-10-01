@@ -1,4 +1,4 @@
-﻿/* X Avoid using this file
+﻿/* (myqq3:svn13) X Avoid using this file
  *  buddy.c
  *
  *  Buddy management
@@ -11,6 +11,19 @@
  *
  */
 #include <StdAfx.h>
+#ifndef MIRANDAQQ_EXPORTS
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+#ifdef __WIN32__
+#include <winsock.h>
+#include <wininet.h>
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#endif
+#include "qqclient.h"
+#endif
 #include "memory.h"
 #include "debug.h"
 #include "protocol.h"
@@ -77,13 +90,13 @@ void buddy_set_all_off( struct qqclient* qq )
 void buddy_update_list( qqclient* qq )
 {
 	prot_buddy_update_list( qq, 0 );
-	prot_buddy_update_online( qq, 0 );
 }
 
 void buddy_update_info( qqclient* qq, qqbuddy* b )
 {
 	prot_buddy_get_info( qq, b->number );
 }
+
 
 int buddy_send_message( qqclient* qq, uint number, char* msg )
 {

@@ -9,7 +9,6 @@ typedef struct {
 class CNetwork;
 
 typedef struct {
-	//CNetwork* network;
 	HANDLE hContact;
 	int ackType;
 	int ackResult;
@@ -19,6 +18,7 @@ typedef struct {
 
 typedef int (__cdecl CNetwork::*EventFunc)(WPARAM, LPARAM);
 typedef int (__cdecl CNetwork::*ServiceFunc)(WPARAM, LPARAM);
+typedef void (__thiscall CNetwork::*CallbackFunc)(LPSTR);
 
 class CUserHead;
 class CQunImage;
@@ -44,7 +44,6 @@ public:
 	bool crashRecovery();
 	void append(OutPacket* out);
 	void sendOut(OutPacket* out);
-	const int getClockSkew() const { return m_clockSkew; }
 	void removePacket(const int hashCode);
 
 	static tagPROTO_INTERFACE* CNetwork::InitAccount(LPCSTR szModuleName, LPCTSTR szUserName);
@@ -53,60 +52,9 @@ public:
 	void LoadAccount();
 	void UnloadAccount();
 	static void RemoveQunPics();
-	void processPacket(LPCBYTE lpData, const USHORT len); // Need to be exposed to myim packmgr
 
 private:
-	void processServerDetectorResponse(InPacket* in);
-	void processRequestLoginTokenExResponse(InPacket* in);
-	void processLoginResponse(InPacket* in);
-	void processKeepAliveResponse(InPacket* in);
-	void processRequestKeyResponse(InPacket* in);
-	void processChangeStatusResponse(InPacket* in);
-	void processGetUserInfoResponse(InPacket* in);
-	void processGetFriendListResponse(InPacket* in);
-	void processRequestExtraInfoResponse(InPacket* in);
-	void processUploadGroupFriendResponse(InPacket* in);
-	void processIMResponse(InPacket* in);
-	void processGetFriendOnlineResponse(InPacket* in);
-	void processDownloadGroupFriendResponse(InPacket* in);
-	void processKeepaliveResponse(InPacket* in);
-	void processQunResponse(InPacket* in);
-	void processSendImResponse(InPacket* in);
-	void processSignatureOpResponse(InPacket* in);
-	void processGetLevelResponse(InPacket* in);
-	void processRecvMsgFriendChangeStatusResponse(InPacket* in);
-	void processTempSessionOpResponse(InPacket* in);
-	void processWeatherOpResponse(InPacket* in);
-	void processSearchUserResponse(InPacket* in);
-	void processAddFriendResponse(InPacket* in);
-	void processAddFriendAuthResponse(InPacket* in);
-	void processSystemMessageResponse(InPacket* in);
-	void processDeleteMeResponse(InPacket* in);
-	void processGroupNameOpResponse(InPacket* in);
-	void processDeleteFriendResponse(InPacket* in);
-	void processAddFriendAuthInfoReply(InPacket* in);
-
-	// 2008
-
-	void removeOutRequests(const short cmd);
-	void packetException(const short cmd);
-	void sendMessage(const int receiver, bool result);
-	void sendQunMessage(const int qunid, bool result);
-	void clearOutPool();
-	//void newPacket();
-
-	CRITICAL_SECTION m_cs;
-	// list<OutPacket*> m_outPool;
-	//list<InPacket*> m_inPool;
-	list<int>receivedPacketList;
-	list<int>receivedCacheList;
-	time_t m_checkTime;
-	time_t m_keepAliveTime;
-	bool m_IsDetecting;
-	UCHAR m_numOfLostKeepAlivePackets;
-	bool m_loggedIn;
-	//bool m_invisible;
-	INT m_clockSkew;
+	void redirect(int host, int port);
 
 	std::map<short, pcMsg> pcMsgCache;
 
@@ -127,7 +75,7 @@ private:
 
 	virtual	HANDLE __cdecl ChangeInfo( int iInfoType, void* pInfoData );
 
-	virtual	int    __cdecl FileAllow( HANDLE hContact, HANDLE hTransfer, const char* szPath );
+	virtual	HANDLE __cdecl FileAllow( HANDLE hContact, HANDLE hTransfer, const PROTOCHAR* szPath );
 	virtual	int    __cdecl FileCancel( HANDLE hContact, HANDLE hTransfer );
 	virtual	int    __cdecl FileDeny( HANDLE hContact, HANDLE hTransfer, const char* szReason );
 	virtual	int    __cdecl FileResume( HANDLE hTransfer, int* action, const char** szFilename );
@@ -148,14 +96,14 @@ private:
 	virtual	int    __cdecl RecvUrl( HANDLE hContact, PROTORECVEVENT* );
 
 	virtual	int    __cdecl SendContacts( HANDLE hContact, int flags, int nContacts, HANDLE* hContactsList );
-	virtual	int    __cdecl SendFile( HANDLE hContact, const char* szDescription, char** ppszFiles );
+	virtual	HANDLE __cdecl SendFile( HANDLE hContact, const PROTOCHAR* szDescription, PROTOCHAR** ppszFiles );
 	virtual	int    __cdecl SendMsg( HANDLE hContact, int flags, const char* msg );
 	virtual	int    __cdecl SendUrl( HANDLE hContact, int flags, const char* url );
 
 	virtual	int    __cdecl SetApparentMode( HANDLE hContact, int mode );
 	virtual	int    __cdecl SetStatus( int iNewStatus );
 
-	virtual	int    __cdecl GetAwayMsg( HANDLE hContact );
+	virtual	HANDLE    __cdecl GetAwayMsg( HANDLE hContact );
 	virtual	int    __cdecl RecvAwayMsg( HANDLE hContact, int mode, PROTORECVEVENT* evt );
 	virtual	int    __cdecl SendAwayMsg( HANDLE hContact, HANDLE hProcess, const char* msg );
 	virtual	int    __cdecl SetAwayMsg( int m_iStatus, const char* msg );
@@ -223,6 +171,7 @@ private:
 	INT __cdecl IPCService(WPARAM,LPARAM);
 	INT __cdecl RecvAuth(WPARAM,LPARAM);
 	INT __cdecl TestService(WPARAM,LPARAM);
+	INT __cdecl ForceRefresh(WPARAM,LPARAM);
 
 	void _CopyAndPost(HANDLE hContact, LPCWSTR szFile);
 	void __cdecl FetchQunAvatar(LPVOID data);
@@ -234,7 +183,6 @@ private:
 	void EnableMenuItems(BOOL parEnable);
 	void BroadcastStatus(int newStatus);
 	void SetContactsOffline();
-	//int ShowNotification(const char *info, DWORD flags);
 	int ShowNotification(LPCWSTR info, DWORD flags);
 	void ForkThread(ThreadFunc func, void* arg=NULL);
 	void __cdecl ThreadMsgBox(void* szMsg);
@@ -242,56 +190,11 @@ private:
 	static int _RemoveAllCardNamesProc(const char *szSetting,LPARAM lParam);
 
 	// callbacks.cpp
-	void callbackHub(int command, int subcommand, WPARAM wParam, LPARAM lParam);
-	/*
-	void _requestLoginTokenExCallback(RequestLoginTokenExReplyPacket* packet);
-	void _loginCallback(LoginReplyPacket* packet);
-	void _keepAliveCallback(KeepAliveReplyPacket*);
-	*/
-	void _changeStatusCallback(ChangeStatusReplyPacket* packet);
-	void _getUserInfoCallback(GetUserInfoReplyPacket* packet);
-	/*
-	void _getFriendListCallback(GetFriendListReplyPacket* packet);
-	*/
-	void _getOnlineFriendCallback(GetOnlineFriendReplyPacket* packet);
-	void _downloadGroupFriendCallback(DownloadGroupFriendReplyPacket* packet);
-	void _requestExtraInfoCallback(RequestExtraInfoReplyPacket* packet);
-	void _signatureOpCallback(SignatureReplyPacket* packet);
-	void _writeIP(HANDLE hContact, int ip);
-	void _writeVersion(HANDLE hContact, int version, const char* iniFile);
-	void _imCallback(int subCommand, ReceiveIMPacket* packet, void* auxpacket);
+	void _writeVersion(HANDLE hContact, int version, LPCSTR iniFile);
 	void _qunImCallback2(const unsigned int qunID, const unsigned int senderQQ, const bool hasFontAttribute, const bool isBold, const bool isItalic, const bool isUnderline, const char fontSize, const char red, const char green, const char blue, const int sentTime, const std::string message);
-	void _updateQunCard(HANDLE hContact, const int qunid);
-	void _imCallback(const int imType, const void* data);
-	void _sysRequestJoinQunCallback(int qunid, int extid, int userid, const char* msg, const unsigned char *token, const unsigned short tokenLen);
-	void _sysRejectJoinQunCallback(int qunid, int extid, int userid, const char* msg);
-	void _qunCommandCallback(QunReplyPacket* packet);
-	void _friendChangeStatusCallback(FriendChangeStatusPacket* packet);
-	/*
-	void _qunGetInfoCallback(QunReplyPacket* packet);
-	*/
-	void _searchUserCallback(SearchUserReplyPacket* packet);
-	/*
-	void _getLevelCallback(EvaGetLevelReplyPacket* packet);
-	void _systemMessageCallback(SystemNotificationPacket* packet);
-	*/
-	void _addFriendCallback(EvaAddFriendExReplyPacket* packet);
-	void _addFriendAuthInfoCallback(EvaAddFriendGetAuthInfoReplyPacket* packet);
-	void _deleteFriendCallback(DeleteFriendReplyPacket* packet);
-	/*
-	void _deleteMeCallback(DeleteMeReplyPacket* packet);
-	*/
-	void _groupNameOpCallback(GroupNameOpReplyPacket* packet);
-	void _sendImCallback(SendIMReplyPacket* packet,SendTextIMPacket* im);
-	/*
-	void _tempSessionOpCallback(TempSessionOpReplyPacket* packet);
-	*/
-	void _weatherOpCallback(WeatherOpReplyPacket* packet);
-	/*
-	void _uploadGroupFriendCallback(UploadGroupFriendReplyPacket* packet);
-	*/
+	void _sysRequestJoinQunCallback(int qunid, int extid, int userid, LPCSTR msg, const unsigned char *token, const WORD tokenLen);
+	void _sysRejectJoinQunCallback(int qunid, int extid, int userid, LPCSTR msg);
 	void __cdecl delayReport(LPVOID);
-	void __cdecl _addFriendAuthGraphicalVerification(LPVOID adp);
 	void __cdecl _tempSessionGraphicalVerification(LPVOID adp);
 public:
 	// myqq
@@ -304,10 +207,8 @@ public:
 
 	bool uhCallbackHub(int msg, int qqid, const char* md5, unsigned int session);
 	void qunPicCallbackHub(int msg, int qunid, void* aux);
-	void redirect(int host, int port);
 
-	UINT_PTR m_timer;
-	unsigned char* m_libevabuffer;
+	UINT_PTR m_timer; // For SetCurrentMedia
 
 	// details.cpp
 	void UpdateQunContacts(HWND hwndDlg, unsigned int qunid);
@@ -315,48 +216,60 @@ public:
 	HANDLE AddContact(const unsigned int QQID, bool not_on_list, bool hidden);
 
 	const int GetMyQQ() const { return m_myqq; }
-	void AddContactWithSend(int qqid);
+	void AddContactWithSend(DWORD qqid);
 	const bool IsConservative() const { return m_conservative; }
 	const bool TriggerConservativeState();
 private:
 	list<HANDLE> m_serviceList;
-	//list<HANDLE> m_menuServicesList;
 	list<HANDLE> m_menuItemList;
 	list<HANDLE> m_contextMenuItemList;
 	list<HANDLE> m_hookList;
-	int m_keepaliveCount;
-	map<unsigned short,OutPacket*> m_pendingImList;
 	map<unsigned short,unsigned int> m_imSender;
-	list<int> m_qunInitList;
-	bool m_myInfoRetrieved;
 
-	LPSTR m_currentDefaultServer;
 	CUserHead* m_userhead;
 	CQunImage* m_qunimage;
 
-	map<int,unsigned char> m_qunMemberCountList;
-	map<int,unsigned char> m_currentQunMemberCountList;
-
-	// list<ReceivedNormalIM> m_storedIM;
-
-	int m_searchUID;
+	DWORD m_searchUID;
 	LISTENINGTOINFO m_currentMedia;
 
 	map<int,HANDLE> m_hGroupList;
 	int m_qqusers;
 	bool m_downloadGroup;
-	int m_myqq;
+	DWORD m_myqq;
 	HANDLE m_hMenuRoot;
 	BOOL m_conservative;
 
-	// InPacket* m_curmsg;
 	time_t m_deferActionTS;
+	BOOL m_uhTriggered;
+
+	void registerCallbacks();
+	void CNetwork::processProcess(LPSTR pszArgs);
+	void CNetwork::processClusterInfo(LPSTR pszArgs);
+	void CNetwork::processBuddyList(LPSTR pszArgs);
+	void CNetwork::processGroupList(LPSTR pszArgs);
+	void CNetwork::processBuddyStatus(LPSTR pszArgs);
+	void CNetwork::processStatus(LPSTR pszArgs);
+	void CNetwork::processBuddyInfo(LPSTR pszArgs);
+	void CNetwork::processSearchUid(LPSTR pszArgs);
+	void CNetwork::processQunSearch(LPSTR pszArgs);
+	void CNetwork::processRequestAddBuddy(LPSTR pszArgs);
+	void CNetwork::processRequestToken(LPSTR pszArgs);
+	void CNetwork::processDelBuddy(LPSTR pszArgs);
+	void CNetwork::processBroadcast(LPSTR pszArgs);
+	void CNetwork::processLoginTouchRedirect(LPSTR pszArgs);
+	void CNetwork::processClusterMemberNames(LPSTR pszArgs);
+	void CNetwork::processIMSendMsgReply(LPSTR pszArgs);
+	void CNetwork::processBuddyIMTextAdv(LPSTR pszArgs);
+	void CNetwork::processQunIMAdv(LPSTR pszArgs);
+	void CNetwork::processNews(LPSTR pszArgs);
+	void CNetwork::processMail(LPSTR pszArgs);
+	void CNetwork::processQunJoin(LPSTR pszArgs);
+	void CNetwork::processBuddySignature(LPSTR pszArgs);
+	void CNetwork::processBuddyWriting(LPSTR pszArgs);
+	void CNetwork::processWeather(LPSTR pszArgs);
+	void CNetwork::processQunMyJoin(LPSTR pszArgs);
 
 public:
-	/*
-	int m_addUID;
-	int m_addQunNumber;
-	*/
 	char m_deferActionType;
 	DWORD m_deferActionData;
 	DWORD m_deferActionAux;
@@ -365,18 +278,18 @@ public:
 	HWND m_hwndModifySignatureDlg;
 	CodeVerifyWindow* m_codeVerifyWindow;
 	XGraphicVerifyCode* m_graphicVerifyCode;
-	//QunList m_qunList;
-	SendTempSessionTextIMPacket* m_savedTempSessionMsg;
+	// SendTempSessionTextIMPacket* m_savedTempSessionMsg; // TODO: Temp Session
 	qqclient m_client;
 
 	// Moved from options
 	HWND opt_hwndAcc;
 	HWND opt_hwndSettings;
 	HWND opt_hwndQun;
-	//HWND hwndHelper;
 	bool opt_fInit;
 	static HANDLE m_folders[2]; // 0=Avatars 1=QunImages 2=WebServer
 	HANDLE m_avatarFolder;
+	std::map<LPCSTR,CallbackFunc> callbacks;
+	qqpacket* m_packet;	
 };
 
 #endif // NETWORK_H

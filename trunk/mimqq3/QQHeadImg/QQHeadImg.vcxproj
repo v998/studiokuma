@@ -1,0 +1,342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Test|Win32">
+      <Configuration>Release-Test</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{56EB9CAB-3E0F-4BE3-95E0-474996511B78}</ProjectGuid>
+    <RootNamespace>QQHeadImg</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">$(Configuration)\</IntDir>
+    <IgnoreImportLibrary Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">true</IgnoreImportLibrary>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">false</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;QQHEADIMG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <OutputFile>$(OutDir)QQHeadImg.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)QQHeadImg.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <ImportLibrary>$(OutDir)QQHeadImg.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;QQHEADIMG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <OutputFile>../QQHeadImg.dll</OutputFile>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <NoEntryPoint>true</NoEntryPoint>
+      <ImportLibrary>$(OutDir)QQHeadImg.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy ..\QQHeadImg.dll \test\plugins</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;QQHEADIMG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+    <Link>
+      <OutputFile>../QQHeadImg.dll</OutputFile>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <NoEntryPoint>true</NoEntryPoint>
+      <ImportLibrary>$(OutDir)QQHeadImg.lib</ImportLibrary>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy ..\QQHeadImg.dll \test\plugins</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="QQHeadImg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">true</ExcludedFromBuild>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-Test|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="face\1.bmp" />
+    <None Include="face\10.bmp" />
+    <None Include="face\100.bmp" />
+    <None Include="face\1000.bmp" />
+    <None Include="face\1001.bmp" />
+    <None Include="face\1002.bmp" />
+    <None Include="face\101.bmp" />
+    <None Include="face\102.bmp" />
+    <None Include="face\103.bmp" />
+    <None Include="face\104.bmp" />
+    <None Include="face\105.bmp" />
+    <None Include="face\106.bmp" />
+    <None Include="face\107.bmp" />
+    <None Include="face\108.bmp" />
+    <None Include="face\109.bmp" />
+    <None Include="face\11.bmp" />
+    <None Include="face\110.bmp" />
+    <None Include="face\111.bmp" />
+    <None Include="face\112.bmp" />
+    <None Include="face\113.bmp" />
+    <None Include="face\114.bmp" />
+    <None Include="face\115.bmp" />
+    <None Include="face\116.bmp" />
+    <None Include="face\117.bmp" />
+    <None Include="face\118.bmp" />
+    <None Include="face\119.bmp" />
+    <None Include="face\12.bmp" />
+    <None Include="face\120.bmp" />
+    <None Include="face\121.bmp" />
+    <None Include="face\122.bmp" />
+    <None Include="face\123.bmp" />
+    <None Include="face\124.bmp" />
+    <None Include="face\125.bmp" />
+    <None Include="face\126.bmp" />
+    <None Include="face\127.bmp" />
+    <None Include="face\128.bmp" />
+    <None Include="face\129.bmp" />
+    <None Include="face\13.bmp" />
+    <None Include="face\130.bmp" />
+    <None Include="face\131.bmp" />
+    <None Include="face\132.bmp" />
+    <None Include="face\133.bmp" />
+    <None Include="face\134.bmp" />
+    <None Include="face\135.bmp" />
+    <None Include="face\136.bmp" />
+    <None Include="face\137.bmp" />
+    <None Include="face\138.bmp" />
+    <None Include="face\139.bmp" />
+    <None Include="face\14.bmp" />
+    <None Include="face\140.bmp" />
+    <None Include="face\141.bmp" />
+    <None Include="face\142.bmp" />
+    <None Include="face\143.bmp" />
+    <None Include="face\144.bmp" />
+    <None Include="face\145.bmp" />
+    <None Include="face\146.bmp" />
+    <None Include="face\147.bmp" />
+    <None Include="face\148.bmp" />
+    <None Include="face\149.bmp" />
+    <None Include="face\15.bmp" />
+    <None Include="face\150.bmp" />
+    <None Include="face\151.bmp" />
+    <None Include="face\152.bmp" />
+    <None Include="face\153.bmp" />
+    <None Include="face\154.bmp" />
+    <None Include="face\155.bmp" />
+    <None Include="face\156.bmp" />
+    <None Include="face\157.bmp" />
+    <None Include="face\158.bmp" />
+    <None Include="face\159.bmp" />
+    <None Include="face\16.bmp" />
+    <None Include="face\160.bmp" />
+    <None Include="face\161.bmp" />
+    <None Include="face\162.bmp" />
+    <None Include="face\163.bmp" />
+    <None Include="face\164.bmp" />
+    <None Include="face\165.bmp" />
+    <None Include="face\166.bmp" />
+    <None Include="face\167.bmp" />
+    <None Include="face\168.bmp" />
+    <None Include="face\169.bmp" />
+    <None Include="face\17.bmp" />
+    <None Include="face\170.bmp" />
+    <None Include="face\171.bmp" />
+    <None Include="face\172.bmp" />
+    <None Include="face\173.bmp" />
+    <None Include="face\18.bmp" />
+    <None Include="face\19.bmp" />
+    <None Include="face\2.bmp" />
+    <None Include="face\20.bmp" />
+    <None Include="face\21.bmp" />
+    <None Include="face\22.bmp" />
+    <None Include="face\23.bmp" />
+    <None Include="face\24.bmp" />
+    <None Include="face\25.bmp" />
+    <None Include="face\26.bmp" />
+    <None Include="face\27.bmp" />
+    <None Include="face\28.bmp" />
+    <None Include="face\29.bmp" />
+    <None Include="face\3.bmp" />
+    <None Include="face\30.bmp" />
+    <None Include="face\31.bmp" />
+    <None Include="face\32.bmp" />
+    <None Include="face\33.bmp" />
+    <None Include="face\34.bmp" />
+    <None Include="face\35.bmp" />
+    <None Include="face\36.bmp" />
+    <None Include="face\37.bmp" />
+    <None Include="face\38.bmp" />
+    <None Include="face\39.bmp" />
+    <None Include="face\4.bmp" />
+    <None Include="face\40.bmp" />
+    <None Include="face\41.bmp" />
+    <None Include="face\42.bmp" />
+    <None Include="face\43.bmp" />
+    <None Include="face\44.bmp" />
+    <None Include="face\45.bmp" />
+    <None Include="face\46.bmp" />
+    <None Include="face\47.bmp" />
+    <None Include="face\48.bmp" />
+    <None Include="face\49.bmp" />
+    <None Include="face\5.bmp" />
+    <None Include="face\50.bmp" />
+    <None Include="face\51.bmp" />
+    <None Include="face\52.bmp" />
+    <None Include="face\53.bmp" />
+    <None Include="face\54.bmp" />
+    <None Include="face\55.bmp" />
+    <None Include="face\56.bmp" />
+    <None Include="face\57.bmp" />
+    <None Include="face\58.bmp" />
+    <None Include="face\59.bmp" />
+    <None Include="face\6.bmp" />
+    <None Include="face\60.bmp" />
+    <None Include="face\61.bmp" />
+    <None Include="face\62.bmp" />
+    <None Include="face\63.bmp" />
+    <None Include="face\64.bmp" />
+    <None Include="face\65.bmp" />
+    <None Include="face\66.bmp" />
+    <None Include="face\67.bmp" />
+    <None Include="face\68.bmp" />
+    <None Include="face\69.bmp" />
+    <None Include="face\7.bmp" />
+    <None Include="face\70.bmp" />
+    <None Include="face\71.bmp" />
+    <None Include="face\72.bmp" />
+    <None Include="face\73.bmp" />
+    <None Include="face\74.bmp" />
+    <None Include="face\75.bmp" />
+    <None Include="face\76.bmp" />
+    <None Include="face\77.bmp" />
+    <None Include="face\78.bmp" />
+    <None Include="face\79.bmp" />
+    <None Include="face\8.bmp" />
+    <None Include="face\80.bmp" />
+    <None Include="face\81.bmp" />
+    <None Include="face\82.bmp" />
+    <None Include="face\83.bmp" />
+    <None Include="face\84.bmp" />
+    <None Include="face\85.bmp" />
+    <None Include="face\86.bmp" />
+    <None Include="face\87.bmp" />
+    <None Include="face\88.bmp" />
+    <None Include="face\89.bmp" />
+    <None Include="face\9.bmp" />
+    <None Include="face\90.bmp" />
+    <None Include="face\91.bmp" />
+    <None Include="face\92.bmp" />
+    <None Include="face\93.bmp" />
+    <None Include="face\94.bmp" />
+    <None Include="face\95.bmp" />
+    <None Include="face\96.bmp" />
+    <None Include="face\97.bmp" />
+    <None Include="face\98.bmp" />
+    <None Include="face\99.bmp" />
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="QQHeadImg.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

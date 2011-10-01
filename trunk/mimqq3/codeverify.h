@@ -1,6 +1,11 @@
 #ifndef CODEVERIFY_H
 #define CODEVERIFY_H
 
+#define XGVC_TYPE_LOGIN 1
+#define XGVC_TYPE_ADDUSER 2
+#define XGVC_TYPE_ADDQUN 3
+#define XGVC_TYPE_MODUSER 4
+
 class XGraphicVerifyCode {
 public:
 	XGraphicVerifyCode();
@@ -10,11 +15,13 @@ public:
 	void setSessionToken(const unsigned char *token, const unsigned short len);
 	void setData(const unsigned char *data, const unsigned short len);
 	void setCode(const char* code);
+	void setType(const char type);
 
 	unsigned short m_SessionTokenLen;
 	unsigned char *m_SessionToken;
 	unsigned short m_DataLen;
 	unsigned char *m_Data;
+	char m_type;
 	char* m_code;
 
 	CNetwork* m_network;

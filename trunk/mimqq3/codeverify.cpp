@@ -42,6 +42,7 @@ CodeVerifyWindow::CodeVerifyWindow(ASKDLGPARAMS* adp) {
 	//delete m_code;
 }
 
+
 INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 		case WM_INITDIALOG: 
@@ -149,11 +150,20 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 								qqclient_verify(&network->m_client,szCode);
 							}
 							*/
-							qqclient_verify(&network->m_client,szCode);
+							if (cvw->m_code->m_type==XGVC_TYPE_LOGIN)
+								qqclient_verify(&network->m_client,szCode);
+							else if (cvw->m_code->m_type==XGVC_TYPE_ADDUSER) {
+								qqclient_set_process( &network->m_client, P_LOGIN );	//原来漏了这个  20090709
+								prot_user_request_token( &network->m_client, network->m_client.data.operating_number, network->m_client.data.operation, 1, szCode );
+							} else if (cvw->m_code->m_type==XGVC_TYPE_ADDQUN) {
+								qqclient_set_process( &network->m_client, P_LOGIN );	//原来漏了这个  20090709
+								prot_user_request_token( &network->m_client, network->m_client.data.operating_number, network->m_client.data.operation, 2, szCode );
+							}
 
 							m_windows[network->m_client.number]=hwndDlg;
 							EndDialog(hwndDlg,0);
 						} else {
+							/*
 							EvaAddFriendGetAuthInfoPacket *packet;
 							if (cvw->m_adp->command==AUTH_INFO_SUB_CMD_QUN) {
 								HANDLE hContact=network->FindContact(network->m_deferActionData);
@@ -169,6 +179,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 							network->append(packet);
 							m_windows[packet->getSequence()]=hwndDlg;
 							EnableWindow(GetDlgItem(hwndDlg,IDOK),FALSE);
+							*/
 							//EnableWindow(GetDlgItem(hwndDlg,IDCANCEL),FALSE);
 						}
 					}
@@ -182,10 +193,12 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 							case AUTH_INFO_SUB_CMD_USER:
 								network->m_deferActionData=0;
 								break;
+								/*
 							case AUTH_INFO_SUB_CMD_TEMP_SESSION:
 								delete network->m_savedTempSessionMsg;
 								network->m_savedTempSessionMsg=NULL;
 								break;
+								*/
 						}
 						EndDialog(hwndDlg,1);
 					}
@@ -222,6 +235,7 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 						DBFreeVariant(&dbv);
 						*/
 						break;
+#if 0 // TODO
 					case AUTH_INFO_SUB_CMD_QUN:
 						{
 							int qqid=DBGetContactSettingDword(cvw->m_adp->hContact,network->m_szModuleName,UNIQUEIDSETTING,0);
@@ -238,7 +252,6 @@ INT_PTR CodeVerifyWindow::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPA
 							DBFreeVariant(&dbv);
 						}
 						break;
-#if 0 // TODO
 					case AUTH_INFO_SUB_CMD_TEMP_SESSION:
 						{
 							SendTempSessionTextIMPacket* packet=network->m_savedTempSessionMsg;
@@ -300,4 +313,8 @@ void XGraphicVerifyCode::setData(const unsigned char *data, const unsigned short
 void XGraphicVerifyCode::setCode(const char* code) {
 	if (m_code) free(m_code);
 	m_code=strdup(code);
+}
+
+void XGraphicVerifyCode::setType(const char type) {
+	m_type=type;
 }

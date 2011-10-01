@@ -71,7 +71,6 @@ int trans_faces( char* src, char* dst, int outlen )
 	return (int)(q-dst);
 }
 
-
 //2009-2-7 9:20 Huang Guan
 //get middle value from a string by the left and the right. 
 char* mid_value( char* str, char* left, char* right, char* out, int outlen )
@@ -131,6 +130,8 @@ void msleep( unsigned int ms )
 int get_splitable_pos( char* buf, int pos )
 {
 	//pos = 699
+	if (buf[pos]==0x14) pos--; // MIMQQ: Avoid smiley tag
+
 	if( (uchar)buf[pos]>=0x80 && (uchar)buf[pos]<=0xBF ){
 		do	
 			pos--;

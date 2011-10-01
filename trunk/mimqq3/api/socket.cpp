@@ -83,6 +83,7 @@ void __cdecl CClientConnection::ThreadProc(void* secondcrash) {
 
 		CallService(MS_CLIST_SYSTRAY_NOTIFY,0,(LPARAM)&msn);
 		//DebugBreak();
+
 		if (!crashRecovery() && m_connection) {
 			if (!secondcrash || time(NULL)-m_crashts>30) {
 				m_redirect=true;
@@ -255,8 +256,9 @@ void CClientConnection::unregisterAllConnections()
 }
 #endif
 
-void CClientConnection::send(LPCSTR szData, const int len) {
-	if (m_connection) Netlib_Send(m_connection,(LPCSTR)szData,len,MSG_NODUMP);
+int CClientConnection::send(LPCSTR szData, const int len) {
+	if (m_connection) return Netlib_Send(m_connection,(LPCSTR)szData,len,MSG_NODUMP);
+	return -1;
 }
 
 void CClientConnection::disbleWriteBuffer() {
@@ -270,4 +272,5 @@ void CClientConnection::disbleWriteBuffer() {
 void CClientConnection::ForkThread(SocketThreadFunc func, void* arg) {
 	unsigned int threadid;
 	mir_forkthreadowner(( pThreadFuncOwner ) *( void** )&func,this,arg,&threadid);
+	util_log(0,"ForkThread: tid=%x ep=%p",threadid,func);
 }

@@ -211,7 +211,7 @@ static char* to_utf8( char* s )
 #else
 #define _TEXT
 #endif
-static int getline(char *s, int lim) {
+static int inputline(char *s, int lim) {
 	char *t;
 	int c;
 

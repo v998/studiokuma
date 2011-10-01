@@ -650,7 +650,7 @@ void CQunListV2::refresh() {
 						flag[3]=iter->getQunGroupIndex();*/
 						*headimg=iter->getFace();
 
-						itoa(iter->getQQ(),szKey,10);
+						ultoa(iter->getQQ(),szKey,10);
 						if (READC_S2(szKey,&dbv)) {
 							// No Nick found
 							_stprintf(szItem+1,_T("%d (%d)"),iter->getQQ(),iter->getQQ());
