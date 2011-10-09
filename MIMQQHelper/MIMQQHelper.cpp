@@ -161,7 +161,7 @@ extern "C" {
 			pszMessage=pszMessage+wcslen(szBotMatch)+1;
 			if (wcsstr(pszMessage,L"[/")) *wcsstr(pszMessage,L"[/")=0;
 
-			itoa(ipcm->qunid,szTemp,10);
+			ultoa(ipcm->qunid,szTemp,10);
 			pszID=mir_strdup(szTemp);
 			if (DBGetContactSettingTString(ipcm->hContact,pszModule,"Nick",&dbv))
 				// No Nick

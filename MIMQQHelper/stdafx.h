@@ -107,7 +107,7 @@ extern const LPSTR szMIMQQError;
 #define WRITEINFO_TS(k,i) util_convertToNative(&pszTemp,info.at(i).c_str()); WRITEC_TS(k,pszTemp); free(pszTemp)
 #define WRITEINFO_B(k,i) WRITEC_B(k,atoi(info.at(i).c_str()))
 #define WRITEINFO_W(k,i) WRITEC_W(k,atoi(info.at(i).c_str()))
-#define WRITEINFO_D(k,i) WRITEC_D(k,atoi(info.at(i).c_str()))
+#define WRITEINFO_D(k,i) WRITEC_D(k,strtoul(info.at(i).c_str(),NULL,10))
 
 #define READ_S(c,k,v) if (!DBGetContactSetting(c,szMIMQQ,k,&dbv)) {strcpy(v,dbv.pszVal);DBFreeVariant(&dbv);} else *v=0
 #define READ_S2(c,k,v) DBGetContactSetting(c,szMIMQQ,k,v)
