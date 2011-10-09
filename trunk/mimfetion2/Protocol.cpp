@@ -329,9 +329,11 @@ void __cdecl CProtocol::SendMsgThread(LPVOID lpParameter) {
 
 	msgsend=msg;
 
-	bool sms=true;
+	bool sms=false;
 
-	if (!READC_B2("IsMe")) {
+	if (READC_B2("IsMe")) {
+		sms=true;
+	} else {
 		DBVARIANT dbv;
 		if (READC_U8S2("Mobile",&dbv)==0 && *dbv.pszVal) {
 			switch (READC_B2("ForceSMS")) {
@@ -344,7 +346,7 @@ void __cdecl CProtocol::SendMsgThread(LPVOID lpParameter) {
 			}
 			DBFreeVariant(&dbv);
 
-			if (!strncmp(msgsend,"!sms ",5)) {
+			if (!strnicmp(msgsend,"!sms ",5)) {
 				sms=true;
 				msgsend+=5;
 			}
@@ -688,7 +690,8 @@ int __cdecl CProtocol::OnPrebuildContactMenu(WPARAM wParam, LPARAM lParam) {
 	DWORD config=0;
 	HANDLE hContact=(HANDLE)wParam;
 	CLISTMENUITEM clmi={sizeof(clmi)};
-	if (!strcmp((LPSTR)CallService(MS_PROTO_GETCONTACTBASEPROTO,(WPARAM)hContact,0),m_szModuleName)) {
+
+	if (CallService(MS_PROTO_ISPROTOONCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName)==-1) {
 		/*
 		CRMI2(QQ_CNXTMENU_SILENTQUN,SilentQun,TranslateT("Toggle &Silent"));
 		CRMI2(QQ_CNXTMENU_POSTIMAGE,PostImage,TranslateT("Post &Image"));
@@ -709,6 +712,7 @@ int __cdecl CProtocol::OnPrebuildContactMenu(WPARAM wParam, LPARAM lParam) {
 		}
 
 		if (dbv.pszVal) DBFreeVariant(&dbv);
+
 	}
 
 	int c=0;

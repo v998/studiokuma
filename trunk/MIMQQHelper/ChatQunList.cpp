@@ -102,7 +102,7 @@ void CChatQunList::QunOnline(HANDLE hContact) {
 		gcs.ptszName=mir_wstrdup(L"???");
 	}
 
-	_itow(DBGetContactSettingDword(hContact,szMIMQQ,"UID",0),szID,10);
+	_ultow(DBGetContactSettingDword(hContact,szMIMQQ,"UID",0),szID,10);
 	//gcs.ptszName=wcsdup(szID);
 	gcs.ptszID=szID;
 
@@ -203,7 +203,7 @@ void CChatQunList::MessageReceived(ipcmessage_t* ipcm) {
 
 		gcd.iType=GC_EVENT_MESSAGE;
 		gce.dwFlags=GC_UNICODE;
-		_itow(ipcm->qunid,szID,10);
+		_ultow(ipcm->qunid,szID,10);
 		gcd.ptszID=szID;
 		gce.ptszNick=ipcm->message;
 		*pszMessage=0;
@@ -266,7 +266,7 @@ void CChatQunList::NamesUpdated(ipcmembers_t* ipcms) {
 	int ret;
 	gcd.iType=GC_EVENT_PART;
 	gce.dwFlags=GC_UNICODE;
-	_itow(ipcms->qunid,szID,10);
+	_ultow(ipcms->qunid,szID,10);
 	gcd.ptszID=szID;
 	//gce.time=time(NULL);
 
@@ -275,7 +275,7 @@ void CChatQunList::NamesUpdated(ipcmembers_t* ipcms) {
 
 	for (map<UINT,ipcmember_t>::iterator iter=members.begin(); iter!=members.end(); iter++) {
 		if (iter->first==1) continue;
-		_itow(iter->first,szUID,10);
+		_ultow(iter->first,szUID,10);
 		CallService(MS_GC_EVENT,0,(LPARAM)&gce);
 	}
 
@@ -286,7 +286,7 @@ void CChatQunList::NamesUpdated(ipcmembers_t* ipcms) {
 
 	for (list<ipcmember_t>::iterator iter=ipcms->members.begin(); iter!=ipcms->members.end(); iter++) {
 		MultiByteToWideChar(936,0,iter->name.c_str(),-1,szTemp,MAX_PATH);
-		_itow(iter->qqid,szUID,10);
+		_ultow(iter->qqid,szUID,10);
 
 		switch (iter->flag-IPCMFLAG_EXISTS) {
 			case IPCMFLAG_ONLINE|IPCMFLAG_CREATOR:
@@ -355,7 +355,7 @@ void CChatQunList::OnlineMembersUpdated(ipconlinemembers_t* ipcms) {
 	if (oldmembers.size()==0) return;
 
 	gce.dwFlags=GC_UNICODE;
-	_itow(ipcms->qunid,szID,10);
+	_ultow(ipcms->qunid,szID,10);
 	gcd.ptszID=szID;
 	gce.ptszUID=szUID;
 	//gce.ptszNick=szTemp;
@@ -384,7 +384,7 @@ void CChatQunList::OnlineMembersUpdated(ipconlinemembers_t* ipcms) {
 					gce.ptszStatus=TranslateT("Offline");
 					pszNewStatus=TranslateT("Online");
 				}
-				_itow(*iter,szUID,10);
+				_ultow(*iter,szUID,10);
 				gcd.iType=GC_EVENT_REMOVESTATUS;
 				ret=CallService(MS_GC_EVENT,0,(LPARAM)&gce);
 				gce.ptszStatus=pszNewStatus;
@@ -417,7 +417,7 @@ void CChatQunList::OnlineMembersUpdated(ipconlinemembers_t* ipcms) {
 				pszNewStatus=TranslateT("Offline");
 			}
 
-			_itow(iter->first,szUID,10);
+			_ultow(iter->first,szUID,10);
 			gcd.iType=GC_EVENT_REMOVESTATUS;
 			ret=CallService(MS_GC_EVENT,0,(LPARAM)&gce);
 			gce.ptszStatus=pszNewStatus;
@@ -472,7 +472,7 @@ void CChatQunList::TabSwitched(CWPRETSTRUCT* cps) {
 			int qunid;
 			OutputDebugString(L"CChatQunList::TabSwitched\n");
 			READC_TS2("ChatRoomID",&dbv);
-			qunid=_wtoi(dbv.ptszVal);
+			qunid=wcstoul(dbv.ptszVal,NULL,10);
 			DBFreeVariant(&dbv);
 			if (m_qunid!=qunid) {
 				m_qunid=qunid;
@@ -511,11 +511,11 @@ INT CChatQunList::ChatEventProc(WPARAM wParam, LPARAM lParam) {
 				CHAR nszUID[16];
 				WCHAR szNick[MAX_PATH];
 				DBVARIANT dbv;
-				ipcsendmessage_t ism={_wtoi(gch->pDest->ptszID),gch->ptszText};
+				ipcsendmessage_t ism={wcstoul(gch->pDest->ptszID,NULL,10),gch->ptszText};
 				//CallService(szIPCService,QQIPCSVC_QUN_SEND_MESSAGE,(LPARAM)&ism);
 				CallContactService(hContact,IPCSVC,QQIPCSVC_QUN_SEND_MESSAGE,(LPARAM)&ism);
 
-				_itow(DBGetContactSettingDword(NULL,szMIMQQ,"UID",0),szUID,10);
+				_ultow(DBGetContactSettingDword(NULL,szMIMQQ,"UID",0),szUID,10);
 				//gcd.ptszID=gch->pDest->ptszID;
 				gcd.iType=GC_EVENT_MESSAGE;
 				gce.dwFlags=GC_UNICODE;
@@ -535,11 +535,11 @@ INT CChatQunList::ChatEventProc(WPARAM wParam, LPARAM lParam) {
 				gce.ptszText=gch->ptszText;
 				CallService(MS_GC_EVENT,0,(LPARAM)&gce);
 
-				if (quns[_wtoi(gch->pDest->ptszID)].size()==0) {
+				if (quns[wcstoul(gch->pDest->ptszID,NULL,10)].size()==0) {
 					ipcmember_t ipcm={0};
-					quns[_wtoi(gch->pDest->ptszID)][1]=ipcm;
+					quns[wcstoul(gch->pDest->ptszID,NULL,10)][1]=ipcm;
 					//CallService(szIPCService,QQIPCSVC_QUN_UPDATE_INFORMATION,_wtoi(gch->pDest->ptszID));
-					CallContactService(hContact,IPCSVC,QQIPCSVC_QUN_UPDATE_INFORMATION,_wtoi(gch->pDest->ptszID));
+					CallContactService(hContact,IPCSVC,QQIPCSVC_QUN_UPDATE_INFORMATION,wcstoul(gch->pDest->ptszID,NULL,10));
 				}
 			}
 			break;

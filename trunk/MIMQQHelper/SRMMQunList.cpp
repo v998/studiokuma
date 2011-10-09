@@ -131,7 +131,7 @@ void CSRMMQunList::_HandlePopup(void* data) {
 				else {
 					char msg[16];
 					hContact=FindContact(m_qunid);
-					sprintf(msg,"/temp %d",ui[1]);
+					sprintf(msg,"/temp %u",ui[1]);
 					CallContactService(hContact,PSS_MESSAGE,0,(LPARAM)msg);
 				}
 				break;
@@ -243,7 +243,7 @@ INT_PTR CALLBACK CSRMMQunList::_DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
 							TCHAR szTemp[MAX_PATH];
 							SendDlgItemMessage(hwndDlg,IDC_QUNMEMBERS,LB_GETTEXT,selected,(LPARAM)szTemp);
 							if (*szTemp!=_T('0')) {
-								int qqid=_ttoi(_tcsrchr(szTemp,_T('('))+1);
+								unsigned int qqid=wcstoul(_tcsrchr(szTemp,_T('('))+1,NULL,10);
 								POINT pt;
 
 								mii.dwTypeData=szTemp+1;
@@ -318,7 +318,7 @@ INT_PTR CALLBACK CSRMMQunList::_DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
 					}
 
 					hdcMem = CreateCompatibleDC(lpdis->hDC); 
-					hBmpNew=m_headlist[_ttoi(_tcsrchr(tchBuffer,_T('('))+1)];
+					hBmpNew=m_headlist[wcstoul(_tcsrchr(tchBuffer,_T('('))+1,NULL,10)];
 					if (!hBmpNew) hBmpNew=m_headlist[*headimg];
 					hbmpOld =(HBITMAP) SelectObject(hdcMem, hBmpNew); 
 
@@ -477,7 +477,7 @@ void CSRMMQunList::Refresh() {
 					}
 
 					if (!READC_TS2("Nick",&dbv)) {
-						_stprintf(szItem,_T("%s (%d)"),dbv.ptszVal,READC_D2("ExternalID"));
+						_stprintf(szItem,_T("%s (%u)"),dbv.ptszVal,READC_D2("ExternalID"));
 						DBFreeVariant(&dbv);
 						SetWindowText(m_hWnd,szItem);
 					}
@@ -504,7 +504,7 @@ void CSRMMQunList::Refresh() {
 						flag[3]=iter->getQunGroupIndex();*/
 #endif
 						*headimg=iter->second.face;
-						itoa(iter->first,szKey,10);
+						ultoa(iter->first,szKey,10);
 						/*
 						if (READC_S2(szKey,&dbv)) {
 							// No Nick found
@@ -520,11 +520,11 @@ void CSRMMQunList::Refresh() {
 						if (iter->second.name.size()) {
 							// Nick found
 							MultiByteToWideChar(936,0,iter->second.name.c_str(),-1,szItem+1,MAX_PATH-1);
-							_stprintf(szItem+wcslen(szItem+1)+1,_T(" (%d)"),iter->first);
+							_stprintf(szItem+wcslen(szItem+1)+1,_T(" (%u)"),iter->first);
 							DBFreeVariant(&dbv);
 						} else {
 							// No Nick found
-							_stprintf(szItem+1,_T("%d (%d)"),iter->first,iter->first);
+							_stprintf(szItem+1,_T("%u (%u)"),iter->first,iter->first);
 						}
 						//_itot(iter->getQQ(),szItem,10);
 						id=(int)SendDlgItemMessage(m_hWnd,IDC_QUNMEMBERS,LB_ADDSTRING,NULL,(LPARAM)szItem);
