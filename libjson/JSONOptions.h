@@ -93,7 +93,7 @@
  *  pool.  With this option turned on, the default behavior is still done internally unless
  *  a callback is registered.  So you can have this option on and mot use it.
  */
-//#define JSON_MEMORY_CALLBACKS
+#define JSON_MEMORY_CALLBACKS
 
 /*
  *  JSON_MEMORY_MANAGE is used to create functionality to automatically track and clean
