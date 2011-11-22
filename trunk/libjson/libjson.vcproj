@@ -219,6 +219,10 @@
 				RelativePath=".\Source\libJSON.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\miminterface.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="ヘッダー ファイル"
@@ -263,6 +267,14 @@
 			</File>
 			<File
 				RelativePath=".\libJSON.h"
+				>
+			</File>
+			<File
+				RelativePath=".\m_libJSON.h"
+				>
+			</File>
+			<File
+				RelativePath=".\miminterface.h"
 				>
 			</File>
 			<File
