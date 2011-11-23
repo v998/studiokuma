@@ -5,21 +5,21 @@
 #include "include/newpluginapi.h"
 #include "include/m_plugins.h"
 #include "include/m_system.h"
-#include "m_libJSON.h"
 #include "libJSON.h"
+#include "m_libJSON.h"
 
 MM_INTERFACE   mmi;
 PLUGINLINK* pluginLink;				// Struct of functions pointers for service calls
 
 static const MUUID interfaces[] = {MIID_LIBJSON,MIID_LAST};
 
-static HANDLE s_services[52];
+static HANDLE s_services[53];
 
 PLUGININFOEX pluginInfo={
 	sizeof(PLUGININFOEX),
 	"JSON Service",
-	PLUGIN_MAKE_VERSION(1,0,0,0),
-	"JSON Library for Miranda IM / DLLExport interface (Version - " __DATE__ " " __TIME__")",
+	PLUGIN_MAKE_VERSION(0,0,0,2),
+	"JSON Library for Miranda IM / DLLExport interface (" __DATE__ " " __TIME__" libJSON 0.6)",
 	"Stark Wong",
 	"starkwong@hotmail.com",
 	"(C)2011 Stark Wong",
@@ -52,6 +52,101 @@ extern "C" {
 		for (HANDLE* service=s_services; *service; service++) {
 			DestroyServiceFunction(*service);
 		}
+		return 0;
+	}
+
+	int GetInterface(WPARAM wParam, LPARAM lParam) {
+		LPJSONSERVICEINTERFACE lpJSI=(LPJSONSERVICEINTERFACE)wParam;
+		memset(lpJSI,0,sizeof(JSONSERVICEINTERFACE));
+
+#define SETJSI(x) lpJSI->##x=json_##x
+		SETJSI(free);
+		lpJSI->delete_=json_delete;
+#ifdef JSON_MEMORY_MANAGE
+		SETJSI(free_all);
+		SETJSI(delete_all);
+#endif
+		SETJSI(parse);
+		SETJSI(strip_white_space);
+#ifdef JSON_VALIDATE
+		SETJSI(validate);
+#endif
+		SETJSI(new_a);
+		SETJSI(new_i);
+		SETJSI(new_f);
+		SETJSI(new_b);
+		lpJSI->new_=json_new;
+		SETJSI(copy);
+		SETJSI(duplicate);
+		SETJSI(set_a);
+		SETJSI(set_i);
+		SETJSI(set_f);
+		SETJSI(set_b);
+		SETJSI(set_n);
+		SETJSI(type);
+		SETJSI(size);
+		SETJSI(empty);
+		SETJSI(name);
+#ifdef JSON_COMMENTS
+		SETJSI(get_comment);
+#endif
+		SETJSI(as_string);
+		SETJSI(as_int);
+		SETJSI(as_float);
+		SETJSI(as_bool);
+		SETJSI(as_node);
+		SETJSI(as_array);
+		#ifdef JSON_BINARY
+		SETJSI(as_binary);
+		#endif
+		#ifdef JSON_WRITER
+		SETJSI(write);
+		SETJSI(write_formatted);
+		#endif
+		SETJSI(set_name);
+		#ifdef JSON_COMMENTS
+		SETJSI(set_comment);
+		#endif
+		SETJSI(clear);
+		SETJSI(nullify);
+		SETJSI(swap);
+		SETJSI(merge);
+		#ifndef JSON_PREPARSE
+		SETJSI(preparse);
+		#endif
+		#ifdef JSON_BINARY
+		SETJSI(set_binary);
+		#endif
+		SETJSI(cast);
+
+		//children access
+		SETJSI(reserve);
+		SETJSI(at);
+		SETJSI(get);
+		#ifdef JSON_CASE_INSENSITIVE_FUNCTIONS
+		SETJSI(get_nocase);
+		SETJSI(pop_back_nocase);
+		#endif
+		SETJSI(push_back);
+		SETJSI(pop_back_at);
+		SETJSI(pop_back);
+		#ifdef JSON_ITERATORS
+		SETJSI(find);
+		#ifdef JSON_CASE_INSENSITIVE_FUNCTIONS
+		SETJSI(find_nocase);
+		#endif
+		SETJSI(erase);
+		SETJSI(erase_multi);
+		SETJSI(insert);
+		SETJSI(insert_multi);
+
+		//iterator functions
+		SETJSI(begin);
+		SETJSI(end);
+		#endif
+
+		SETJSI(equal);
+
 		return 0;
 	}
 
@@ -151,6 +246,8 @@ WRAPPER_21(EQUAL,json_equal,JSONNODE*,JSONNODE*);
 
 		pluginLink=link;
 		mir_getMMI(&mmi);
+
+		s_services[ciServices++]=CreateServiceFunction(MS_JSON_GETINTERFACE,GetInterface);
 
 		CSF(FREE);
 		CSF(DELETE);
