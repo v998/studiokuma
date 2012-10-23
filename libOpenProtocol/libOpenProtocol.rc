@@ -1,0 +1,136 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// “ú–{Œê resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "CristalQQ-16x16x8.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ACCMGRUI DIALOGEX 0, 0, 187, 116
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Bootstrap Script:",IDC_STATIC,7,10,56,8
+    EDITTEXT        IDC_LUAFILE,66,7,114,14,ES_AUTOHSCROLL
+    LTEXT           "UIN:",IDC_STATIC,7,27,59,8
+    EDITTEXT        IDC_UIN,66,24,114,14,ES_AUTOHSCROLL
+    LTEXT           "Password:",IDC_STATIC,7,44,59,8
+    EDITTEXT        IDC_PW,66,41,114,14,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "Receive Group Chat Images",IDC_GCIMAGES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,58,173,10
+    LTEXT           "Server Port:",IDC_STATIC,7,72,59,8
+    EDITTEXT        IDC_PORT,66,69,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Show Debug Console Window",IDC_SHOWCONSOLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,97,174,10
+END
+
+IDD_VERYCODE DIALOGEX 0, 0, 187, 110
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Verification Code"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,89,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,130,89,50,14
+    LTEXT           "Enter the verification code as shown in following image:",IDC_STATIC,7,7,173,21
+    CONTROL         "",IDC_IMAGE,"Static",SS_BITMAP | SS_CENTERIMAGE,7,30,173,34
+    EDITTEXT        IDC_VERYCODE,75,70,40,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    PUSHBUTTON      "Reload",IDC_RELOAD,70,89,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ACCMGRUI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        VERTGUIDE, 66
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 109
+    END
+
+    IDD_VERYCODE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 103
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // “ú–{Œê resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

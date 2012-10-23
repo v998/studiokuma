@@ -226,6 +226,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\httpclient.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\httpserver.cpp"
 				>
 				<FileConfiguration
@@ -317,6 +329,10 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\webqq2.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="ヘッダー ファイル"
@@ -329,6 +345,10 @@
 			</File>
 			<File
 				RelativePath=".\extsvc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\httpclient.h"
 				>
 			</File>
 			<File
@@ -365,6 +385,10 @@
 			</File>
 			<File
 				RelativePath=".\version.h"
+				>
+			</File>
+			<File
+				RelativePath=".\webqq2.h"
 				>
 			</File>
 		</Filter>
@@ -535,6 +559,10 @@
 			</File>
 			<File
 				RelativePath=".\include\m_langpack.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\m_libJSON.h"
 				>
 			</File>
 			<File

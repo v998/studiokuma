@@ -584,7 +584,7 @@ void CProtocol::HandleWeb2FriendInfo(DWORD uin, JSONNODE* jnResult) {
 						TranslateT("Sagittarius"),
 						TranslateT("Capricorn"),
 					};
-					WRITEC_B("Zodiac",json_as_int(jnItem));
+					WRITEC_B("Zodiac",nTemp=json_as_int(jnItem));
 					WRITEC_TS("Past2",TranslateT("Zodiac"));
 					WRITEC_TS("Past2Text",pszSX[nTemp]);
 				}
