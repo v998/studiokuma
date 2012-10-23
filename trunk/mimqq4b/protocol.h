@@ -6,8 +6,9 @@ class CHttpServer;
 typedef int (__cdecl CProtocol::*EventFunc)(WPARAM, LPARAM);
 typedef int (__cdecl CProtocol::*ServiceFunc)(WPARAM, LPARAM);
 typedef void (__cdecl CProtocol::*ThreadFunc)(LPVOID);
+typedef void (__thiscall CProtocol::*CallbackFunc)(CWebQQ2*, LPSTR, JSONNODE*);
 
-class CProtocol: public PROTO_INTERFACE {
+class CProtocol: public PROTO_INTERFACE, WebQQ2Callback {
 public:
 	CProtocol(LPCSTR szModuleName, LPCTSTR szUserName);
 	~CProtocol();
@@ -24,6 +25,16 @@ public:
 		int qq2009;
 	} QQ_SMILEY, *PQQ_SMILEY, *LPQQ_SMILEY;
 
+	typedef struct _GROUP_MEMBER {
+		DWORD uin;
+		BYTE stat;
+		BYTE client_type;
+		LPSTR nick;
+		LPSTR card;
+		DWORD mflag;
+		_GROUP_MEMBER* next;
+	} GROUP_MEMBER, *PGROUP_MEMBER, *LPGROUP_MEMBER;
+
 	HANDLE QCreateService(LPCSTR pszService, ServiceFunc pFunc);
 	HANDLE QHookEvent(LPCSTR pszEvent, EventFunc pFunc);
 	void QLog(char *fmt,...);
@@ -38,6 +49,8 @@ public:
 	const HANDLE GetNetlibUser() const { return m_hNetlibUser; }
 	int ShowNotification(LPCWSTR info, DWORD flags);
 	void WriteClientType(HANDLE hContact, int type);
+	HANDLE AddOrFindQunContact(CWebQQ2* webqq2, DWORD flags, LPCSTR pszName, DWORD uin, BOOL isqun=false);
+	HANDLE FindContactWithPseudoUIN(DWORD uin);
 
 	// AccMgrUI
 	int __cdecl CreateAccMgrUI(WPARAM, LPARAM lParam);
@@ -54,6 +67,7 @@ public:
 	HANDLE m_hNetlibUser;
 	bool m_enableBBCode;
 	CLibWebQQ* m_webqq;
+	CWebQQ2* m_webqq2;
 	static QQ_SMILEY g_smileys[256];
 	static int g_smileysCount;
 	static CHttpServer* g_httpServer;
@@ -195,4 +209,20 @@ private:
 	void __cdecl SendMsgThread(LPVOID lpParameter);
 	void __cdecl GetInfoThread(LPVOID lpParameter);
 	void HandleQunSearchResult(JSONNODE* jn, HANDLE hSearch);
+
+	void GetFriendInfo2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void GetUserFriends2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void GetGroupListMask2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void GetOnlineBuddies2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void Poll2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void GetGroupInfoExt2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void WebQQ2_Callback(CWebQQ2* webqq2, LPCSTR pcszCommand, LPSTR pszArgs, JSONNODE* jn);
+
+	void Poll2_message(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+	void Poll2_group_message(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn);
+
+	void registerCallbacks();
+	std::map<LPCSTR,CallbackFunc> callbacks;
+	std::map<LPCSTR,CallbackFunc> poll2_callbacks;
+	std::map<DWORD,LPGROUP_MEMBER> group_members;
 };

@@ -121,6 +121,8 @@ using namespace std;
 #include "include/m_folders.h"
 #include "include/m_avatars.h"
 
+#include "include/m_libJSON.h"
+
 #ifdef MIRANDAQQ_IPC
 #pragma message("Processing: IPC Header")
 #ifndef _DEBUG
@@ -134,11 +136,14 @@ using namespace std;
 #include <Shlwapi.h>
 #include <math.h>
 
-#include "libJSON.h"
-#pragma comment(lib,"libJSON.lib")
+// #include "libJSON.h"
+// #pragma comment(lib,"libJSON.lib")
 #pragma comment(lib,"shlwapi")
 
 //#include "json.h"
+#include "httpclient.h"
+#include "webqq2.h"
+
 #include "libwebqq.h"
 
 #pragma message("Processing: Local Headers")

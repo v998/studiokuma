@@ -138,6 +138,7 @@ void CProtocol::SetContactsOffline() {
 
 	while (hContact) {
 		if (!lstrcmpA(m_szModuleName, (char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact, 0))) {
+			/*
 			hContact2=hContact;
 		}
 
@@ -145,7 +146,10 @@ void CProtocol::SetContactsOffline() {
 		if (hContact2) {
 			ret=CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact2,0);
 			hContact2=NULL;
+			*/
+			WRITEC_W("Status",ID_STATUS_OFFLINE);
 		}
+		hContact = ( HANDLE )CallService( MS_DB_CONTACT_FINDNEXT, ( WPARAM )hContact, 0 );
 	}
 
 }
@@ -787,3 +791,126 @@ JSONNODE* CProtocol::Web2ConvertMessage(bool isqun, DWORD qunid, LPCSTR message,
 	return jn;
 }
 
+HANDLE CProtocol::AddOrFindQunContact(CWebQQ2* webqq2, DWORD flags, LPCSTR pszName, DWORD uin, BOOL isqun) {
+	HANDLE hContact=NULL;
+	union {
+		mir_md5_byte_t bMD5[16];
+		DWORD dwMD5[4];
+	};
+
+	bool matchMD5;
+	bool matchFlag;
+	bool matchUIN;
+	DWORD dwUIN=0xffffffff;
+	HANDLE hCandidateContact=NULL;
+	bool candidateMatchMD5=false;
+	bool candidateMultiple=false;
+
+	mir_md5_hash((LPCBYTE)pszName,strlen(pszName),bMD5);
+
+	for (int c=0; c<2; c++) {
+		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+		hCandidateContact=NULL;
+		candidateMatchMD5=candidateMultiple=NULL;
+
+		while (hContact) {
+			if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL))) {
+				if (READC_B2("IsQun")==(isqun?1:0)) {
+					matchMD5=matchFlag=false;
+					if (READC_D2("flag")==flags) matchFlag=true;
+					if (READC_D2("nick_md5")==*dwMD5) matchMD5=true;
+
+					if (matchFlag && matchMD5) return hContact;
+
+					if (matchFlag || matchMD5) {
+						// Match one: Query uin;
+						/*
+						if (dwUIN==0xffffffff) {
+							dwUIN=webqq2->GetFriendUin2(isqun?4:1,uin);
+							if (!dwUIN) {
+								dwUIN=0xffffffff;
+								QLog(__FUNCTION__"(): Failed retrieving UIN for pseudo UIN %u",uin);
+							}
+						}
+						*/
+
+						if (dwUIN==READC_D2(UNIQUEIDSETTING)) {
+							QLog(__FUNCTION__"(): Updated known contact %u with flag=%u md5=%u name=%s",dwUIN,flags,*dwMD5,pszName);
+							WRITEC_D("flag",flags);
+							WRITEC_U8S("Nick",pszName);
+							WRITEC_D("nick_md5",*dwMD5);
+							return hContact;
+						} else if (hCandidateContact==NULL || (matchMD5 && !candidateMatchMD5)) {
+							// New good candidate
+							hCandidateContact=hContact;
+							candidateMatchMD5=matchMD5;
+							candidateMultiple=false;
+						} else if (hCandidateContact!=NULL && !matchMD5 && !candidateMatchMD5) {
+							// More bad candidate
+							candidateMultiple=true;
+						}
+					}
+				}
+			}
+
+			hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
+		}
+
+		if (c==0 && hCandidateContact!=NULL) {
+			QLog(__FUNCTION__"(): Possibly match for pseudo UIN %u in first round, retrieve real UIN",uin);
+			dwUIN=webqq2->GetFriendUin2(isqun?4:1,uin);
+			if (!dwUIN) {
+				dwUIN=0xffffffff;
+				QLog(__FUNCTION__"(): Failed retrieving UIN for pseudo UIN %u",uin);
+				break;
+			}
+		}
+	}
+
+	DWORD dwUIN2=isqun?2:1;
+
+	if (candidateMultiple) {
+		// All results are bad and no contact has the same name
+		hContact=NULL;
+		dwUIN2=dwUIN;
+		QLog(__FUNCTION__"(): Multiple contact with same flag but different name MD5, create new one for %u %s",dwUIN,pszName);
+	} else if (hCandidateContact && candidateMatchMD5) {
+		// Has contact(s) that with same name, still write it
+		QLog(__FUNCTION__"(): Found good contact matching name MD5, update for %u %s",dwUIN,pszName);
+		hContact=hCandidateContact;
+		WRITEC_D("flag",flags);
+		WRITEC_U8S("Nick",pszName);
+		WRITEC_D("nick_md5",*dwMD5);
+	}
+
+	if (!hContact) {
+		// Contact not exist, create it
+		if (hContact=(HANDLE)CallService(MS_DB_CONTACT_ADD, (WPARAM)NULL, (LPARAM)NULL)) {
+			// Creation successful, associate protocol
+			CallService(MS_PROTO_ADDTOCONTACT,(WPARAM)hContact,(LPARAM)m_szModuleName);
+			WRITEC_D(UNIQUEIDSETTING,isqun?2:1);
+			// DBWriteContactSettingByte(hContact,"CList","NotOnList",not_on_list?1:0);
+			// DBWriteContactSettingByte(hContact,"CList","Hidden",hidden?1:0);
+			WRITEC_D("flag",flags);
+			WRITEC_U8S("Nick",pszName);
+			WRITEC_D("nick_md5",*dwMD5);
+			WRITEC_B("IsQun",isqun?1:0);
+			QLog(__FUNCTION__"(): Added anonymous contact with flag=%u md5=%u name=%s",flags,*dwMD5,pszName);
+			//QLog(__FUNCTION__"(): Added qun contact %u, NotOnList=%d Hidden=%d",qqid,not_on_list,hidden);
+		}
+	}
+
+	return hContact;
+}
+
+HANDLE CProtocol::FindContactWithPseudoUIN(DWORD uin) {
+	HANDLE hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDFIRST, (WPARAM)NULL, (LPARAM)NULL);
+	while (hContact) {
+		if (!lstrcmpA(m_szModuleName,(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, (WPARAM)hContact,(LPARAM)NULL)) && 
+			READC_D2("pseudo_uin")==uin)
+			 return hContact;
+
+		hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
+	}
+	return NULL;
+}

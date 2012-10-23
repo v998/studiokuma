@@ -27,6 +27,8 @@ m_msgseqCurrent(0) {
 	memset(m_msgseq,0,sizeof(DWORD)*10);
 
 	g_httpServer=CHttpServer::GetInstance(this);
+
+	registerCallbacks();
 }
 
 CProtocol::~CProtocol() {
@@ -455,8 +457,87 @@ int CProtocol::SendMsg(HANDLE hContact, int flags, const char* msg){
 }
 
 int CProtocol::TestService(WPARAM wParam, LPARAM lParam) {
+	CWebQQ2* wq2=new CWebQQ2(m_hNetlibUser,"431533706","dSEjfFh6",this);
+		wq2->SetAutoDelete(TRUE);
+	wq2->Start();
+	//wq2->Test();
+	/*
+	JSONNODE* jn=json_parse("{\"retcode\":0,\"result\":{\"face\":0,\"birthday\":{\"month\":0,\"year\":0,\"day\":0},\"occupation\":\"0\",\"phone\":\"-\",\"allow\":1,\"college\":\"-\",\"reg_time\":1114844684,\"uin\":431533706,\"constel\":0,\"blood\":0,\"homepage\":\"-\",\"stat\":10,\"vip_info\":0,\"country\":\"\",\"city\":\"\",\"personal\":\"U+6DB4模鳴竭擱,U+59A6U+7E6B飲羶衄隱U+72DFU+FE5D\",\"nick\":\"^_^2\",\"shengxiao\":0,\"email\":\"431533706@qq.com\",\"client_type\":41,\"province\":\"\",\"gender\":\"unknown\",\"mobile\":\"\"}}");
+	if (jn) {
+		QLog("JSON Parse OK, Start dump");
+		JSONNODE* jn2=json_get(jn,"retcode");
+		char* pszResult=json_as_string(jn2);
+		QLog("retcode=%s",pszResult);
+		json_free(pszResult);
+
+		jn2=json_get(jn,"result");
+		int count=json_size(jn2);
+		char* psz1;
+		JSONNODE* jn3;
+		for (int c=0; c<count; c++) {
+			jn3=json_at(jn2,c);
+			psz1=json_name(jn3);
+			pszResult=json_as_string(jn3);
+			QLog("%s=%s",psz1,pszResult);
+			json_free(psz1);
+			json_free(pszResult);
+		}
+		json_delete(jn);
+	} else
+		QLog("JSON Parse Failed!");
+	*/
+	/*
+	HANDLE hJSON=(HANDLE)CallService(MS_JSON_PARSE,(WPARAM)"{\"retcode\":0,\"result\":{\"face\":0,\"birthday\":{\"month\":0,\"year\":0,\"day\":0},\"occupation\":\"0\",\"phone\":\"-\",\"allow\":1,\"college\":\"-\",\"reg_time\":1114844684,\"uin\":431533706,\"constel\":0,\"blood\":0,\"homepage\":\"-\",\"stat\":10,\"vip_info\":0,\"country\":\"\",\"city\":\"\",\"personal\":\"U+6DB4模鳴竭擱,U+59A6U+7E6B飲羶衄隱U+72DFU+FE5D\",\"nick\":\"^_^2\",\"shengxiao\":0,\"email\":\"431533706@qq.com\",\"client_type\":41,\"province\":\"\",\"gender\":\"unknown\",\"mobile\":\"\"}}",0);
+	if (hJSON) {
+		QLog("JSON Parse OK, Start dump");
+		HANDLE hJSON2=(HANDLE)CallService(MS_JSON_GET,(WPARAM)hJSON,(LPARAM)"retcode");
+		char* pszResult=(char*)CallService(MS_JSON_AS_STRING,(WPARAM)hJSON2,0);
+		QLog("retcode=%s",pszResult);
+		CallService(MS_JSON_FREE,(WPARAM)pszResult,0);
+
+		hJSON2=(HANDLE)CallService(MS_JSON_GET,(WPARAM)hJSON,(LPARAM)"result");
+		int count=CallService(MS_JSON_SIZE,(WPARAM)hJSON2,0);
+		char* psz1;
+		HANDLE hJSON3;
+		for (int c=0; c<count; c++) {
+			hJSON3=(HANDLE)CallService(MS_JSON_AT,(WPARAM)hJSON2,c);
+			psz1=(char*)CallService(MS_JSON_NAME,(WPARAM)hJSON3,0);
+			pszResult=(char*)CallService(MS_JSON_AS_STRING,(WPARAM)hJSON3,0);
+			QLog("%s=%s",psz1,pszResult);
+			CallService(MS_JSON_FREE,(WPARAM)psz1,0);
+			CallService(MS_JSON_FREE,(WPARAM)pszResult,0);
+		}
+		CallService(MS_JSON_DELETE,(WPARAM)hJSON,0);
+	} else
+		QLog("JSON Parse Failed!");
+	*/
+	return 0;
+	if (1==1) {
+		CWebQQ2* wq2=new CWebQQ2(m_hNetlibUser,"431533706","dSEjfFh6",this);
+		wq2->SetAutoDelete(TRUE);
+		wq2->Start();
+	} else {
+		CWebQQ2* wq2=new CWebQQ2(m_hNetlibUser,"431533706","dSEjfFh6",this);
+		wq2->Test();
+		delete wq2;
+	}
+
+	/*
+	CHttpClient chc(m_hNetlibUser);
+	chc.SetCookie("clienttest=value2;");
+	LPSTR pszResponse;
+
+	pszResponse=chc.GetRequest("http://127.0.0.1/cookietest/set.php",wq2_referrers[CHCREFERER_PTLOGIN2]);
+	MessageBoxA(NULL,pszResponse,NULL,0);
+	mir_free(pszResponse);
+
+	pszResponse=chc.GetRequest("http://127.0.0.1/cookietest/view.php",wq2_referrers[CHCREFERER_PTLOGIN2]);
+	MessageBoxA(NULL,pszResponse,NULL,0);
+	mir_free(pszResponse);
+	*/
+
 	// GetAllAvatars();
-	SetContactsOffline();
+	// SetContactsOffline();
 /*
 	JSONNODE* jn=json_new(JSON_NODE);
 	JSONNODE* jnSub;
@@ -1213,6 +1294,675 @@ void __cdecl CProtocol::GetInfoThread(LPVOID lpParameter) {
 		m_webqq->web2_api_get_friend_info(dwUIN);
 	}
 	// TODO: Qun Info
+}
+
+// CWebQQ2
+void CProtocol::GetGroupListMask2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	if (json_as_int(json_get(jn,"retcode"))==0) {
+		/*
+		{
+		   "retcode":0,
+		   "result":{
+			  "gmasklist":[
+
+			  ],
+			  "gnamelist":[
+				 {"flag":1049617, "name":"凉宫春日的旧封绝", "gid":329399655, "code":2190184963},
+				 {"flag":17826817, "name":"Miranda IM", "gid":1826181312, "code":3122999881},
+				 {"flag":17825793, "name":"測試群", "gid":3387867626, "code":4092567878},
+				 {"flag":34603025, "name":"叶色的闭锁空间", "gid":867899790, "code":1933612015},
+				 {"flag":1064961, "name":"測試群2", "gid":1461164908, "code":4172861839}
+			  ],
+			  "gmarklist":[
+				 {"uin":1461164908, "markname":"Notice3_Group"}
+			  ]
+		   }
+		}
+		*/
+		JSONNODE* jnResult=json_get(jn,"result");
+		JSONNODE* jnSection;
+		JSONNODE* jnItem;
+		LPSTR pszSection;
+		DWORD dwFlag;
+		DWORD dwCode;
+		DWORD dwGid;
+		LPSTR pszName;
+
+		for (int c=0; c<json_size(jnResult); c++) {
+			jnSection=json_at(jnResult,c);
+			pszSection=json_name(jnSection);
+			if (!strcmp(pszSection,"gnamelist")) {
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					dwFlag=(DWORD)json_as_float(json_get(jnItem,"flag"));
+					dwCode=(DWORD)json_as_float(json_get(jnItem,"code"));
+					dwGid=(DWORD)json_as_float(json_get(jnItem,"gid"));
+					pszName=json_as_string(json_get(jnItem,"name"));
+
+					if (HANDLE hContact=AddOrFindQunContact(webqq2,dwFlag,pszName,dwGid,true)) {
+						// Flag and name already set
+						WRITEC_D("code",dwCode);
+						WRITEC_D("pseudo_uin",dwGid);
+						WRITEC_W("Status",READC_B2(QQ_SILENTQUN)?ID_STATUS_INVISIBLE:ID_STATUS_ONLINE);
+					}
+					json_free(pszName);
+				}
+			} else if (!strcmp(pszSection,"gmarklist")) {
+				// Discussion Group
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					dwGid=(DWORD)json_as_float(json_get(jnItem,"uin"));
+					pszName=json_as_string(json_get(jnItem,"markname"));
+
+					if (HANDLE hContact=AddOrFindContact(dwGid,true,false)) {
+						WRITEC_U8S("Nick",pszName);
+					}
+					json_free(pszName);
+				}
+			} else {
+				QLog(__FUNCTION__"(): Ignored unknown section %s",pszSection);
+			} /*else if (!strcmp(pszSection,"gmasklist")) {
+				// ???
+			}*/
+			json_free(pszSection);
+		}
+	} else {
+		QLog(__FUNCTION__"(): retcode!=0!");
+	}
+}
+
+void CProtocol::GetUserFriends2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	/*
+	{
+	   "retcode":0,
+	   "result":{
+		  "friends":[
+			 {"flag":0, "uin":2989632540, "categories":0},
+			 {"flag":0, "uin":937960405, "categories":0},
+			 {"flag":0, "uin":1758353101, "categories":0},
+			 {"flag":0, "uin":375567902, "categories":0},
+			 {"flag":0, "uin":3451767722, "categories":0},
+			 {"flag":0, "uin":3709177032, "categories":0},
+			 {"flag":4, "uin":2522194210, "categories":1},
+			 {"flag":0, "uin":1197379730, "categories":0},
+			 {"flag":8, "uin":2469015452, "categories":2},
+			 {"flag":0, "uin":2814673687, "categories":0},
+			 {"flag":0, "uin":824286078, "categories":0},
+			 {"flag":8, "uin":1829831559, "categories":2},
+			 {"flag":0, "uin":624209290, "categories":0},
+			 {"flag":0, "uin":22931682, "categories":0},
+			 {"flag":4, "uin":2480456437, "categories":1}
+		  ],
+		  "marknames":[
+			 {"uin":824286078, "markname":"My Notice 2"},
+			 {"uin":2401036228, "markname":""},
+			 {"uin":1461164908, "markname":"Notice3_Group"}
+		  ],
+		  "categories":[
+			 {"index":1, "sort":0, "name":"新增群組"},
+			 {"index":2, "sort":0, "name":"测试分组"}
+		  ],
+		  "vipinfo":[
+			 {"vip_level":6, "u":2989632540, "is_vip":1},
+			 {"vip_level":6, "u":937960405, "is_vip":1},
+			 {"vip_level":0, "u":1758353101, "is_vip":0},
+			 {"vip_level":0, "u":375567902, "is_vip":0},
+			 {"vip_level":0, "u":3451767722, "is_vip":0},
+			 {"vip_level":0, "u":3709177032, "is_vip":0},
+			 {"vip_level":6, "u":2522194210, "is_vip":1},
+			 {"vip_level":0, "u":1197379730, "is_vip":0},
+			 {"vip_level":0, "u":2469015452, "is_vip":0},
+			 {"vip_level":0, "u":2814673687, "is_vip":0},
+			 {"vip_level":0, "u":824286078, "is_vip":0},
+			 {"vip_level":0, "u":1829831559, "is_vip":0},
+			 {"vip_level":0, "u":624209290, "is_vip":0},
+			 {"vip_level":0, "u":22931682, "is_vip":0},
+			 {"vip_level":0, "u":2480456437, "is_vip":0}
+		  ],
+		  "info":[
+			 {"face":0, "flag":4194886, "nick":"心之镜", "uin":2989632540},
+			 {"face":0, "flag":16777798, "nick":"  草从", "uin":937960405},
+			 {"face":0, "flag":16384, "nick":"｡◕‿◕｡", "uin":1758353101},
+			 {"face":303, "flag":8389186, "nick":"小路", "uin":375567902},
+			 {"face":0, "flag":13124098, "nick":"梦在千年", "uin":3451767722},
+			 {"face":0, "flag":12582978, "nick":"【平】", "uin":3709177032},
+			 {"face":0, "flag":4735558, "nick":"    道莲", "uin":2522194210},
+			 {"face":252, "flag":4194304, "nick":"j85379868", "uin":1197379730},
+			 {"face":39, "flag":12582912, "nick":"wuchang", "uin":2469015452},
+			 {"face":0, "flag":8389186, "nick":"ヤミノカケラ", "uin":2814673687},
+			 {"face":48, "flag":4194368, "nick":"忧郁的凉宫遥", "uin":824286078},
+			 {"face":33, "flag":12582912, "nick":"伴月?孤影", "uin":1829831559},
+			 {"face":0, "flag":4194816, "nick":"^_^", "uin":624209290},
+			 {"face":525, "flag":4735490, "nick":"法珞", "uin":22931682},
+			 {"face":0, "flag":512, "nick":"魔法少女逆岛", "uin":2480456437}
+		  ]
+	   }
+	}
+	*/
+	typedef struct {
+		BYTE categories;
+		LPSTR markname;
+		BYTE is_vip;
+		BYTE vip_level;
+		WORD face;
+		DWORD flag;
+		LPSTR nick;
+	} FRIEND, *PFRIEND, *LPFRIEND;
+
+	if (json_as_int(json_get(jn,"retcode"))==0) {
+		map<DWORD,LPFRIEND> friends;
+		JSONNODE* jnResult=json_get(jn,"result");
+		JSONNODE* jnSection;
+		JSONNODE* jnItem;
+		LPSTR pszSection;
+		LPFRIEND lpFriend;
+		DWORD uin;
+		LPSTR pszTemp;
+		int id;
+
+		for (int c=0; c<json_size(jnResult); c++) {
+			jnSection=json_at(jnResult,c);
+			pszSection=json_name(jnSection);
+			if (!strcmp(pszSection,"friends")) {
+				// {"flag":0, "uin":2989632540, "categories":0},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					lpFriend=(LPFRIEND)mir_alloc(sizeof(FRIEND));
+					memset(lpFriend,0,sizeof(FRIEND));
+					lpFriend->categories=json_as_int(json_get(jnItem,"categories"));
+					friends[(DWORD)json_as_float(json_get(jnItem,"uin"))]=lpFriend;
+				}
+			} else if (!strcmp(pszSection,"marknames")) {
+				// {"uin":824286078, "markname":"My Notice 2"},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					lpFriend=friends[uin=(DWORD)json_as_float(json_get(jnItem,"uin"))];
+					pszTemp=json_as_string(json_get(jnItem,"markname"));
+					if (!lpFriend) {
+						if (HANDLE hContact=FindContactWithPseudoUIN(uin)) {
+							DBWriteContactSettingStringUtf(hContact,"CList","MyHandle",pszTemp);
+						} else {
+							QLog(__FUNCTION__"(%s): Pseudo UIN %u not contact nor qun!",pszSection,uin);
+						}
+						json_free(pszTemp);
+					} else {
+						lpFriend->markname=pszTemp;
+					}
+				}
+			} else if (!strcmp(pszSection,"categories")) {
+				// {"index":1, "sort":0, "name":"新增群組"},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					pszTemp=json_as_string(json_get(jnItem,"name"));
+
+					if ((id=FindGroupByName(pszTemp))==-1) {
+						LPWSTR pszGroup=mir_utf8decodeW(pszTemp);
+						id=CallService(MS_CLIST_GROUPCREATE,0,(LPARAM)pszGroup);
+						mir_free(pszGroup);
+					}
+					m_groups[json_as_int(json_get(jnItem,"index"))]=id;
+					json_free(pszTemp);
+				}
+			} else if (!strcmp(pszSection,"vipinfo")) {
+				// {"vip_level":6, "u":2989632540, "is_vip":1},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					if (lpFriend=friends[uin=(DWORD)json_as_float(json_get(jnItem,"u"))]) {
+						lpFriend->vip_level=json_as_int(json_get(jnItem,"vip_level"));
+						lpFriend->is_vip=json_as_int(json_get(jnItem,"is_vip"));
+					} else {
+						QLog(__FUNCTION__"(%s): Pseudo UIN %u not found!",pszSection,uin);
+					}
+				}
+			} else if (!strcmp(pszSection,"info")) {
+				// {"face":0, "flag":4194886, "nick":"心之镜", "uin":2989632540},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+
+					if (lpFriend=friends[uin=(DWORD)json_as_float(json_get(jnItem,"uin"))]) {
+						lpFriend->flag=(DWORD)json_as_float(json_get(jnItem,"flag"));
+						lpFriend->nick=json_as_string(json_get(jnItem,"nick"));
+
+						if (HANDLE hContact=AddOrFindQunContact(webqq2,lpFriend->flag,lpFriend->nick,uin,false)) {
+							lpFriend->face=json_as_int(json_get(jnItem,"face"));
+							if (lpFriend->categories>0 && m_groups[lpFriend->categories]!=0 && READC_W2("categories")!=lpFriend->categories) {
+								// This contact is new, move group
+								WRITEC_W("categories",lpFriend->categories);
+								CallService(MS_CLIST_CONTACTCHANGEGROUP,(WPARAM)hContact,(LPARAM)m_groups[lpFriend->categories]);
+							}
+
+							if (lpFriend->markname) {
+								DBWriteContactSettingStringUtf(hContact,"CList","MyHandle",lpFriend->markname);
+							}
+
+							WRITEC_B("is_vip",lpFriend->is_vip);
+							WRITEC_B("vip_level",lpFriend->vip_level);
+							WRITEC_W("face",lpFriend->face);
+							WRITEC_D("pseudo_uin",uin);
+						}
+					} else {
+						QLog(__FUNCTION__"(%s): Pseudo UIN %u not found!",pszSection,uin);
+					}
+				}
+			}
+
+			json_free(pszSection);
+		}
+
+		for (map<DWORD,LPFRIEND>::iterator iter=friends.begin(); iter!=friends.end(); iter++) {
+			if (lpFriend=iter->second) {
+				if (lpFriend->nick) json_free(lpFriend->nick);
+				if (lpFriend->markname) json_free(lpFriend->markname);
+				mir_free(lpFriend);
+			}
+		}
+	} else {
+		QLog(__FUNCTION__"(): retcode!=0!");
+	}
+}
+
+void CProtocol::GetFriendInfo2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	if (json_as_int(json_get(jn,"retcode"))==0) {
+		JSONNODE* jnResult=json_get(jn,"result");
+		JSONNODE* jnItem;
+		int size=json_size(jnResult);
+		int nTemp;
+		DWORD dwUin;
+		LPSTR pszName, pszValue;
+
+		dwUin=(DWORD)json_as_float(json_get(jnResult,"uin"));
+		HANDLE hContact=FindContact(dwUin);
+		if (hContact!=NULL || dwUin==webqq2->GetTUin()) {
+			for (int c=0; c<size; c++) {
+				jnItem=json_at(jnResult,c);
+				pszName=json_name(jnItem);
+				pszValue=NULL;
+
+				if (!strcmp(pszName,"face")) WRITEC_W("Face",json_as_int(jnItem));
+				else if (!strcmp(pszName,"birthday")) {
+					// "birthday":{"year":0,"month":0,"day":0},
+					WRITEC_W("BirthYear",json_as_int(json_get(jnItem,"year")));
+					WRITEC_B("BirthMonth",json_as_int(json_get(jnItem,"month")));
+					WRITEC_B("BirthDay",json_as_int(json_get(jnItem,"day")));
+				}
+				else if (!strcmp(pszName,"occupation")) { WRITEC_U8S("Occupation2",pszValue=json_as_string(jnItem)); WRITEC_U8S("CompanyPosition",pszValue=json_as_string(jnItem)); }
+				else if (!strcmp(pszName,"phone")) { WRITEC_U8S("Telephone",pszValue=json_as_string(jnItem)); WRITEC_U8S("Phone",pszValue); }
+				else if (!strcmp(pszName,"allow")) WRITEC_B("AuthType",json_as_int(jnItem));
+				else if (!strcmp(pszName,"college")) {
+					WRITEC_U8S("College",pszValue=json_as_string(jnItem));
+					WRITEC_TS("Past3",TranslateT("Graduation College"));
+					WRITEC_U8S("Past3Text",pszValue);
+				}
+				else if (!strcmp(pszName,"reg_time")) WRITEC_D("reg_time",(DWORD)json_as_float(jnItem));
+				else if (!strcmp(pszName,"constel")) {
+					LPWSTR pszSX[]={
+						L"?",
+						TranslateT("Aquarius"),
+						TranslateT("Pisces"),
+						TranslateT("Aries"),
+						TranslateT("Taurus"),
+						TranslateT("Gemini"),
+						TranslateT("Cancer"),
+						TranslateT("Leo"),
+						TranslateT("Virgo"),
+						TranslateT("Libra"),
+						TranslateT("Scorpio"),
+						TranslateT("Sagittarius"),
+						TranslateT("Capricorn"),
+					};
+					WRITEC_B("Zodiac",nTemp=json_as_int(jnItem));
+					WRITEC_TS("Past2",TranslateT("Zodiac"));
+					WRITEC_TS("Past2Text",pszSX[nTemp]);
+				}
+				else if (!strcmp(pszName,"blood")) {
+					WRITEC_B("Blood",nTemp=json_as_int(jnItem));
+					WRITEC_TS("Past0",TranslateT("Blood Type"));
+					WRITEC_U8S("Past0Text",nTemp==0?"?":nTemp==1?"A":nTemp==2?"B":nTemp==3?"O":"AB");
+				}
+				else if (!strcmp(pszName,"homepage")) WRITEC_U8S("Homepage",pszValue=json_as_string(jnItem)); // OK
+				else if (hContact!=NULL && !strcmp(pszName,"stat")) WRITEC_W("Status",Web2StatusToMIM(pszValue=json_as_string(jnItem)));
+				else if (!strcmp(pszName,"vip_info")) WRITEC_W("vip_info",json_as_int(jnItem));
+				else if (!strcmp(pszName,"country")) WRITEC_U8S("Country",pszValue=json_as_string(jnItem)); // OK
+				else if (!strcmp(pszName,"city")) WRITEC_U8S("City",pszValue=json_as_string(jnItem)); // OK
+				else if (!strcmp(pszName,"personal")) WRITEC_U8S("About",pszValue=json_as_string(jnItem));
+				else if (!strcmp(pszName,"nick")) WRITEC_U8S("Nick",pszValue=json_as_string(jnItem)); // Ok
+				else if (!strcmp(pszName,"shengxiao")) {
+					LPWSTR pszSX[]={
+						L"?",
+						TranslateT("Rat"),
+						TranslateT("Ox"),
+						TranslateT("Tiger"),
+						TranslateT("Hare"),
+						TranslateT("Dragon"),
+						TranslateT("Snake"),
+						TranslateT("Horse"),
+						TranslateT("Ram"),
+						TranslateT("Monkey"),
+						TranslateT("Rooster"),
+						TranslateT("Dog"),
+						TranslateT("Pig"),
+					};
+					WRITEC_B("Horoscope",nTemp=json_as_int(jnItem));
+					WRITEC_TS("Past1",TranslateT("Chinese Zodiac"));
+					WRITEC_TS("Past1Text",pszSX[nTemp]);
+				}
+				else if (!strcmp(pszName,"email")) { WRITEC_U8S("Email",pszValue=json_as_string(jnItem)); WRITEC_U8S("e-mail",pszValue); }
+				else if (!strcmp(pszName,"client_type")) WRITEC_W("client_type",json_as_int(jnItem));
+				else if (!strcmp(pszName,"province")) { WRITEC_U8S("Province",pszValue=json_as_string(jnItem)); WRITEC_U8S("State",pszValue); }
+				else if (!strcmp(pszName,"gender")) WRITEC_B("Gender",*(pszValue=json_as_string(jnItem))=='m'?'M':*pszValue=='f'?'F':'?');
+				else if (!strcmp(pszName,"mobile")) { WRITEC_U8S("Mobile",pszValue=json_as_string(jnItem)); WRITEC_U8S("Cellular",pszValue); }
+				else QLog(__FUNCTION__"(): Ignored unknown entity %s",pszName);
+
+				if (pszValue) json_free(pszValue);
+				json_free(pszName);
+			}
+		}
+
+		/*
+		{
+		   "face":0,
+		   "birthday":{
+			  "month":0,
+			  "year":0,
+			  "day":0
+		   },
+		   "occupation":"0",
+		   "phone":"-",
+		   "allow":1,
+		   "college":"-",
+		   "reg_time":1114844684,
+		   "uin":431533706,
+		   "constel":0,
+		   "blood":0,
+		   "homepage":"-",
+		   "stat":10,
+		   "vip_info":0,
+		   "country":"",
+		   "city":"",
+		   "personal":"U+6DB4模鳴竭擱,U+59A6U+7E6B飲羶衄隱U+72DFU+FE5D",
+		   "nick":"^_^2",
+		   "shengxiao":0,
+		   "email":"431533706@qq.com",
+		   "client_type":41,
+		   "province":"",
+		   "gender":"unknown",
+		   "mobile":""
+		}
+		*/
+
+	} else {
+		QLog(__FUNCTION__"(): retcode!=0!");
+	}
+}
+
+void CProtocol::GetOnlineBuddies2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	if (json_as_int(json_get(jn,"retcode"))==0) {
+		/*
+		{
+		   "retcode":0,
+		   "result":[
+			  {"uin":624209290, "status":"online", "client_type":1},
+			  {"uin":2469015452, "status":"online", "client_type":1}
+		   ]
+		}
+		*/
+		JSONNODE* jnResult=json_get(jn,"result");
+		JSONNODE* jnItem;
+		DWORD dwUIN;
+		HANDLE hContact;
+		LPSTR pszTemp;
+
+		for (int c=0; c<json_size(jnResult); c++) {
+			jnItem=json_at(jnResult,c);
+			dwUIN=(DWORD)json_as_float(json_get(jnItem,"uin"));
+
+			if (hContact=FindContactWithPseudoUIN(dwUIN)) {
+				WRITEC_W("Status",Web2StatusToMIM(pszTemp=json_as_string(json_get(jnItem,"status"))));
+				json_free(pszTemp);
+				WriteClientType(hContact,json_as_int(json_get(jnItem,"client_type")));
+			} else {
+				QLog(__FUNCTION__"(): Contact with pseudo UIN %u could not be found!",dwUIN);
+			}
+		}
+	} else {
+		QLog(__FUNCTION__"(): retcode!=0!");
+	}
+}
+
+void CProtocol::GetGroupInfoExt2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	/*
+{
+   "retcode":0,
+   "result":{
+      "stats":[ // 35
+         {"client_type":1, "uin":3272588127, "stat":30},
+         {"client_type":1, "uin":1580006950, "stat":30},
+         {"client_type":1, "uin":1869225485, "stat":70},
+		 ...
+      ],
+      "minfo":[ // 307
+         {"nick":"浅紫色的地狱", "province":"", "gender":"unknown", "uin":3255728089, "country":"", "city":""},
+         {"nick":"心之镜", "province":"河南", "gender":"male", "uin":2989632540, "country":"中国", "city":"郑州"},
+         {"nick":"就许一个愿，", "province":"湖北", "gender":"male", "uin":2806275235, "country":"中国", "city":"黄冈"},
+		 ...
+      ],
+      "ginfo":{
+         "face":0,
+         "memo":"库拉啦 11月15日生日快乐~~~\n群规：http://tieba.baidu.com/f?kz=849244116\n\n",
+         "class":317,
+         "fingermemo":"http://tieba.baidu.com/f?kz=601567359\r\n需要看完上述群规才能入群，否则不通过验证",
+         "code":1933612015,
+         "createtime":1219576634,
+         "flag":34603025,
+         "level":1,
+         "name":"叶色的闭锁空间",
+         "gid":867899790,
+         "owner":373816670,
+         "members":[ // 307
+            {"muin":3255728089, "mflag":0},
+            {"muin":2989632540, "mflag":8},
+            {"muin":2806275235, "mflag":0},
+			...
+         ],
+         "option":2
+      },
+      "cards":[ // 163
+         {"muin":4181579314, "card":"糟糕c"},
+         {"muin":2070899654, "card":"虾"},
+         {"muin":3709177032, "card":"追迹者-苹蝈蝈"},
+		 ...
+      ],
+      "vipinfo":[ // 307
+         {"vip_level":0, "u":4124135409, "is_vip":0},
+         {"vip_level":0, "u":3969035175, "is_vip":0},
+         {"vip_level":0, "u":2956222994, "is_vip":0},
+		 ...
+      ]
+   }
+}
+*/
+	if (json_as_int(json_get(jn,"retcode"))==0) {
+		JSONNODE* jnResult=json_get(jn,"result");
+		JSONNODE* jnSection;
+		JSONNODE* jnSubSection;
+		JSONNODE* jnItem;
+		DWORD dwUIN;
+		HANDLE hContact=NULL;
+		LPSTR pszTemp;
+		LPSTR pszSection;
+		LPGROUP_MEMBER lpGM;
+		map<DWORD,LPGROUP_MEMBER> members;
+
+		for (int c=0; c<json_size(jnResult); c++) {
+			jnSection=json_at(jnResult,c);
+			pszSection=json_name(jnSection);
+
+			if (!strcmp(pszSection,"stats")) {
+		        // {"client_type":1, "uin":3272588127, "stat":30},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					lpGM=(LPGROUP_MEMBER)mir_alloc(sizeof(GROUP_MEMBER));
+					memset(lpGM,0,sizeof(GROUP_MEMBER));
+					lpGM->uin=(DWORD)json_as_float(json_get(jnItem,"uin"));
+					lpGM->stat=json_as_int(json_get(jnItem,"stat"));
+					lpGM->client_type=json_as_int(json_get(jnItem,"client_type"));
+					members[lpGM->uin]=lpGM;
+				}
+			} else if (!strcmp(pszSection,"minfo")) {
+				// {"nick":"浅紫色的地狱", "province":"", "gender":"unknown", "uin":3255728089, "country":"", "city":""},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					if (!(lpGM=members[dwUIN=(DWORD)json_as_float(json_get(jnItem,"uin"))])) {
+						lpGM=(LPGROUP_MEMBER)mir_alloc(sizeof(GROUP_MEMBER));
+						memset(lpGM,0,sizeof(GROUP_MEMBER));
+						lpGM->uin=dwUIN;
+						members[dwUIN]=lpGM;
+					}
+
+					lpGM->nick=json_as_string(json_get(jnItem,"nick"));
+				}
+			} else if (!strcmp(pszSection,"ginfo")) {
+				if (hContact=FindContactWithPseudoUIN(dwUIN=(DWORD)json_as_float(json_get(jnSection,"gid")))) {
+					// gid and code should be already correct
+					WRITEC_U8S("Notice",pszTemp=json_as_string(json_get(jnSection,"memo")));
+					DBWriteContactSettingUTF8String(hContact,"CList","StatusMsg",pszTemp);
+					json_free(pszTemp);
+
+					WRITEC_U8S("Description",pszTemp=json_as_string(json_get(jnSection,"fingermemo")));
+					json_free(pszTemp);
+
+					WRITEC_W("Flag",json_as_int(json_get(jnSection,"flag")));
+					WRITEC_D("Creator",(DWORD)json_as_float(json_get(jnSection,"owner")));
+					WRITEC_W("Level",json_as_int(json_get(jnSection,"level")));
+					WRITEC_W("Face",json_as_int(json_get(jnSection,"face")));
+					WRITEC_D("createtime",(DWORD)json_as_float(json_get(jnSection,"createtime")));
+					WRITEC_W("option",json_as_int(json_get(jnSection,"option")));
+
+					jnSubSection=json_get(jnSection,"members");
+					for (int c2=0; c2<json_size(jnSubSection); c2++) {
+						jnItem=json_at(jnSubSection,c2);
+						if (lpGM=group_members[(DWORD)json_as_float(json_get(jnItem,"muin"))]) {
+							lpGM->mflag=(DWORD)json_as_float(json_get(jnItem,"mflag"));
+						}
+					}
+				} else {
+					QLog(__FUNCTION__"(): Contact with pseudo UIN %u could not be found!",dwUIN);
+				}
+			} else if (!strcmp(pszSection,"cards")) {
+				// {"muin":4181579314, "card":"糟糕c"},
+				for (int c2=0; c2<json_size(jnSection); c2++) {
+					jnItem=json_at(jnSection,c2);
+					if (lpGM=group_members[(DWORD)json_as_float(json_get(jnItem,"muin"))]) {
+						lpGM->card=json_as_string(json_get(jnItem,"card"));
+					}
+				}
+			} else {
+				QLog(__FUNCTION__"(): Ignored unknown section %s",pszSection);
+			}
+
+			json_free(pszSection);
+		}
+
+	} else {
+		QLog(__FUNCTION__"(): retcode!=0!");
+	}
+
+}
+
+// Poll2
+void CProtocol::Poll2(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	QLog("Poll2: args=%s",pszArgs);
+
+	for (map<LPCSTR,CallbackFunc>::iterator iter=poll2_callbacks.begin(); iter!=poll2_callbacks.end(); iter++) {
+		if (!strcmp(pszArgs,iter->first)) {
+			(this->*(iter->second))(webqq2, pszArgs,jn);
+			break;
+		}
+	}
+}
+
+void CProtocol::Poll2_message(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	if (DWORD from_uin=json_as_float(json_get(jn,"from_uin"))) {
+		if (HANDLE hContact=FindContactWithPseudoUIN(from_uin)) {
+			DWORD msg_id=json_as_float(json_get(jn,"msg_id"));
+			if (CheckDuplicatedMessage(msg_id)) return;
+
+			DWORD send_time=json_as_float(json_get(jn,"time")); // qqid
+			string str=Web2ParseMessage(json_get(jn,"content"),NULL,msg_id,from_uin);
+
+			PROTORECVEVENT pre={PREF_UTF};
+			CCSDATA ccs={hContact,PSR_MESSAGE,NULL,(LPARAM)&pre};
+
+			pre.timestamp=send_time+600<READ_D2(NULL,"LoginTS")?send_time:(DWORD)time(NULL);
+			pre.szMessage=(char*)str.c_str();
+
+			CallService(MS_PROTO_CHAINRECV, 0, (LPARAM)&ccs);
+		} else
+			QLog(__FUNCTION__"(): ERROR: hContact==NULL!");
+	} else
+		QLog(__FUNCTION__"(): ERROR: from_uin==0!");
+}
+
+void CProtocol::Poll2_group_message(CWebQQ2* webqq2, LPSTR pszArgs, JSONNODE* jn) {
+	if (DWORD from_uin=json_as_float(json_get(jn,"from_uin"))) {
+		if (CheckDuplicatedMessage(json_as_float(json_get(jn,"msg_id2")))) return;
+
+		if (HANDLE hContact=FindContactWithPseudoUIN(from_uin)) {
+			DWORD group_code=json_as_float(json_get(jn,"group_code")); // extid
+			if (!READC_B2("Updated")) {
+				QLog(__FUNCTION__"(): Update qun information: %u, ext=%u",group_code,READC_D2(QQ_INFO_EXTID));
+				if (m_webqq->web2_api_get_group_info_ext(READC_D2(QQ_INFO_EXTID))) WRITEC_B("Updated",1);
+			}
+			DWORD send_uin=json_as_float(json_get(jn,"send_uin")); // qqid
+			DWORD send_time=json_as_float(json_get(jn,"time")); // qqid
+			string str=Web2ParseMessage(json_get(jn,"content"),hContact,group_code,send_uin);
+
+			PROTORECVEVENT pre={PREF_UTF};
+			CCSDATA ccs={hContact,PSR_MESSAGE,NULL,(LPARAM)&pre};
+
+			pre.timestamp=send_time+600<READ_D2(NULL,"LoginTS")?send_time:(DWORD)time(NULL);
+			pre.szMessage=(char*)str.c_str();
+			if (READC_B2(QQ_SILENTQUN)) pre.flags|=PREF_CREATEREAD;
+
+			CallService(MS_PROTO_CHAINRECV, 0, (LPARAM)&ccs);
+		} else
+			QLog(__FUNCTION__"(): ERROR: hContact==NULL!");
+	} else
+		QLog(__FUNCTION__"(): ERROR: from_uin==0!");
+}
+
+#define REGCB(x) callbacks[#x]=&CProtocol::x;
+#define POLL2_REGCB(x) poll2_callbacks[#x]=&CProtocol::Poll2_##x;
+void CProtocol::registerCallbacks() {
+	//callbacks["GetFriendInfo2"]=&CProtocol::GetFriendInfo2;
+	REGCB(GetFriendInfo2);
+	REGCB(GetGroupListMask2);
+	REGCB(GetUserFriends2);
+	REGCB(GetOnlineBuddies2);
+	REGCB(Poll2);
+
+	REGCB(GetGroupInfoExt2);
+	/*
+	Poll2 commands:
+	message, shake_message, sess_message, group_message, kick_message, file_message, system_message,
+	filesrv_transfer, tips, sys_g_msg, av_request, discu_message, push_offfile, notify_offfile, input_notify
+	*/
+	POLL2_REGCB(message);
+}
+
+void CProtocol::WebQQ2_Callback(CWebQQ2* webqq2, LPCSTR pcszCommand, LPSTR pszArgs, JSONNODE* jn) {
+	// pszArgs can be number if pszArgs[0]==1
+	// i.e. if (*pszArgs==1) val=*(LPDWORD)pcszCommand & 0x0fffffff
+	// TODO: Any problem?
+
+	QLog("WebQQ2CB: cmd=%s args=%s",pcszCommand,pszArgs);
+
+	for (map<LPCSTR,CallbackFunc>::iterator iter=callbacks.begin(); iter!=callbacks.end(); iter++) {
+		if (!strcmp(pcszCommand,iter->first)) {
+			(this->*(iter->second))(webqq2, pszArgs,jn);
+			break;
+		}
+	}
 }
 
 // Stubs

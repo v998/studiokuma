@@ -2,7 +2,8 @@
 
 MM_INTERFACE   mmi;
 UTF8_INTERFACE utfi;
-//MD5_INTERFACE md5i;
+MD5_INTERFACE md5i;
+JSONSERVICEINTERFACE jsi;
 
 PLUGINLINK* pluginLink;				// Struct of functions pointers for service calls
 char g_dllname[MAX_PATH];
@@ -67,8 +68,15 @@ extern "C" {
 		mir_getMMI(&mmi);
 		//mir_getLI(&li);
 		mir_getUTFI(&utfi);
-		//mir_getMD5I(&md5i);
+		mir_getMD5I(&md5i);
 		//mir_getSHA1I(&sha1i);
+
+		if (!IsJSONServiceAvailable()) {
+			MessageBoxA(NULL,"Miranda JSON Service is required for thie plugin!",NULL,MB_ICONERROR);
+			return -1;
+		} else {
+			json_getJSI(&jsi);
+		}
 
 		if (ServiceExists("MIMQQ4/PrevInstance")) {
 			MessageBoxA(NULL,"This version of MirandaQQ can only be loaded once. This copy will be deactivated.",NULL,MB_ICONERROR);
