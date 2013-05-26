@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "protocol.h"
+#include <prsht.h>
 
 const char* PASSWORDMASK="\x1\x1\x1\x1\x1\x1\x1\x1";	// Masked Default Password
 
@@ -66,7 +67,6 @@ static INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARA
 				PROTO_INTERFACE* amui=(PROTO_INTERFACE*)GetWindowLong(hwndDlg,GWL_USERDATA);
 				LPSTR m_szModuleName=amui->m_szModuleName;
 				CHAR szTemp[MAX_PATH];
-				WCHAR wszTemp[MAX_PATH];
 				HANDLE hContact=NULL;
 				DBVARIANT dbv;
 				WORD wValue;
@@ -80,7 +80,7 @@ static INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARA
 					MessageBox(hwndDlg,TranslateT("Bootstrap script inaccessible!"),NULL,MB_ICONERROR);
 					// return PSNRET_INVALID;
 				} else
-					WRITEC_S(KEY_UIN,szTemp);
+					WRITEC_S(KEY_BOOTSTRAP,szTemp);
 
 				GetDlgItemTextA(hwndDlg,IDC_UIN,szTemp,MAX_PATH);
 

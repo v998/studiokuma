@@ -19,6 +19,7 @@ using namespace std;
 
 #ifdef WIN32
 #include <windows.h>
+#include <wincrypt.h>
 #else
 #include <malloc.h>
 #endif
@@ -28,6 +29,7 @@ extern "C" {
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 }
+#define CURL_STATICLIB
 #include "libcurl/include/curl/curl.h"
 
 #ifndef LPSTR
@@ -55,6 +57,9 @@ extern "C" {
 #define OPEVENT_TYPINGNOTIFY 11
 #define OPEVENT_ADDTEMPCONTACT 12
 #define OPEVENT_SESSIONMESSAGE 13
+#define OPEVENT_ADDSEARCHRESULT 14
+#define OPEVENT_ENDOFSEARCH 15
+#define OPEVENT_REQUESTJOIN 16
 
 class COpenProtocol;
 
@@ -71,7 +76,7 @@ public:
 
 	virtual void oph_printdebug(LPCSTR pcszStr)=0;
 	virtual void oph_pthread_create(void(*start_routine)(LPVOID), LPVOID arg)=0;
-	virtual int handler(int nEvent, LPCSTR pcszStatus, LPVOID pAux)=0;
+	virtual int handler(int nEvent, LPCSTR pcszStatus, LPCVOID pAux)=0;
 
 	COpenProtocol* m_protocol;
 };
@@ -90,6 +95,7 @@ public:
 	void setStringValue(LPCSTR pcszName, LPCSTR pcszValue, DWORD dwLen=-1);
 	FILE* handleQunImage(LPCSTR pcszUri, BOOL isP2P);
 	void callFunction(LPCSTR pcszName, LPCSTR pcszArgs=NULL, BOOL fNeedMutex=FALSE);
+	void signalInterrupt();
 
 	void setLogin(LPCSTR pcszUIN, LPCSTR pcszPassword);
 	void setQunImagePath(LPCSTR pcszPath, int port);

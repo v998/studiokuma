@@ -13,13 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 日本語 resources
+// 日本語 (日本) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
-#ifdef _WIN32
 LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #pragma code_page(932)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -83,12 +81,12 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTI
 CAPTION "Verification Code"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
+    EDITTEXT        IDC_VERYCODE,75,70,40,14,ES_UPPERCASE | ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,7,89,50,14
+    PUSHBUTTON      "Reload",IDC_RELOAD,70,89,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,130,89,50,14
     LTEXT           "Enter the verification code as shown in following image:",IDC_STATIC,7,7,173,21
     CONTROL         "",IDC_IMAGE,"Static",SS_BITMAP | SS_CENTERIMAGE,7,30,173,34
-    EDITTEXT        IDC_VERYCODE,75,70,40,14,ES_UPPERCASE | ES_AUTOHSCROLL
-    PUSHBUTTON      "Reload",IDC_RELOAD,70,89,50,14
 END
 
 
@@ -98,7 +96,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ACCMGRUI, DIALOG
     BEGIN
@@ -119,7 +117,7 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // 日本語 resources
+#endif    // 日本語 (日本) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
