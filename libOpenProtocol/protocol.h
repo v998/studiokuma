@@ -8,8 +8,13 @@
 #define VERSION_DOT "0,0,0,1"
 #define PLUGINVERSION PLUGIN_MAKE_VERSION(0,0,0,1)
 
-#if _MSC_VER < 1400
+#if _MSC_VER < 1400 && (!defined(__GNUC__))
 #error You must compile MirandaQQ4 using Visual Studio 2005 or above because STL in older compilers does not handle wchar_t correctly.
+#endif
+
+#ifndef __GNU__
+// MinGW Patch
+#define GWL_USERDATA (-21)
 #endif
 
 #ifndef _UNICODE
@@ -38,6 +43,7 @@
 #include "include/newpluginapi.h"
 #include "include/m_assocmgr.h"
 // #include "m_chat.h"
+#include "include/m_system.h"
 #pragma warning(disable: 4819)
 #include "include/m_clist.h"
 #pragma warning(default: 4819)
@@ -59,7 +65,6 @@
 //#include "include/m_updater.h"
 #include "include/m_userinfo.h"
 #include "include/m_utils.h"
-#include "include/m_system.h"
 #include "include/m_database.h" // Some inline functions are only activated when m_utils.h and m_system.h are loaded
 #include "include/m_folders.h"
 #include "include/m_avatars.h"

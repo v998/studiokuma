@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "Protocol.h"
 #include <fcntl.h>
+#include <string>
 
 typedef struct _LINKEDLIST {
 	DWORD key;
@@ -42,7 +43,9 @@ private:
 	LPSTR m_debugMsgBuffer;
 	typedef int (__cdecl CProtocol::*ServiceFunc)(WPARAM, LPARAM);
 	typedef void (__cdecl CProtocol::*ThreadFunc)(LPVOID);
+	typedef int (__cdecl CProtocol::*EventFunc)(WPARAM, LPARAM);
 	stack<HANDLE> m_services;
+	stack<HANDLE> m_hooks;
 	HANDLE m_hMenuRoot;
 	map<int,int> m_localgroups;
 	map<DWORD,DWORD> m_uins;
@@ -69,6 +72,14 @@ public:
 		if (hRet=CreateServiceFunctionObj(pszService,(MIRANDASERVICEOBJ)*(void**)&pFunc,this))
 			m_services.push(hRet);
 		
+		return hRet;
+	}
+
+	HANDLE QHookEvent(LPCSTR pszEvent, EventFunc pFunc) {
+		HANDLE hRet=NULL;
+		if (hRet=HookEventObj(pszEvent,(MIRANDAHOOKOBJ)*(void**)&pFunc,this))
+			m_hooks.push(hRet);
+	
 		return hRet;
 	}
 
@@ -161,7 +172,7 @@ public:
 		HWND hWnd=CreateAccountManagerUI(this,(HWND)lParam);
 		ShowWindow(hWnd,SW_SHOWNORMAL);
 
-		return (int)hWnd;
+		return (intptr_t)hWnd;
 	}
 
 	void ResetContacts() {
@@ -178,7 +189,7 @@ public:
 				c++;
 				if (READC_D2(CKEY_REALUIN)==0) {
 					hContact2=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
-					CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact,NULL);
+					CallService(MS_DB_CONTACT_DELETE,(WPARAM)hContact,0);
 					c2++;
 				}
 			}
@@ -189,7 +200,7 @@ public:
 				hContact=(HANDLE)CallService(MS_DB_CONTACT_FINDNEXT, (WPARAM)hContact, (LPARAM)NULL);
 		}
 
-		Log(__FUNCTION__"(): %d/%d protocol contacts removed");
+		Log("%s(): %d/%d protocol contacts removed",__FUNCTION__);
 	}
 
 	HANDLE FindOrAddContact(DWORD dwUIN, DWORD dwTUIN, BOOL isAdd=FALSE, BOOL isHidden=FALSE, BOOL isTemp=FALSE) {
@@ -205,7 +216,7 @@ public:
 					if (dwTUIN!=0 && dwSearch==dwUIN && m_uins[dwTUIN]!=dwUIN) {
 						m_uins[dwTUIN]=dwUIN;
 						WRITEC_D(KEY_TUIN,dwTUIN);
-						Log(__FUNCTION__"(): Updated contact uin=%u tuin=%u",dwUIN,dwTUIN);
+						Log("%s(): Updated contact uin=%u tuin=%u",__FUNCTION__,dwUIN,dwTUIN);
 					}
 					return hContact;
 				}
@@ -222,15 +233,15 @@ public:
 				if (lua_isnumber(m_protocol->m_L,-1)) {
 					dwUIN=lua_tounsigned(m_protocol->m_L,-1);
 					if (hContact=FindOrAddContact(dwUIN,dwTUIN)) {
-						Log(__FUNCTION__"(): Second-chance matching successful uin=%u tuin=%u",dwUIN,dwTUIN);
+						Log("%s(): Second-chance matching successful uin=%u tuin=%u",__FUNCTION__,dwUIN,dwTUIN);
 						lua_pop(m_protocol->m_L,1);
 						return hContact;
 					} else {
 						m_uins[dwTUIN]=dwUIN;
-						Log(__FUNCTION__"(): Retrieved contact uin=%u tuin=%u",dwUIN,dwTUIN);
+						Log("%s(): Retrieved contact uin=%u tuin=%u",__FUNCTION__,dwUIN,dwTUIN);
 					}
 				} else {
-					Log(__FUNCTION__"(): Failed retrieving contact uin for tuin=%u",dwTUIN);
+					Log("%s(): Failed retrieving contact uin for tuin=%u",__FUNCTION__,dwTUIN);
 				}
 				lua_pop(m_protocol->m_L,1);
 			} else {
@@ -244,7 +255,7 @@ public:
 				DBWriteContactSettingByte(hContact,"CList","NotOnList",isTemp?1:0);
 				DBWriteContactSettingByte(hContact,"CList","Hidden",isHidden?1:0);
 
-				Log(__FUNCTION__"(): Added contact uin=%u tuin=%u",dwUIN,dwTUIN);
+				Log("%s(): Added contact uin=%u tuin=%u",__FUNCTION__,dwUIN,dwTUIN);
 			}
 		}
 
@@ -283,7 +294,7 @@ public:
 			sprintf(lpPAI->filename,"%s\\%u.jpg",lua_tostring(m_protocol->m_L,-1),uin);
 			lua_pop(m_protocol->m_L,1);
 
-			Log(__FUNCTION__"(): %u -> %s",uin,lpPAI->filename);
+			Log("%s(): %u -> %s",__FUNCTION__,uin,lpPAI->filename);
 
 			/*
 			FoldersGetCustomPathW(m_folders[FOLDER_AVATARS],szPath,MAX_PATH,L"QQ");
@@ -294,11 +305,14 @@ public:
 			lpPAI->format=PA_FORMAT_JPEG;
 
 			char szParam[MAX_PATH];
-			sprintf(szParam,"%d\t%u\t%u",READC_D2("IsQun"),tuin,uin);
-			Log(__FUNCTION__"(): param=%s",szParam);
+			// Code is for QQ Qun
+			sprintf(szParam,"%d\t%u\t%u\t%u",READC_D2("IsQun"),tuin,uin,READC_D2("code"));
+			Log("%s(): param=%s",__FUNCTION__,szParam);
 			m_protocol->callFunction("OP_GetAvatar",szParam,TRUE);
 
-			return GetFileAttributesA(lpPAI->filename)==INVALID_FILE_ATTRIBUTES?GAIR_NOAVATAR:GAIR_SUCCESS;
+			//return GetFileAttributesA(lpPAI->filename)==INVALID_FILE_ATTRIBUTES?GAIR_NOAVATAR:GAIR_SUCCESS;
+			DWORD ret=GetFileAttributesA(lpPAI->filename);
+			return ret==INVALID_FILE_ATTRIBUTES?GAIR_NOAVATAR:GAIR_SUCCESS;
 			/*
 			if (READ_B2(NULL,"UHDownload")==2) {
 				// Download on demand
@@ -437,7 +451,7 @@ public:
 			wcscpy(fid.group,m_tszUserName);
 			CallService(MS_FONT_GETW,(WPARAM)&fid,(LPARAM)&font);
 			COLORREF color=DBGetContactSettingDword(NULL,m_szModuleName,"font1Col",0);
-			LPSTR pszFont=*font.lfFaceName?/*mir_utf8encodecp(font.lfFaceName,GetACP())*/mir_utf8encodeW(font.lfFaceName):mir_utf8encodeW(L"‘v‘Ì");
+			LPSTR pszFont=*font.lfFaceName?/*mir_utf8encodecp(font.lfFaceName,GetACP())*/mir_utf8encodeW(font.lfFaceName):mir_utf8encodeW(L"NSimSun"/*L"‘v‘Ì"*/);
 
 			if (color!=0) color=(color&0xff)<<16|(color&0xff00)|(color>>16);
 			
@@ -468,6 +482,35 @@ public:
 		}
 	}
 
+	int __cdecl OnContactDeleted(WPARAM wParam, LPARAM lParam) {
+		if (m_iStatus>ID_STATUS_OFFLINE) {
+			char* szProto;
+			unsigned int uid;
+			char is_qun;
+			HANDLE hContact=(HANDLE)wParam;
+			
+			szProto=(char*)CallService(MS_PROTO_GETCONTACTBASEPROTO, wParam, 0);
+			if (!szProto || strcmp(szProto, m_szModuleName)) return 0;
+		
+			if (DBGetContactSettingByte(hContact,"CList","NotOnList",0)==1) return 0;
+		
+			uid=READC_D2(KEY_TUIN);
+			is_qun=READC_D2("IsQun");
+			
+			char szUID[16];
+			_ultoa(uid,szUID,10);
+			
+			if (uid && !is_qun) { // Remove general contact
+				m_op->callFunction("OP_DeleteUser",szUID,TRUE);
+			} else if (is_qun) { // Remove qun contact
+				// TODO
+			}
+		}
+	
+	
+		return 0;
+	}
+	
 	void OnProtoLoad() {
 		CHAR szTemp[MAX_PATH]={0};
 		LPSTR pszTemp;
@@ -596,7 +639,7 @@ public:
 		
 
 		//this->QHookEvent(ME_SYSTEM_MODULESLOADED, &CNetwork::OnModulesLoadedEx);
-		//this->QHookEvent(ME_DB_CONTACT_DELETED, &CNetwork::OnContactDeleted);
+		this->QHookEvent(ME_DB_CONTACT_DELETED, &CProtocol::OnContactDeleted);
 		// this->QHookEvent(ME_CLIST_PREBUILDCONTACTMENU, &CProtocol::OnPrebuildContactMenu);
 		// this->QHookEvent(ME_USERINFO_INITIALISE, &CProtocol::OnDetailsInit);
 
@@ -608,7 +651,20 @@ public:
 	// PROTO_INTERFACE
 	//====================================================================================
 	HANDLE   __cdecl AddToList( int flags, PROTOSEARCHRESULT* psr ) {
-		return NULL;
+		
+		if (DWORD uid=wcstoul(psr->id,NULL,10)) {
+			HANDLE hContact=FindOrAddContact(uid,uid,TRUE,flags&PALF_TEMPORARY,flags&PALF_TEMPORARY);
+	
+			WRITEC_TS("Find_ID",psr->id);
+			WRITEC_U8S("Find_Nick",(char*)psr->nick);
+			WRITEC_U8S("Find_FirstName",(char*)psr->firstName);
+			WRITEC_U8S("Find_LastName",(char*)psr->lastName);
+			WRITEC_U8S("Find_EMail",(char*)psr->email);
+	
+			return hContact;
+		}
+	
+		return 0; 
 	}
 
 	HANDLE   __cdecl AddToListByEvent( int flags, int iContact, HANDLE hDbEvent ) {
@@ -616,18 +672,166 @@ public:
 	}
 
 	int      __cdecl Authorize( HANDLE hDbEvent ) {
-		return 0;
+		DBEVENTINFO dbei={sizeof(dbei)};
+		unsigned int* uid;
+		HANDLE hContact;
+		LPSTR pszBlob;
+	
+		if ((dbei.cbBlob=CallService(MS_DB_EVENT_GETBLOBSIZE, (WPARAM)hDbEvent, 0))==-1) return 1;
+	
+		pszBlob=(LPSTR)(dbei.pBlob=(PBYTE)mir_alloc(dbei.cbBlob));
+		if (CallService(MS_DB_EVENT_GET, (WPARAM)hDbEvent, (LPARAM)&dbei)) return 1;
+		if (dbei.eventType!=EVENTTYPE_AUTHREQUEST) return 1;
+		if (strcmp(dbei.szModule, m_szModuleName)) return 1;
+	
+		uid=(unsigned int*) dbei.pBlob;
+	
+		uid=(unsigned int*)dbei.pBlob;pszBlob+=sizeof(DWORD);
+		hContact=*(HANDLE*)(dbei.pBlob+sizeof(DWORD));pszBlob+=sizeof(HANDLE);
+	
+	// pre.lParam=sizeof(DWORD)+sizeof(HANDLE)+strlen(pcszNick)+strlen(pcszFN)+strlen(pcszLN)+strlen(pcszEMail)+strlen(pcszMsg)+5;
+		string str;
+		char szUID[16];
+		_ultoa(*uid,szUID,10);
+		str.append(szUID);
+		str.append("\t");
+		str.append(READC_D2("IsQun")?"1":"0");
+		str.append("\t");
+		
+		LPCSTR pszField=(LPCSTR)(&hContact+1);
+		DBVARIANT dbv;
+		if (!DBGetContactSettingUTF8String(hContact,"CList","MyHandle",&dbv)) {
+			str.append(dbv.pszVal);
+			DBFreeVariant(&dbv);
+		} else {
+			str.append(pszField); // Nick
+		}
+		str.append("\t");
+
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // FN
+		str.append("\t");
+		
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // LN
+		str.append("\t");
+
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // EM
+		
+		m_op->callFunction("OP_Authorize",str.c_str(),TRUE);
+		mir_free(pszBlob);
+		
+		return 1;
 	}
 
 	int      __cdecl AuthDeny( HANDLE hDbEvent, const PROTOCHAR* szReason ) {
-		return 0;
+		DBEVENTINFO dbei={sizeof(dbei)};
+		unsigned int* uid;
+		HANDLE hContact;
+		LPSTR pszBlob;
+	
+		if ((dbei.cbBlob=CallService(MS_DB_EVENT_GETBLOBSIZE, (WPARAM)hDbEvent, 0))==-1) return 1;
+	
+		pszBlob=(LPSTR)(dbei.pBlob=(PBYTE)mir_alloc(dbei.cbBlob));
+		if (CallService(MS_DB_EVENT_GET, (WPARAM)hDbEvent, (LPARAM)&dbei)) return 1;
+		if (dbei.eventType!=EVENTTYPE_AUTHREQUEST) return 1;
+		if (strcmp(dbei.szModule, m_szModuleName)) return 1;
+	
+		uid=(unsigned int*) dbei.pBlob;
+	
+		uid=(unsigned int*)dbei.pBlob;pszBlob+=sizeof(DWORD);
+		hContact=*(HANDLE*)(dbei.pBlob+sizeof(DWORD));pszBlob+=sizeof(HANDLE);
+	
+		string str;
+		char szUID[16];
+		_ultoa(*uid,szUID,10);
+		str.append(szUID);
+		str.append("\t");
+		str.append(READC_D2("IsQun")?"1":"0");
+		str.append("\t");
+		
+		LPCSTR pszField=(LPCSTR)(&hContact+1);
+		DBVARIANT dbv;
+		if (!DBGetContactSettingUTF8String(hContact,"CList","MyHandle",&dbv)) {
+			str.append(dbv.pszVal);
+			DBFreeVariant(&dbv);
+		} else {
+			str.append(pszField); // Nick
+		}
+		str.append("\t");
+
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // FN
+		str.append("\t");
+		
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // LN
+		str.append("\t");
+
+		pszField+=strlen(pszField)+1;
+		str.append(pszField); // EM
+		str.append("\t");
+		
+		LPSTR pszMsg=mir_utf8encode((LPSTR)szReason);
+		str.append(pszMsg);
+		mir_free(pszMsg);
+		
+		m_op->callFunction("OP_Deny",str.c_str(),TRUE);
+		mir_free(pszBlob);
+		
+		return 1;
 	}
 
-	int      __cdecl AuthRecv( HANDLE hContact, PROTORECVEVENT* ) {
+	int      __cdecl AuthRecv( HANDLE hContact, PROTORECVEVENT* pre) {
+		if (pre) {
+			DBEVENTINFO dbei;
+	
+			Log("%s(): Received authorization request",__FUNCTION__);
+			// Show that guy
+			DBDeleteContactSetting(hContact,"CList","Hidden");
+	
+			ZeroMemory(&dbei,sizeof(dbei));
+			dbei.cbSize=sizeof(dbei);
+			dbei.szModule=m_szModuleName;
+			dbei.timestamp=pre->timestamp;
+			dbei.flags=pre->flags & (PREF_CREATEREAD?DBEF_READ:0);
+			if (pre->flags & PREF_UTF) dbei.flags|=DBEF_UTF;
+			dbei.eventType=EVENTTYPE_AUTHREQUEST;
+			dbei.cbBlob=pre->lParam;
+			dbei.pBlob=(PBYTE)pre->szMessage;
+			CallService(MS_DB_EVENT_ADD,(WPARAM)NULL,(LPARAM)&dbei);
+		}
 		return 0;
 	}
 
 	int      __cdecl AuthRequest( HANDLE hContact, const PROTOCHAR* szMessage ) {
+		char* keys[]={
+			"Find_ID",
+			"Find_Nick",
+			"Find_FirstName",
+			"Find_LastName",
+			"Find_EMail",
+			NULL
+		};
+		string str;
+		DBVARIANT dbv;
+		
+		for (char** pKey=keys; *pKey; pKey++) {
+			READC_U8S2(*pKey,&dbv);
+			if (str.length()>0) str.append("\t"); // str+="\t";
+			str.append(dbv.pszVal); //+=dbv.pszVal;
+			DBFreeVariant(&dbv);
+		}
+
+		char* pszMessage=mir_utf8encode((LPCSTR)szMessage); //mir_utf8encodeW(szMessage);
+		
+		str.append("\t"); //+="\t";
+		str.append(pszMessage);// +=pszMessage;
+		mir_free(pszMessage);
+
+		m_op->callFunction("OP_AddUser",str.c_str(),TRUE);
+		
 		return 0;
 	}
 
@@ -654,7 +858,7 @@ public:
 	DWORD_PTR __cdecl GetCaps( int type, HANDLE hContact = NULL ) {
 		switch (type) {
 			case PFLAGNUM_1:
-				return PF1_IM | PF1_SERVERCLIST | PF1_CHAT/* | PF1_ADDED | PF1_BASICSEARCH | PF1_SEARCHBYEMAIL | PF1_SEARCHBYNAME | PF1_NUMERICUSERID | PF1_ADDSEARCHRES | PF1_AUTHREQ*/ | PF1_MODEMSG | PF1_FILE /*| PF1_BASICSEARCH*/;
+				return PF1_IM | PF1_SERVERCLIST | PF1_CHAT | PF1_BASICSEARCH | PF1_ADDSEARCHRES/* | PF1_ADDED | PF1_BASICSEARCH | PF1_SEARCHBYEMAIL | PF1_SEARCHBYNAME | PF1_NUMERICUSERID | PF1_ADDSEARCHRES | PF1_AUTHREQ*/ | PF1_MODEMSG | PF1_FILE /*| PF1_BASICSEARCH*/;
 			case PFLAGNUM_2: // Possible Status
 				return PF2_ONLINE | PF2_INVISIBLE | PF2_SHORTAWAY | PF2_LONGAWAY | PF2_LIGHTDND | PF2_HEAVYDND | PF2_FREECHAT; // | PF2_LONGAWAY | PF2_LIGHTDND; // PF2_SHORTAWAY=Away
 				break;
@@ -665,9 +869,9 @@ public:
 				return PF4_FORCEAUTH | PF4_FORCEADDED/* | PF4_NOCUSTOMAUTH*/ | PF4_AVATARS | PF4_IMSENDUTF | PF4_OFFLINEFILES | PF4_IMSENDOFFLINE | PF4_SUPPORTTYPING; // PF4_FORCEADDED="Send you were added" checkbox becomes uncheckable
 				break;
 			case PFLAG_UNIQUEIDTEXT: // Description for unique ID (For search use)
-				return (int)Translate("UIN");
+				return (intptr_t)Translate("UIN");
 			case PFLAG_UNIQUEIDSETTING: // Where is my Unique ID stored in?
-				return (int)KEY_UIN;
+				return (intptr_t)KEY_UIN;
 			case PFLAG_MAXLENOFMESSAGE: // Maximum message length
 				return 0;
 			default:
@@ -683,8 +887,36 @@ public:
 		return 0;
 	}
 
+	typedef struct {
+		COpenProtocol* op;
+		LPSTR pszUIN;
+	} SEARCHBASIC, *PSEARCHBASIC, *LPSEARCHBASIC;
+
+	void __cdecl SearchBasicThread(LPVOID lpParameter) {
+		LPSEARCHBASIC lpSB=(LPSEARCHBASIC)lpParameter;
+		
+		lpSB->op->callFunction("OP_SearchBasic",lpSB->pszUIN,TRUE);
+		mir_free(lpSB->pszUIN);
+		mir_free(lpSB);
+	}
+
 	HANDLE    __cdecl SearchBasic( const PROTOCHAR* id ) {
-		return 0;
+		// Probe for type
+		LPSTR pszStr=NULL;
+		LPCSTR pcszStr=(LPCSTR)id;
+		if (pcszStr[1]==0) {
+			// Second byte is null, either the string is 1 byte or wide character
+			pszStr=mir_u2a((LPWSTR)id);
+		} else {
+			pszStr=mir_strdup((LPSTR)id);
+		}
+		
+		LPSEARCHBASIC lpSB=(LPSEARCHBASIC)mir_alloc(sizeof(SEARCHBASIC));
+		lpSB->op=m_op;
+		lpSB->pszUIN=pszStr;
+		CreateThreadObj(&CProtocol::SearchBasicThread,lpSB);
+		
+		return (HANDLE)1;
 	}
 
 	HANDLE    __cdecl SearchByEmail( const PROTOCHAR* email ) {
@@ -739,8 +971,8 @@ public:
 		if (true || READC_D2("IsQun")==1) {
 			// Qun
 			HWND hWndFT=NULL;
-			if (CallService(MS_SYSTEM_GETVERSION,NULL,NULL)<0x00090000)
-				SendMessage(GetForegroundWindow(),WM_CLOSE,NULL,NULL);
+			if (CallService(MS_SYSTEM_GETVERSION,0,0)<0x00090000)
+				SendMessage(GetForegroundWindow(),WM_CLOSE,0,0);
 			else
 				hWndFT=GetForegroundWindow();
 
@@ -768,14 +1000,25 @@ public:
 				return 0;
 			} else*/ {
 				// CloseHandle(hFile);
+				/*
 				wstring str=L"[img]";
 				str.append(pwszFile);
 				str.append(L"[/img]");
-				CallService(MS_MSG_SENDMESSAGE"W",(WPARAM)hContact,(LPARAM)str.c_str());
+				*/
+				string str="[img]";
+				char* pszFile=mir_utf8encodeW(pwszFile);
+				str.append(pszFile);
+				str.append("[/img]");
+				mir_free(pszFile);
+				
+				LPWSTR pszStr=mir_utf8decodeW(str.c_str());
+				
+				CallService(MS_MSG_SENDMESSAGE"W",(WPARAM)hContact,(LPARAM)pszStr);
+				mir_free(pszStr);
 			}
 
 			if (pwszFile) mir_free(pwszFile);
-			if (hWndFT) PostMessage(hWndFT,WM_CLOSE,NULL,NULL);
+			if (hWndFT) PostMessage(hWndFT,WM_CLOSE,0,0);
 		} else {
 			MessageBoxW(NULL,TranslateT("This MirandaQQ2 build does not support file transfer."),NULL,MB_ICONERROR);
 		}
@@ -1050,6 +1293,7 @@ public:
 			char szStatus[16];
 			m_iDesiredStatus=iNewStatus;
 			itoa(iNewStatus,szStatus,10);
+			if (iNewStatus==ID_STATUS_OFFLINE) m_op->signalInterrupt();
 			m_op->callFunction("OP_ChangeStatus",szStatus,TRUE);
 			BroadcastStatus(iNewStatus);
 
@@ -1087,11 +1331,11 @@ public:
 
 
 	int       __cdecl OnEvent( PROTOEVENTTYPE iEventType, WPARAM wParam, LPARAM lParam ) {
-		Log(__FUNCTION__"(iEventType=%d, wParam=%p, lParam=%p)",iEventType,wParam,lParam);
+		Log("%s(iEventType=%d, wParam=%p, lParam=%p)",__FUNCTION__,iEventType,wParam,lParam);
 		switch (iEventType) {
 			case EV_PROTO_ONLOAD: OnProtoLoad(); break;
-			case EV_PROTO_ONOPTIONS: Log(__FUNCTION__"(EV_PROTO_ONOPTIONS) Stub!"); break;
-			case EV_PROTO_ONMENU: Log(__FUNCTION__"(EV_PROTO_ONMENU) Stub!"); break;
+			case EV_PROTO_ONOPTIONS: Log("%s(EV_PROTO_ONOPTIONS) Stub!",__FUNCTION__); break;
+			case EV_PROTO_ONMENU: Log("%s(EV_PROTO_ONMENU) Stub!",__FUNCTION__); break;
 			case EV_PROTO_ONRENAME:
 				/* TODO
 				if (m_hMenuRoot) {
@@ -1139,7 +1383,7 @@ public:
 	}
 
 	// copied from groups.c - horrible, but only possible as this is not available as service
-	int CProtocol::FindGroupByName(LPCSTR name)
+	int FindGroupByName(LPCSTR name)
 	{
 	  char idstr[16];
 	  DBVARIANT dbv;
@@ -1187,7 +1431,7 @@ public:
 		return NULL;
 	}
 
-	int handler(int nEvent, LPCSTR pcszStatus, LPVOID pAux) {
+	int handler(int nEvent, LPCSTR pcszStatus, LPCVOID pAux) {
 		switch (nEvent) {
 			case OPEVENT_LOGINSUCCESS:
 				BroadcastStatus(m_iDesiredStatus);
@@ -1224,8 +1468,9 @@ public:
 						ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_OTHERLOCATION);
 					} else if (!strncmp(pcszCode,"LOFF",4)) {
 						// Regular logoff
-						BroadcastStatus(ID_STATUS_OFFLINE);
+						// BroadcastStatus(ID_STATUS_OFFLINE);
 					}
+					BroadcastStatus(ID_STATUS_OFFLINE);
 				} else {
 					// Script error, maybe possible to continue
 					LPWSTR pszMsg=(LPWSTR)oph_malloc((strlen(pcszStatus)+1)*2);
@@ -1274,7 +1519,7 @@ public:
 							while ((nNext=lua_next(L,2))!=0) {
 								pszKey=lua_tostring(L,-2);
 								pszValue=lua_tostring(L,-1);
-								_cprintf(__FUNCTION__"(): tuin=%u %s=%s\n",tuin,pszKey,pszValue);
+								_cprintf("%s(): tuin=%u %s=%s\n",__FUNCTION__,tuin,pszKey,pszValue);
 
 								if (!strcmp(pszKey,"face")) {
 									face=atoi(pszValue);
@@ -1306,7 +1551,7 @@ public:
 									if (!READC_U8S2("Nick",&dbv)) {
 										if (!strcmp(dbv.pszVal,pszNick)) {
 											DBFreeVariant(&dbv);
-											Log(__FUNCTION__"(): tuin identical for uin=%u!",READC_D2(KEY_UIN));
+											Log("%s(): tuin identical for uin=%u!",__FUNCTION__,READC_D2(KEY_UIN));
 											m_uins[tuin]=READC_D2(KEY_UIN);
 										} else
 											hContact=NULL;
@@ -1325,7 +1570,7 @@ public:
 												if (!READC_U8S2("Nick",&dbv)) {
 													if (!strcmp(dbv.pszVal,pszNick)) {
 														DBFreeVariant(&dbv);
-														Log(__FUNCTION__"(): Found matching contact for uin=%u! tuin %u->%u",READC_D2(KEY_UIN),READC_D2(KEY_TUIN),tuin);
+														Log("%s(): Found matching contact for uin=%u! tuin %u->%u",__FUNCTION__,READC_D2(KEY_UIN),READC_D2(KEY_TUIN),tuin);
 														WRITEC_D(KEY_TUIN,tuin);
 														break; // Found!
 													}
@@ -1360,10 +1605,10 @@ public:
 
 								if (type==LUA_TNUMBER) {
 									dwValue=lua_tounsigned(L,-1);
-									_cprintf(__FUNCTION__"(): tuin=%u %s=%u(u)\n",tuin,pszKey,dwValue);
+									_cprintf("%s(): tuin=%u %s=%u(u)\n",__FUNCTION__,tuin,pszKey,dwValue);
 								} else {
 									pszValue=lua_tostring(L,-1);
-									_cprintf(__FUNCTION__"(): tuin=%u %s=%s(s)\n",tuin,pszKey,pszValue);
+									_cprintf("%s(): tuin=%u %s=%s(s)\n",__FUNCTION__,tuin,pszKey,pszValue);
 								}
 
 								if (!strcmp(pszKey,"MyHandle")) {
@@ -1407,7 +1652,7 @@ public:
 								}
 							}
 						} else {
-							Log(__FUNCTION__"(OPEVENT_CONTACTINFO): hContact==NULL!");
+							Log("%s(OPEVENT_CONTACTINFO): hContact==NULL!",__FUNCTION__);
 						}
 
 						// No need to remove key as last next popped it! lua_pop(L,1); // Remove key
@@ -1427,7 +1672,7 @@ public:
 						WRITEC_W("Status",LOWORD(param));
 						WRITEC_W("client_type",HIWORD(param));
 					} else {
-						Log(__FUNCTION__"(OPEVENT_CONTACTSTATUS): hContact==NULL for tUin %u!",tuin);
+						Log("%s(OPEVENT_CONTACTSTATUS): hContact==NULL for tUin %u!",__FUNCTION__,tuin);
 					}
 				}
 				break;
@@ -1449,7 +1694,7 @@ public:
 
 					if (hContact) {
 						PROTORECVEVENT pre={PREF_UTF};
-						CCSDATA ccs={hContact,PSR_MESSAGE,NULL,(LPARAM)&pre};
+						CCSDATA ccs={hContact,PSR_MESSAGE,0,(LPARAM)&pre};
 						BOOL isQun=(nEvent==OPEVENT_GROUPMESSAGE);
 						BOOL isSession=(nEvent==OPEVENT_SESSIONMESSAGE);
 						LPCSTR pszMsg=lua_tostring(L,(isQun||isSession)?4:3);
@@ -1572,8 +1817,93 @@ public:
 					WRITEC_W("Status",*(LPDWORD)pAux);
 				}
 				break;
+			case OPEVENT_ADDSEARCHRESULT:
+				{
+					DWORD tuin=*(LPDWORD)pcszStatus;
+					lua_State* L=(lua_State*)pAux;
+					
+					// isqun,account,name,email,token
+					PROTOSEARCHRESULT psr={0};
+					
+					psr.flags=PSR_UNICODE;
+					psr.cbSize=sizeof(psr);
+					psr.nick=mir_utf8decodeW(lua_tostring(L,3));
+					psr.email=mir_utf8decodeW(lua_tostring(L,4));
+					psr.id=mir_utf8decodeW(lua_tostring(L,2));
+					psr.firstName=(LPWSTR)(lua_tointeger(L,1)==1?L"1(Group)":L"0(User)");
+					psr.lastName=mir_utf8decodeW(lua_tostring(L,5));
+					ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_DATA, (HANDLE) 1, (LPARAM)&psr);
+					
+					mir_free(psr.nick);
+					mir_free(psr.email);
+					mir_free(psr.id);
+					mir_free(psr.lastName);
+					
+				}
+				break;
+			case OPEVENT_ENDOFSEARCH:
+				ProtoBroadcastAck(m_szModuleName, NULL, ACKTYPE_SEARCH, ACKRESULT_SUCCESS, (HANDLE) 1, (LPARAM)0);
+				break;
+			case OPEVENT_REQUESTJOIN:
+				{
+					DWORD dwUIN=*(LPDWORD)pcszStatus;
+					lua_State* L=(lua_State*)pAux;
+					
+					// isqun,account,name,msg
+					
+					CCSDATA ccs;
+					PROTORECVEVENT pre;
+					HANDLE hContact=FindOrAddContact(dwUIN,0);
+					char* szBlob;
+					char* pCurBlob;
+					LPCSTR pcszNick=lua_tostring(L,3);
+					LPCSTR pcszFN=lua_tostring(L,4);
+					LPCSTR pcszLN=lua_tostring(L,5);
+					LPCSTR pcszEMail=lua_tostring(L,6);
+					LPCSTR pcszMsg=lua_tostring(L,7);
+					
+					if (!pcszNick || !*pcszNick) pcszNick=" ";
+					if (!pcszFN || !*pcszFN) pcszFN=" ";
+					if (!pcszLN || !*pcszLN) pcszLN=" ";
+					if (!pcszEMail || !*pcszEMail) pcszEMail=" ";
+					if (!pcszMsg || !*pcszMsg) pcszMsg=" ";
+			
+					if (!hContact) { // The buddy is not in my list, get information on buddy
+						// hContact=AddOrFindContact(dwUIN,true,false);
+						hContact=FindOrAddContact(dwUIN,dwUIN,TRUE,FALSE,TRUE);
+						// TODO: UIN is mangled
+						// m_webqq->web2_api_get_friend_info(dwUIN);
+					}
+					//util_log(0,"%s(): QQID=%d, msg=%s",__FUNCTION__,qqid,szMsg);
+					
+					WRITEC_D("IsQun",lua_tointeger(L,1));
+			
+					ccs.szProtoService=PSR_AUTH;
+					ccs.hContact=hContact;
+					ccs.wParam=0;
+					ccs.lParam=(LPARAM)&pre;
+					pre.flags=PREF_UTF;
+					pre.timestamp=(DWORD)time(NULL);
+					pre.lParam=sizeof(DWORD)+sizeof(HANDLE)+strlen(pcszNick)+strlen(pcszFN)+strlen(pcszLN)+strlen(pcszEMail)+strlen(pcszMsg)+5;
+	
+					/*blob is: uin(DWORD), hcontact(HANDLE), nick(ASCIIZ), first(ASCIIZ), last(ASCIIZ), email(ASCIIZ), reason(ASCIIZ)*/
+					// Leak
+					pCurBlob=szBlob=(char *)mir_alloc(pre.lParam);
+					memcpy(pCurBlob,&dwUIN,sizeof(DWORD)); pCurBlob+=sizeof(DWORD);
+					memcpy(pCurBlob,&hContact,sizeof(HANDLE)); pCurBlob+=sizeof(HANDLE);
+					strcpy((char *)pCurBlob,pcszNick); pCurBlob+=strlen(pcszNick)+1;
+					strcpy((char *)pCurBlob,pcszFN); pCurBlob+=strlen(pcszFN)+1;
+					strcpy((char *)pCurBlob,pcszLN); pCurBlob+=strlen(pcszLN)+1;
+					strcpy((char *)pCurBlob,pcszEMail); pCurBlob+=strlen(pcszEMail)+1;
+					//strcpy((char *)pCurBlob,szMsg);
+					strcpy((char *)pCurBlob,pcszMsg);
+					pre.szMessage=(char *)szBlob;
+	
+					CallService(MS_PROTO_CHAINRECV,0,(LPARAM)&ccs);
+				}
+				break;
 			default:
-				m_protocol->print_debug(__FUNCTION__"(): DEFAULT! nEvent=%d pcszStatus=%s pAux?=%s",nEvent,pcszStatus,pAux==NULL?"no":"yes");
+				m_protocol->print_debug("%s(): DEFAULT! nEvent=%d pcszStatus=%s pAux?=%s",__FUNCTION__,nEvent,pcszStatus,pAux==NULL?"no":"yes");
 		}
 
 		return 0;
