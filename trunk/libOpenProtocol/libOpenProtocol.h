@@ -6,6 +6,13 @@
 #define OP_DEBUGMSGSIZE 4096
 #define OP_ASSERTACTION DebugBreak();
 
+#define THREAD_COUNT 5
+#define THREAD_AVATAR 0
+#define THREAD_QUNIMAGE 1
+#define THREAD_SENDMESSAGE 2
+#define THREAD_GENERIC 3
+#define THREAD_INNER 4
+
 #include <string.h>
 #include <conio.h>
 #include <stdio.h>
@@ -23,14 +30,27 @@ using namespace std;
 #else
 #include <malloc.h>
 #endif
-
+/*
 extern "C" {
 #include "lua/lua.h"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 }
+*/
+extern "C" {
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+#define lua_tounsigned(a,b) ((unsigned int)lua_tonumber(a,b))
+#pragma comment(lib,"lua51.lib")
+#pragma comment(lib,"lua5.1.lib")
+}
+
+#ifndef WIN32
+#define LIBCURL
 #define CURL_STATICLIB
 #include "libcurl/include/curl/curl.h"
+#endif
 
 #ifndef LPSTR
 #define LPSTR char*
@@ -94,7 +114,8 @@ public:
 	LPCSTR getStringValue(LPCSTR pcszName);
 	void setStringValue(LPCSTR pcszName, LPCSTR pcszValue, DWORD dwLen=-1);
 	FILE* handleQunImage(LPCSTR pcszUri, BOOL isP2P);
-	void callFunction(LPCSTR pcszName, LPCSTR pcszArgs=NULL, BOOL fNeedMutex=FALSE);
+	// void callFunction(LPCSTR pcszName, LPCSTR pcszArgs=NULL, BOOL fNeedMutex=FALSE);
+	void callFunction(lua_State* L, LPCSTR pcszName, LPCSTR pcszArgs=NULL);
 	void signalInterrupt();
 
 	void setLogin(LPCSTR pcszUIN, LPCSTR pcszPassword);
@@ -109,8 +130,10 @@ public:
 	void test();
 
 	lua_State* m_L;
+#ifdef LIBCURL
 	CURLSH* m_curlshare;
 	HANDLE m_curlmutex;
+#endif
 	HANDLE m_luamutex;
 	HANDLE m_qunimagemutex;
 	LPSTR m_ua;
@@ -119,6 +142,8 @@ public:
 	LPSTR m_proxyuserpwd;
 
 	COpenProtocolHandler* m_handler;
+
+	lua_State* m_threads[3];
 private:
 	void _def_precheck();
 

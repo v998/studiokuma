@@ -1,6 +1,10 @@
 #include "libOpenProtocol.h"
-
+#ifdef WIN32
+#include <winhttp.h>
+#pragma comment(lib,"winhttp")
+#else
 #pragma comment(lib,"libcurl/libcurl_a_debug.lib")
+#endif
 
 #define DEFAULTPACKETSIZE 131072
 
@@ -14,11 +18,14 @@
 #define IFASSERTDEFAULT(var) NULLASSERT(var,OP_ASSERTACTION)
 #define ASSERT(msg,act) { print_debug("%s: ASSERT - %s!",__FUNCTION__,msg); act; }
 #define ASSERTDEFAULT(msg) ASSERT(msg,OP_ASSERTACTION)
+#define ENSURE_ARGUMENTS(x) if (lua_gettop(L)<x) { lua_pushstring(L,"__FUNCTION__(fixme) called with incorrect number of arguments"); lua_error(L); return 0; }
 
 static list<COpenProtocol*> s_instances;
 static COpenProtocol* s_firstInstance=NULL;
+static char s_logtext[1024];
 
 /*** COpenProtocol ***/
+#ifdef LIBCURL
 void lock_function(CURL *handle, curl_lock_data data, curl_lock_access access, void *userptr) {
 	WaitForSingleObject(((COpenProtocol*)userptr)->m_curlmutex,INFINITE);
 }
@@ -26,6 +33,7 @@ void lock_function(CURL *handle, curl_lock_data data, curl_lock_access access, v
 void unlock_function(CURL *handle, curl_lock_data data, void *userptr) {
 	ReleaseMutex(((COpenProtocol*)userptr)->m_curlmutex);
 }
+#endif
 
 COpenProtocol* COpenProtocol::FindProtocol(const char* pcszUIN) {
 	for (list<COpenProtocol*>::iterator iter=s_instances.begin(); iter!=s_instances.end(); iter++) {
@@ -37,16 +45,28 @@ COpenProtocol* COpenProtocol::FindProtocol(const char* pcszUIN) {
 
 void COpenProtocol::print_debug(LPCSTR pcszFormat,...) {
 #ifdef OP_SHOWDEBUGMSG
+	/*
 	if (!m_debugMsgBuffer) {
-		m_debugMsgBuffer=(LPSTR)m_handler->oph_malloc(OP_DEBUGMSGSIZE);
+		//m_debugMsgBuffer=(LPSTR)m_handler->oph_malloc(OP_DEBUGMSGSIZE);
+		m_debugMsgBuffer=s_logtext;
 	}
 
 	va_list vl;
 	va_start(vl,pcszFormat);
-	strcpy(m_debugMsgBuffer+vsprintf(m_debugMsgBuffer,pcszFormat,vl),"\n");
+	strcpy(m_debugMsgBuffer,"print('");
+	vsprintf(m_debugMsgBuffer+strlen(m_debugMsgBuffer),pcszFormat,vl);
+	strcat(m_debugMsgBuffer,"')\n");
 	va_end(vl);
 
-	m_handler->oph_printdebug(m_debugMsgBuffer);
+	// m_handler->oph_printdebug(m_debugMsgBuffer);
+	luaL_dostring(m_L,m_debugMsgBuffer);
+	*/
+
+	va_list vl;
+	va_start(vl,pcszFormat);
+	vprintf(pcszFormat,vl);
+	printf("\n");
+	va_end(vl);
 #endif
 }
 
@@ -94,7 +114,8 @@ FILE* COpenProtocol::handleQunImage(LPCSTR pcszUri, BOOL isP2P) {
 		return fp;
 	}
 	
-	callFunction(isP2P?"HandleP2PImage":"HandleQunImage",pcszUri,TRUE);
+	callFunction(m_threads[THREAD_QUNIMAGE],isP2P?"HandleP2PImage":"HandleQunImage",pcszUri);
+	ReleaseMutex(m_qunimagemutex);
 
 	if (fp=fopen(szFilename,"rb")) {
 		_cprintf("%s() Qun/P2P image %s saved, return it\n",__FUNCTION__,pszFilename);
@@ -202,7 +223,7 @@ int OP_VeryCode(lua_State* L) {
 	LPSTR pcszFile=strdup(lua_tostring(L,1));
 	pOP->getHandler()->handler(OPEVENT_VERYCODE,NULL,pcszFile);
 
-	if (strlen(pcszFile)==4 || (*pcszFile=' ' && pcszFile[1]==0)) {
+	if (strlen(pcszFile)==4 || (*pcszFile==' ' && pcszFile[1]==0)) {
 		_strupr(pcszFile);
 		lua_pushstring(L,pcszFile);
 	} else {
@@ -265,6 +286,280 @@ int OP_GetTempFile(lua_State* L) {
 	return 1;
 }
 
+#ifdef WIN32
+typedef struct _COOKIE {
+	LPSTR name;
+	LPSTR value;
+	LPSTR path;
+	LPSTR domain;
+	_COOKIE* next;
+} COOKIE, *PCOOKIE, *LPCOOKIE;
+
+int OP_GetCookie(lua_State* L) {
+	lua_getglobal(L,"OP_inst");
+
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	lua_getglobal(L,"OP_cookies");
+
+	LPCOOKIE pCK=(LPCOOKIE)lua_touserdata(L,-1);
+	bool found=false;
+	lua_pop(L,1);
+
+	if (pCK) {
+		LPSTR pcszName=strdup(lua_tostring(L,1));
+		LPSTR pcszDomain=NULL;
+
+		if (lua_gettop(L)==2) {
+			pcszDomain=strdup(lua_tostring(L,2));
+		}
+
+		while (pCK) {
+			if (!strcmp(pCK->name,pcszName)) {
+				if (pcszDomain==NULL || pCK->domain==NULL || strstr(pCK->domain,pcszDomain)) {
+					lua_pushstring(L,pCK->value);
+					found=true;
+					break;
+				}
+			}
+			pCK=pCK->next;
+		}
+
+		if (!found) pOP->print_debug("OP_GetCookie: ASSERT - Unable to find cookie named %s!",pcszName);
+	}
+
+	if (!found) {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+void ParseOneCookie(COpenProtocol* pOP, LPCOOKIE pCK, LPSTR pszCookie) {
+	// NOTE: pszCookie will be modified
+
+	LPSTR pszValue;
+	LPSTR pszDomain;
+	LPSTR pszExpires;
+	LPSTR pszName;
+	LPSTR pszPath;
+	LPSTR pszEqual;
+	LPSTR ppszCookie;
+	LPCOOKIE pCKTail;
+
+	pszName=pszValue=pszDomain=pszExpires=pszPath=NULL;
+	ppszCookie=pszCookie;
+
+// pOP->print_debug("ParseOneCookie: 1");
+	do {
+		if (!pszName) {
+// pOP->print_debug("ParseOneCookie: 2.1");
+			pszName=ppszCookie;
+			pszValue=strchr(pszName,'=');
+			*pszValue++=0;
+			ppszCookie=pszValue;
+		} else {
+// pOP->print_debug("ParseOneCookie: 2.2");
+			pszEqual=strchr(ppszCookie,'=');
+			if (pszEqual) *pszEqual=0;
+			strlwr(ppszCookie);
+			if (pszEqual) *pszEqual='=';
+
+			if (!strncmp(ppszCookie,"expires=",8)) {
+				pszExpires=ppszCookie+8;
+			} else if (!strncmp(ppszCookie,"path=",5)) {
+				pszPath=ppszCookie+5;
+			} else if (!strncmp(ppszCookie,"domain=",7)) {
+				pszDomain=ppszCookie+7;
+				if (*pszDomain=='.') pszDomain++;
+			}
+		}
+
+// pOP->print_debug("ParseOneCookie: 2.3");
+		ppszCookie=strchr(ppszCookie,';');
+		if (ppszCookie) {
+			*ppszCookie=0;
+			if (ppszCookie[1]==0)
+				break;
+			else
+				ppszCookie+=2;
+		}
+	} while (ppszCookie);
+
+// pOP->print_debug("ParseOneCookie: 3");
+	if (pCK->name) {
+		pCKTail=pCK;
+// pOP->print_debug("ParseOneCookie: 4");
+		while (pCKTail) {
+			if (!strcmp(pCKTail->name,pszName) && 
+				(pCKTail->domain==NULL || strstr(pCKTail->domain,pszDomain))) {
+// pOP->print_debug("ParseOneCookie: 5");
+					LocalFree(pCKTail->name);
+					pCKTail->name=pszName;
+					pCKTail->domain=pszDomain;
+					pCKTail->path=pszPath;
+					pCKTail->value=pszValue;
+					pOP->print_debug("ParseCookie: Replaced cookie %s=%s@%s",pszName,pszValue,pszDomain);
+					pszName=NULL;
+					break;
+			}
+
+			// pOP->print_debug("ParseOneCookie: 6 pCKTail=%p pCKTail->name=%s pCKTail->next=%p",pCKTail,pCKTail->name,pCKTail->next);
+			if (pCKTail->next)
+				pCKTail=pCKTail->next;
+			else
+				break;
+		}
+	}
+
+	if (pszName) {
+// pOP->print_debug("ParseCookie: 7");
+		if (pCK->name!=NULL) {
+// pOP->print_debug("ParseCookie: 8");
+			pCK=(LPCOOKIE)LocalAlloc(LMEM_FIXED,sizeof(COOKIE));
+			pCKTail->next=pCK;
+			ZeroMemory(pCK,sizeof(COOKIE));
+		}
+
+// pOP->print_debug("ParseCookie: 9");
+		pCK->name=pszName;
+		pCK->domain=pszDomain;
+		pCK->path=pszPath;
+		pCK->value=pszValue;
+		pOP->print_debug("ParseCookie: Added cookie %s=%s@%s",pszName,pszValue,pszDomain);
+	}
+}
+
+void ParseCookie(lua_State* L, HINTERNET hInetReq) {
+	lua_getglobal(L,"OP_inst");
+
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	// pOP->print_debug("ParseCookie: 1.0");
+	lua_getglobal(L,"OP_cookies");
+
+	LPCOOKIE pCK=(LPCOOKIE)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	if (pCK==NULL) {
+		// pOP->print_debug("ParseCookie: 1.1");
+		pCK=(LPCOOKIE)LocalAlloc(LMEM_FIXED,sizeof(COOKIE));
+		ZeroMemory(pCK,sizeof(COOKIE));
+		lua_pushlightuserdata(L,pCK);
+		lua_setglobal(L,"OP_cookies");
+		pOP->print_debug("ParseCookie: new cookie chain");
+	}
+
+	// pOP->print_debug("ParseCookie: 1.2");
+
+	BOOL ret;
+	DWORD dwBufferLength;
+	DWORD dwIndex=0;
+	LPSTR pszCookie;
+	int cbCurrentBuffer=0; // 1024*sizeof(WCHAR); // Protocol should be 4096 max
+	LPWSTR wszOneCookie=NULL; (LPWSTR)LocalAlloc(LMEM_FIXED,cbCurrentBuffer); 
+
+	// pOP->print_debug("ParseCookie: 1.3");
+
+	while (true) {
+		dwBufferLength=cbCurrentBuffer;
+
+		if (WinHttpQueryHeaders(hInetReq,WINHTTP_QUERY_SET_COOKIE,WINHTTP_HEADER_NAME_BY_INDEX,wszOneCookie,&dwBufferLength,&dwIndex)) {
+			// HSID=AYQEVnc.DKrdst; Domain=.foo.com; Path=/; Expires=Wed, 13 Jan 2021 22:23:01 GMT; HttpOnly
+			// pOP->print_debug("ParseCookie: 1.4");
+
+			pszCookie=(LPSTR)LocalAlloc(LMEM_FIXED,wcslen(wszOneCookie)+1);
+	// pOP->print_debug("ParseCookie: 1.5");
+			wcstombs(pszCookie,wszOneCookie,wcslen(wszOneCookie)+1);
+
+			pOP->print_debug("%s",pszCookie);
+
+			ParseOneCookie(pOP,pCK,pszCookie);
+		} else if (GetLastError()==ERROR_WINHTTP_HEADER_NOT_FOUND) {
+	// pOP->print_debug("ParseCookie: 1.17");
+			break;
+		} else if (GetLastError()==ERROR_INSUFFICIENT_BUFFER) {
+	// pOP->print_debug("ParseCookie: 1.18");
+			// Not enough buffer!
+			pOP->print_debug("ParseCookie: Not enough buffer for at least one cookie! Extending to %d bytes", dwBufferLength);
+			if (wszOneCookie) LocalFree(wszOneCookie);
+			cbCurrentBuffer=dwBufferLength;
+			wszOneCookie=(LPWSTR)LocalAlloc(LMEM_FIXED,cbCurrentBuffer);
+			continue;
+		} else {
+	// pOP->print_debug("ParseCookie: 1.19");
+			pOP->print_debug("ParseCookie: Unknown API error %d",GetLastError());
+			break;
+		}
+	}
+
+	// pOP->print_debug("ParseCookie: 1.20");
+	if (wszOneCookie) LocalFree(wszOneCookie);
+	// pOP->print_debug("ParseCookie: 1.21");
+}
+
+#endif
+
+int OP_Print(lua_State* L) {
+	ENSURE_ARGUMENTS(1);
+	/*
+	lua_getglobal(L,"OP_inst");
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+	*/
+
+	LPCSTR pszStr=lua_tostring(L,1);
+	LPWSTR pwszTemp=(LPWSTR)LocalAlloc(LMEM_FIXED,(strlen(pszStr)+1)*2);
+	LPSTR pszStr2=(LPSTR)LocalAlloc(LMEM_FIXED,strlen(pszStr)+1);
+	MultiByteToWideChar(CP_UTF8,0,pszStr,-1,pwszTemp,strlen(pszStr)+1);
+	WideCharToMultiByte(CP_ACP,0,pwszTemp,-1,pszStr2,strlen(pszStr)+1,NULL,NULL);
+
+	printf("%s\n",pszStr2);
+
+	LocalFree(pwszTemp);
+	LocalFree(pszStr2);
+
+	return 0;
+}
+
+int OP_SetCookie(lua_State* L) {
+	ENSURE_ARGUMENTS(1);
+
+	lua_getglobal(L,"OP_inst");
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	lua_getglobal(L,"OP_cookies");
+
+	LPCOOKIE pCK=(LPCOOKIE)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	if (pCK==NULL) {
+		// pOP->print_debug("ParseCookie: 1.1");
+		pCK=(LPCOOKIE)LocalAlloc(LMEM_FIXED,sizeof(COOKIE));
+		ZeroMemory(pCK,sizeof(COOKIE));
+		lua_pushlightuserdata(L,pCK);
+		lua_setglobal(L,"OP_cookies");
+		pOP->print_debug("OP_SetCookie: new cookie chain");
+	}
+
+	pOP->print_debug("OP_SetCookie: 1");
+	// Cannot use strdup as it uses LocalFree()
+	LPCSTR pcszCookie=lua_tostring(L,1);
+	LPSTR pszCookie=(LPSTR)LocalAlloc(LMEM_FIXED,strlen(pcszCookie)+1);
+	strcpy(pszCookie,pcszCookie);
+	pOP->print_debug("OP_SetCookie: 2");
+	ParseOneCookie(pOP,pCK,pszCookie);
+	pOP->print_debug("OP_SetCookie: 3");
+	// WARNING! Don't free pszCookie as the cookie object references it directly!
+	//free(pszCookie);
+	pOP->print_debug("OP_SetCookie: 4");
+
+	return 0;
+}
+
+#ifdef LIBCURL
 int OP_GetCookie(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 
@@ -337,6 +632,7 @@ CURL* newCurl(LPCSTR pcszUrl, LPCSTR pcszReferer, LPCSTR pcszUA, int proxyType, 
 
 	return pCU;
 }
+#endif
 
 void initUA(lua_State* L, COpenProtocol* pOP) {
 	if (!pOP->m_ua) {
@@ -352,8 +648,407 @@ void initUA(lua_State* L, COpenProtocol* pOP) {
 	}
 }
 
-#define ENSURE_ARGUMENTS(x) if (lua_gettop(L)<x) { lua_pushstring(L,"__FUNCTION__(fixme) called with incorrect number of arguments"); lua_error(L); return 0; }
+#ifdef WIN32
+static HINTERNET GetWinHttpSession(COpenProtocol* pOP, lua_State* L) {
+	lua_getglobal(L,"OP_hInet");
+	HINTERNET hInetSession=(HINTERNET*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
+	if (hInetSession==NULL) {
+		WCHAR wszTemp[MAX_PATH];
+		DWORD dwOption=WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+
+		initUA(L,pOP);
+		mbstowcs(wszTemp,pOP->m_ua,MAX_PATH);
+
+		hInetSession=WinHttpOpen(wszTemp,WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_REDIRECT_POLICY,&dwOption,sizeof(DWORD));
+		dwOption=150000; // ms
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_RECEIVE_TIMEOUT,&dwOption,sizeof(DWORD));
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT,&dwOption,sizeof(DWORD));
+		/*
+		dwOption=WINHTTP_ENABLE_SSL_REVERT_IMPERSONATION;
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_ENABLE_FEATURE,&dwOption,sizeof(DWORD));
+		dwOption=WINHTTP_FLAG_SECURE_PROTOCOL_ALL;
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_SECURE_PROTOCOLS,&dwOption,sizeof(DWORD));
+		dwOption=SECURITY_FLAG_IGNORE_CERT_CN_INVALID|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID|SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE|SECURITY_FLAG_IGNORE_UNKNOWN_CA;
+		WinHttpSetOption(hInetSession,WINHTTP_OPTION_SECURITY_FLAGS,&dwOption,sizeof(DWORD));
+		*/
+
+		lua_pushlightuserdata(L,hInetSession);
+		lua_setglobal(L,"OP_hInet");
+	}
+
+	return hInetSession;
+}
+
+int OP_Post(lua_State* L) {
+	lua_getglobal(L,"OP_inst");
+
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	int fields;
+	HINTERNET hInetSession=GetWinHttpSession(pOP,L);
+
+	lua_getglobal(L,"cookie");
+	const char* pcszCookies=lua_tostring(L,-1);
+
+	if ((fields=lua_gettop(L))<4) {
+		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		lua_pop(L,1); // cookie
+		lua_pushstring(L,"");
+	} else {
+		int cbUrl, cbReferer;
+		LPCSTR pcszUrl=lua_tostring(L,1);
+		LPCSTR pcszReferer=lua_tostring(L,2);
+		LPWSTR pwszUrl=(LPWSTR)LocalAlloc(LMEM_FIXED,(cbUrl=strlen(pcszUrl)+1)*2);
+		LPWSTR pwszReferer=pcszReferer?(LPWSTR)LocalAlloc(LMEM_FIXED,(cbReferer=strlen(pcszReferer)+1)*2):NULL;
+
+		mbstowcs(pwszUrl,pcszUrl,cbUrl);
+		if (pwszReferer) mbstowcs(pwszReferer,pcszReferer,cbReferer);
+
+		LPWSTR pwszProtocol=pwszUrl;
+		LPWSTR pwszServer=wcsstr(pwszProtocol,L"://");
+		LPWSTR pwszUri=wcschr(pwszServer+3,'/');
+		LPWSTR pwszPort=NULL;
+		BOOL isHTTPS;
+
+		*pwszServer=0; pwszServer+=3;
+		*pwszUri++=0;
+		if (pwszPort=wcschr(pwszServer,':')) {
+			*pwszPort++=0;
+		}
+
+		isHTTPS=wcslen(pwszProtocol)==5;
+
+		HINTERNET hInetConn=WinHttpConnect(hInetSession,pwszServer,pwszPort?wcstol(pwszPort,NULL,10):isHTTPS?INTERNET_DEFAULT_HTTPS_PORT:INTERNET_DEFAULT_HTTP_PORT,0);
+
+		HINTERNET hInetReq=WinHttpOpenRequest(hInetConn,L"POST",pwszUri,NULL,pwszReferer,WINHTTP_DEFAULT_ACCEPT_TYPES,isHTTPS?WINHTTP_FLAG_SECURE:0);
+
+		LPCSTR pcszPostdata=lua_tostring(L,3);
+		int nPostSize=(int)(fields==4?strlen(pcszPostdata):lua_tointeger(L,4));
+		// * If nPostSize==-1, then the data is multipart/formdata, otherwise it is application/x-www-form-urlencoded
+		// * if nPostSize==-1, part 5 is valid as table to get upload contents
+
+		// Remove existing custom cookies
+		WinHttpAddRequestHeaders(hInetReq,L"Cookie:",-1,WINHTTP_ADDREQ_FLAG_REPLACE);
+
+		if (pcszCookies!=NULL) {
+			LPWSTR pwszCookies=(LPWSTR)LocalAlloc(LMEM_FIXED,(strlen(pcszCookies)+9)*sizeof(WCHAR));
+			wcscpy(pwszCookies,L"Cookie: ");
+			mbstowcs(pwszCookies+8,pcszCookies,strlen(pcszCookies)+1);
+			WinHttpAddRequestHeaders(hInetReq,pwszCookies,-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			LocalFree(pwszCookies);
+		}
+
+		LPSTR pszBuffer=NULL;
+		WCHAR wszHost[MAX_PATH]=L"Origin: ";
+		mbstowcs(wszHost+8,pcszUrl,MAX_PATH-8);
+		LPWSTR pwszHost=wcschr(wcschr(wszHost,'.'),'/');
+		if (pwszHost) *pwszHost=0;
+
+		WinHttpAddRequestHeaders(hInetReq,wszHost,-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+
+		if (nPostSize!=-1) {
+			WinHttpAddRequestHeaders(hInetReq,L"Content-Type: application/x-www-form-urlencoded",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			WinHttpSendRequest(hInetReq,WINHTTP_NO_ADDITIONAL_HEADERS,0,(LPVOID)pcszPostdata,nPostSize,nPostSize,(DWORD_PTR)pOP);\
+		} else {
+			// HTTPPOST
+			WinHttpAddRequestHeaders(hInetReq,L"Content-Type: multipart/form-data, boundary=----WebKitFormBoundary9zCD31eJSHkdb8ul",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+
+			DWORD cbBuffer=1024;
+			DWORD cbFilled=0;
+			pszBuffer=(LPSTR)LocalAlloc(LMEM_FIXED,1024);
+			LPSTR ppszBuffer=pszBuffer;
+
+			LPCSTR pcszKey;
+			LPCSTR pcszValue;
+			DWORD cbStr;
+			
+			lua_pushnil(L); // For storing key of list
+
+			while (lua_next(L,5)!=0) {
+				// Overhead of 160 bytes for section header should be enough
+				// -2 is key, -1 is value
+				pcszKey=lua_tostring(L,-2);
+				pcszValue=lua_tostring(L,-1);
+
+				if (*pcszValue!='\t') {
+					if ((int)cbBuffer-(int)cbFilled-128-(int)strlen(pcszKey)-(int)strlen(pcszValue)<0) {
+						// Not enough buffer
+						cbBuffer+=((128+strlen(pcszKey)+strlen(pcszValue)+1023)/1024)*1024;
+						LPSTR pszOldBuffer=pszBuffer;
+						pszBuffer=(LPSTR)LocalAlloc(LMEM_FIXED,cbBuffer);
+						memcpy(pszBuffer,pszOldBuffer,cbFilled);
+						ppszBuffer=pszBuffer+cbFilled;
+						LocalFree(pszOldBuffer);
+					}
+					cbStr=strlen(strcpy(ppszBuffer,"------WebKitFormBoundary9zCD31eJSHkdb8ul\r\n"));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					cbStr=sprintf(ppszBuffer,"Content-Disposition: form-data; name=\"%s\"\r\n\r\n",pcszKey);
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					cbStr=strlen(strcpy(ppszBuffer,pcszValue));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					/*
+					cbStr=strlen(strcpy(ppszBuffer,"\r\n"));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					*/
+				} else {
+					const char* pszFile=strrchr(pcszValue,'\\');
+					if (!pszFile) pszFile=strrchr(pcszValue,'/');
+					pszFile++;
+					char* pszExt=strdup(strrchr(pszFile,'.'));
+					strlwr(pszExt);
+
+					HANDLE hFile=CreateFileA(pcszValue+1,GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+					DWORD dwFile=GetFileSize(hFile,NULL);
+
+					if ((int)cbBuffer-(int)cbFilled-192-(int)strlen(pcszKey)-(int)strlen(pcszValue)-(int)dwFile<0) {
+						// Not enough buffer
+						cbBuffer+=((192+strlen(pcszKey)+strlen(pcszValue)+dwFile+1023)/1024)*1024;
+						LPSTR pszOldBuffer=pszBuffer;
+						pszBuffer=(LPSTR)LocalAlloc(LMEM_FIXED,cbBuffer);
+						memcpy(pszBuffer,pszOldBuffer,cbFilled);
+						ppszBuffer=pszBuffer+cbFilled;
+						LocalFree(pszOldBuffer);
+					}
+					cbStr=strlen(strcpy(ppszBuffer,"------WebKitFormBoundary9zCD31eJSHkdb8ul\r\n"));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					cbStr=sprintf(ppszBuffer,"Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n",pcszKey,pszFile);
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					cbStr=sprintf(ppszBuffer,"Content-Type: %s\r\n",strcmp(pszExt,".jpg")?strcmp(pszExt,".gif")?strcmp(pszExt,".png")?"application/octet-stream":"image/png":"image/gif":"image/jpeg");
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					// cbStr=strlen(strcpy(ppszBuffer,"Content-Transfer-Encoding: binary\r\n\r\n"));
+					cbStr=strlen(strcpy(ppszBuffer,"\r\n"));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					//cbStr=strlen(strcpy(ppszBuffer,pcszValue));
+					ReadFile(hFile,ppszBuffer,dwFile,&cbStr,NULL);
+					cbFilled+=cbStr; ppszBuffer+=cbStr;
+					/*cbStr=strlen(strcpy(ppszBuffer,"\r\n"));
+					cbFilled+=cbStr; ppszBuffer+=cbStr;*/
+
+					CloseHandle(hFile);
+					free(pszExt);
+				}
+				cbStr=strlen(strcpy(ppszBuffer,"\r\n"));
+				cbFilled+=cbStr; ppszBuffer+=cbStr;
+
+				lua_pop(L,1); // Remove value and keep key
+				/*
+				HANDLE hFile=CreateFileA("R:\\test.bin",GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,CREATE_ALWAYS,0,NULL);
+				DWORD dwWritten;
+				WriteFile(hFile,pszBuffer,cbFilled,&dwWritten,NULL);
+				CloseHandle(hFile);
+				*/
+			}
+
+			// cbStr=strlen(strcpy(ppszBuffer,"\r\n------WebKitFormBoundary9zCD31eJSHkdb8ul--\r\n"));
+			cbStr=strlen(strcpy(ppszBuffer,"------WebKitFormBoundary9zCD31eJSHkdb8ul--\r\n"));
+			cbFilled+=cbStr; ppszBuffer+=cbStr;
+
+			WinHttpSendRequest(hInetReq,WINHTTP_NO_ADDITIONAL_HEADERS,0,(LPVOID)pszBuffer,cbFilled,cbFilled,(DWORD_PTR)pOP);
+		}
+
+		LPBYTE pszBuffer2;
+		DWORD cb2;
+
+		pOP->print_debug("OP_Post: 1 url=%s",pcszUrl);
+		if (WinHttpReceiveResponse(hInetReq,NULL)) {
+		// pOP->print_debug("OP_Post: 1.1");
+			ParseCookie(L,hInetReq);
+		// pOP->print_debug("OP_Post: 1.2");
+
+			WCHAR szcbData[16]={0};
+			DWORD cbData=0;
+			cb2=32;
+			DWORD dwAvailable;
+			DWORD dwRead;
+			WinHttpQueryHeaders(hInetReq,WINHTTP_QUERY_CONTENT_LENGTH,WINHTTP_HEADER_NAME_BY_INDEX,szcbData,&cb2,WINHTTP_NO_HEADER_INDEX);
+		// pOP->print_debug("OP_Post: 1.3");
+
+			cbData=wcstoul(szcbData,NULL,10);
+			if (cbData==0) cbData=DEFAULTPACKETSIZE;
+			pszBuffer2=(LPBYTE)LocalAlloc(LMEM_FIXED,cbData+1);
+			LPBYTE ppszBuffer=pszBuffer2;
+
+			cb2=0;
+
+			while (cb2<cbData) {
+				if (WinHttpQueryDataAvailable(hInetReq,&dwAvailable) && dwAvailable>0) {
+					WinHttpReadData(hInetReq,ppszBuffer,dwAvailable,&dwRead);
+					cb2+=dwRead;
+					ppszBuffer+=dwRead;
+				} else {
+					break;
+				}
+			}
+
+			*ppszBuffer=0;
+		// pOP->print_debug("OP_Post: 1.4");
+		} else {
+			pOP->print_debug("OP_Get: Fetched failed for %s",pcszUrl);
+			pszBuffer2=(LPBYTE)LocalAlloc(LMEM_FIXED,1);
+			cb2=0;
+		}
+
+		pOP->print_debug("OP_Post: 5");
+		WinHttpCloseHandle(hInetReq);
+		WinHttpCloseHandle(hInetConn);
+
+		if (cb2>10 && cb2<1024 && pszBuffer2[10]>0x20 && pszBuffer2[10]<0x7f) {
+			printf("WinHttp POST dump:\n%s\n",pszBuffer2);
+		}
+
+		lua_pop(L,1); // Cookies
+		lua_pushlstring(L,(const char*)pszBuffer2,cb2);
+
+		LocalFree(pszBuffer2);
+		if (pszBuffer) LocalFree(pszBuffer);
+		LocalFree(pwszUrl);
+		LocalFree(pwszReferer);
+		// pOP->print_debug("OP_Post: 6");
+	}
+
+	return 1;
+}
+
+int OP_Get(lua_State* L) {
+	lua_getglobal(L,"OP_inst");
+
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	int fields;
+	struct curl_slist* headerlist=NULL;
+
+	HINTERNET hInetSession=GetWinHttpSession(pOP,L);
+
+	lua_getglobal(L,"cookie");
+	const char* pcszCookies=lua_tostring(L,-1);
+
+	if ((fields=lua_gettop(L))<3) {
+		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		lua_pop(L,1);
+		lua_pushstring(L,"");
+	} else {
+		int cbUrl, cbReferer;
+		LPCSTR pcszUrl=lua_tostring(L,1);
+		LPCSTR pcszReferer=lua_tostring(L,2);
+		LPWSTR pwszUrl=(LPWSTR)LocalAlloc(LMEM_FIXED,(cbUrl=strlen(pcszUrl)+1)*2);
+		LPWSTR pwszReferer=pcszReferer?(LPWSTR)LocalAlloc(LMEM_FIXED,(cbReferer=strlen(pcszReferer)+1)*2):NULL;
+
+		mbstowcs(pwszUrl,pcszUrl,cbUrl);
+		if (pwszReferer) mbstowcs(pwszReferer,pcszReferer,cbReferer);
+
+		LPWSTR pwszProtocol=pwszUrl;
+		LPWSTR pwszServer=wcsstr(pwszProtocol,L"://");
+		LPWSTR pwszUri=wcschr(pwszServer+3,'/');
+		LPWSTR pwszPort=NULL;
+		BOOL isHTTPS;
+
+		*pwszServer=0; pwszServer+=3;
+		if (pwszUri) {
+			*pwszUri++=0;
+			if (pwszPort=wcschr(pwszServer,':')) {
+				*pwszPort++=0;
+			}
+		}
+
+		isHTTPS=wcslen(pwszProtocol)==5;
+
+		HINTERNET hInetConn=WinHttpConnect(hInetSession,pwszServer,pwszPort?wcstol(pwszPort,NULL,10):isHTTPS?INTERNET_DEFAULT_HTTPS_PORT:INTERNET_DEFAULT_HTTP_PORT,0);
+
+		HINTERNET hInetReq=WinHttpOpenRequest(hInetConn,L"GET",pwszUri,NULL,pwszReferer,WINHTTP_DEFAULT_ACCEPT_TYPES,isHTTPS?WINHTTP_FLAG_SECURE:0);
+
+		if (fields==4) {
+			// Advanced: all headers
+			WinHttpAddRequestHeaders(hInetReq,L"Connection: close",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			WinHttpAddRequestHeaders(hInetReq,L"Accept-Encoding: gzip,deflate,sdch",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			WinHttpAddRequestHeaders(hInetReq,L"Accept-Language: ja,en-US;q=0.8,en;q=0.6",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+		} else {
+			WinHttpAddRequestHeaders(hInetReq,L"Accept-Encoding: ",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			WinHttpAddRequestHeaders(hInetReq,L"Accept-Language: ja,en-US;q=0.8,en;q=0.6",-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+		}
+
+		// Remove existing custom cookies
+		WinHttpAddRequestHeaders(hInetReq,L"Cookie:",-1,WINHTTP_ADDREQ_FLAG_REPLACE);
+
+		if (pcszCookies!=NULL) {
+			LPWSTR pwszCookies=(LPWSTR)LocalAlloc(LMEM_FIXED,(strlen(pcszCookies)+9)*sizeof(WCHAR));
+			wcscpy(pwszCookies,L"Cookie: ");
+			mbstowcs(pwszCookies+8,pcszCookies,strlen(pcszCookies)+1);
+			WinHttpAddRequestHeaders(hInetReq,pwszCookies,-1,WINHTTP_ADDREQ_FLAG_ADD|WINHTTP_ADDREQ_FLAG_REPLACE);
+			LocalFree(pwszCookies);
+		}
+
+		LPBYTE pszBuffer;
+		DWORD cb2;
+
+		if (WinHttpSendRequest(hInetReq,WINHTTP_NO_ADDITIONAL_HEADERS,0,WINHTTP_NO_REQUEST_DATA,0,0,(DWORD_PTR)pOP)) {
+			// pOP->print_debug("OP_Get: 1");
+			if (WinHttpReceiveResponse(hInetReq,NULL)) {
+				// pOP->print_debug("OP_Get: 1.1");
+				ParseCookie(L,hInetReq); // FIXME: Problem here!!!
+				// pOP->print_debug("OP_Get: 1.2");
+
+				WCHAR szcbData[16]={0};
+				DWORD cbData=0;
+				cb2=32;
+				DWORD dwAvailable;
+				DWORD dwRead;
+				WinHttpQueryHeaders(hInetReq,WINHTTP_QUERY_CONTENT_LENGTH,WINHTTP_HEADER_NAME_BY_INDEX,szcbData,&cb2,WINHTTP_NO_HEADER_INDEX);
+
+				// pOP->print_debug("OP_Get: 1.3");
+				cbData=wcstoul(szcbData,NULL,10);
+				if (cbData==0) cbData=DEFAULTPACKETSIZE;
+				pszBuffer=(LPBYTE)LocalAlloc(LMEM_FIXED,cbData+1);
+				LPBYTE ppszBuffer=pszBuffer;
+
+				cb2=0;
+
+				// pOP->print_debug("OP_Get: 1.4");
+				while (cb2<cbData) {
+					if (WinHttpQueryDataAvailable(hInetReq,&dwAvailable) && dwAvailable>0) {
+						WinHttpReadData(hInetReq,ppszBuffer,dwAvailable,&dwRead);
+						cb2+=dwRead;
+						ppszBuffer+=dwRead;
+					} else {
+						break;
+					}
+				}
+				*ppszBuffer=0;
+			}
+			// pOP->print_debug("OP_Get: 2");
+		} else {
+			pOP->print_debug("OP_Get: Fetched failed for %s, GetLastError()=%d",pcszUrl,GetLastError());
+			cb2=0;
+			pszBuffer=(LPBYTE)LocalAlloc(LMEM_FIXED,1);
+			*pszBuffer=0;
+		}
+
+		WinHttpCloseHandle(hInetReq);
+		WinHttpCloseHandle(hInetConn);
+
+		if (cb2>10 && cb2<1024 && pszBuffer[10]>0x20 && pszBuffer[10]<0x7f) {
+			printf("WinHttp GET dump:\n%s\n",pszBuffer);
+		}
+
+		lua_pop(L,1); // Cookies
+		lua_pushlstring(L,(const char*)pszBuffer,cb2);
+
+		LocalFree(pszBuffer);
+		LocalFree(pwszUrl);
+		LocalFree(pwszReferer);
+
+		// pOP->print_debug("OP_Get: Phase 5");
+	}
+
+	return 1;
+}
+#endif
+
+#ifdef LIBCURL
 int OP_Post(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 
@@ -503,6 +1198,7 @@ int OP_Get(lua_State* L) {
 
 	return 1;
 }
+#endif
 
 int OP_LoginSuccess(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
@@ -708,6 +1404,22 @@ int OP_RequestJoin(lua_State* L) {
 	return 0;
 }
 
+int OP_CreateThreads(lua_State* L) {
+	lua_getglobal(L,"OP_inst");
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+
+	char szThreadName[32]="thread_";
+
+	for (int c=0; c<THREAD_COUNT; c++) {
+		itoa(c,szThreadName+7,10);
+		pOP->m_threads[c]=lua_newthread(L);
+		lua_pushthread(pOP->m_threads[c]);
+		lua_setglobal(L,szThreadName);
+	}
+
+	return 0;
+}
+
 int loadstring(lua_State* L) {
 	const char* str=lua_tostring(L,-1);
 	if (luaL_dostring(L,str)) {
@@ -750,6 +1462,8 @@ void COpenProtocol::_start() {
 	}
 
 	_cprintf("End of start function\n");
+
+	delete this;
 }
 
 ///
@@ -778,10 +1492,12 @@ m_proxyuserpwd(NULL)
 
 	m_handler->m_protocol=this;
 	m_definitionFile=handler->oph_strdup(pszDefinitionFile);
+	m_L=luaL_newstate();
 	print_debug("%s(): Definition file/dir=%s",__FUNCTION__,m_definitionFile);
 
 	_def_precheck();
 
+#ifdef LIBCURL
 	print_debug("%s",curl_version());
 	m_curlshare=curl_share_init();
 	curl_share_setopt(m_curlshare,CURLSHOPT_SHARE,CURL_LOCK_DATA_DNS);
@@ -791,6 +1507,11 @@ m_proxyuserpwd(NULL)
 	curl_share_setopt(m_curlshare,CURLSHOPT_UNLOCKFUNC,unlock_function);
 
 	m_curlmutex=CreateMutex(NULL,FALSE,NULL);
+#endif
+#ifdef WIN32
+	print_debug("HTTP/HTTPS Supported by WinHTTP");
+#endif
+
 	m_luamutex=CreateMutex(NULL,FALSE,NULL);
 	m_qunimagemutex=CreateMutex(NULL,FALSE,NULL);
 
@@ -799,7 +1520,6 @@ m_proxyuserpwd(NULL)
 		s_instances.push_back(this);
 	}
 
-	m_L=luaL_newstate();
 	
 	luaL_openlibs(m_L);
 
@@ -828,9 +1548,14 @@ m_proxyuserpwd(NULL)
 	lua_register(m_L,"OP_AddSearchResult",::OP_AddSearchResult);
 	lua_register(m_L,"OP_EndOfSearch",::OP_EndOfSearch);
 	lua_register(m_L,"OP_RequestJoin",::OP_RequestJoin);
+	lua_register(m_L,"OP_SetCookie",::OP_SetCookie);
 	lua_register(m_L,"loadstring",::loadstring);
+	lua_register(m_L,"print",::OP_Print);
+	lua_register(m_L,"OP_CreateThreads",::OP_CreateThreads);
 
+#ifdef LIBCURL
 	curl_global_init(/*CURL_GLOBAL_NOTHING*/ CURL_GLOBAL_ALL);
+#endif
 
 	HDC hDC=GetDC(NULL);
 	lua_pushinteger(m_L,GetDeviceCaps(hDC,LOGPIXELSY));
@@ -871,10 +1596,13 @@ void COpenProtocol::setAvatarPath(LPCSTR pcszPath) {
 }
 
 COpenProtocol::~COpenProtocol() {
+	/* It is now a static buffer, don't free it!
 	if (m_debugMsgBuffer) {
 		m_handler->oph_free(m_debugMsgBuffer);
 	}
+	*/
 
+#ifdef LIBCURL
 	if (m_curlshare) {
 		curl_share_cleanup(m_curlshare);
 	}
@@ -882,6 +1610,7 @@ COpenProtocol::~COpenProtocol() {
 	if (m_curlmutex) {
 		CloseHandle(m_curlmutex);
 	}
+#endif
 
 	if (m_luamutex) {
 		CloseHandle(m_luamutex);
@@ -917,29 +1646,38 @@ COpenProtocol::~COpenProtocol() {
 	}
 
 	if (m_L) {
+		lua_getglobal(m_L,"OP_hInet");
+		HINTERNET hInetSession=(HINTERNET*)lua_touserdata(m_L,-1);
+		lua_pop(m_L,1);
+
+		if (hInetSession) {
+			WinHttpCloseHandle(hInetSession);
+		}
+
+		lua_getglobal(m_L,"OP_cookies");
+		LPCOOKIE lpCookie=(LPCOOKIE)lua_touserdata(m_L,-1);
+		LPCOOKIE lpCookie2;
+		lua_pop(m_L,1);
+
+		while (lpCookie) {
+			lpCookie2=lpCookie->next;
+			LocalFree(lpCookie->name);
+			LocalFree(lpCookie);
+			lpCookie=lpCookie2;
+		}
+
 		lua_close(m_L);
 	}
 
+#ifdef LIBCURL
 	curl_global_cleanup();
+#endif
 
 	s_instances.remove(this);
 	if (s_firstInstance==this) s_firstInstance=NULL;
 }
 
-void COpenProtocol::callFunction(LPCSTR pcszName, LPCSTR pcszArgs, BOOL fNeedMutex) {
-	char szThreadName[64];
-	lua_State* L=m_L;
-	int ret;
-
-	if (fNeedMutex) {
-		sprintf(szThreadName,"T_%u_%u",GetCurrentThreadId(),GetTickCount());
-		WaitForSingleObject(m_luamutex,INFINITE);
-		L=lua_newthread(m_L);
-		lua_pushthread(L);
-		lua_setglobal(m_L,szThreadName);
-		// ReleaseMutex(m_luamutex);
-	}
-
+void COpenProtocol::callFunction(lua_State* L, LPCSTR pcszName, LPCSTR pcszArgs) {
 	lua_getglobal(L,pcszName);
 	if (pcszArgs) lua_pushstring(L,pcszArgs);
 	if (lua_pcall(L,pcszArgs?1:0,0,0)!=0) {
@@ -950,14 +1688,35 @@ void COpenProtocol::callFunction(LPCSTR pcszName, LPCSTR pcszArgs, BOOL fNeedMut
 		m_handler->handler(OPEVENT_ERROR,pszError,""); // Empty string allows error to continue
 		m_handler->oph_free(pszError);
 	}
-
+}
+/*
+void COpenProtocol::callFunction(LPCSTR pcszName, LPCSTR pcszArgs, BOOL fNeedMutex) {
+	char szThreadName[64];
+	lua_State* L=m_L;
+	int ret;
+	
+	if (fNeedMutex) {
+		// WaitForSingleObject(m_luamutex,INFINITE);
+		L=lua_newthread(m_L);
+		/ *
+		lua_pushthread(L);
+		sprintf(szThreadName,"T_%u_%p",GetCurrentThreadId(),L);
+		lua_setglobal(L,szThreadName);
+		* /
+		// ReleaseMutex(m_luamutex);
+	}
+	
+	callFunction(m_L,pcszName,pcszArgs);
+	/ *
 	if (fNeedMutex) {
 		// WaitForSingleObject(m_luamutex,INFINITE);
 		lua_pushnil(m_L);
 		lua_setglobal(m_L,szThreadName);
 		ReleaseMutex(m_luamutex);
 	}
+	* /
 }
+*/
 
 void COpenProtocol::setProxy(int type, LPCSTR pcszProxy, LPCSTR pcszUserPwd) {
 	if (m_proxyurl) m_handler->oph_free(m_proxyurl);

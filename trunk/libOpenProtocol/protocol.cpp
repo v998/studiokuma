@@ -2,6 +2,7 @@
 #include "Protocol.h"
 #include <fcntl.h>
 #include <string>
+#include <time.h>
 
 typedef struct _LINKEDLIST {
 	DWORD key;
@@ -95,6 +96,13 @@ public:
 
 		if (newStatus==ID_STATUS_OFFLINE) {
 			SetContactsOffline();
+			m_op=NULL;
+			// libOP cleans itself when offline
+			/*
+			if (m_op!=NULL) {
+				delete m_op;
+				m_op=NULL;
+			}*/
 		}
 	}
 
@@ -228,7 +236,7 @@ public:
 			if (dwUIN==0) {
 				char szTUIN[16];
 				_ultoa(dwTUIN,szTUIN,10);
-				m_protocol->callFunction("OP_GetRealUIN",szTUIN,FALSE);
+				m_protocol->callFunction(m_op->m_threads[THREAD_INNER], "OP_GetRealUIN",szTUIN);
 				lua_getglobal(m_protocol->m_L,"ruin_result");
 				if (lua_isnumber(m_protocol->m_L,-1)) {
 					dwUIN=lua_tounsigned(m_protocol->m_L,-1);
@@ -288,19 +296,13 @@ public:
 			HANDLE hContact=lpPAI->hContact;
 			DWORD uin=READC_D2(KEY_UIN);
 			DWORD tuin=READC_D2(KEY_TUIN);
-			// WCHAR szPath[MAX_PATH];
+			lua_State* L=m_op->m_threads[THREAD_AVATAR];
 
-			lua_getglobal(m_protocol->m_L,"OP_avatardir");
-			sprintf(lpPAI->filename,"%s\\%u.jpg",lua_tostring(m_protocol->m_L,-1),uin);
-			lua_pop(m_protocol->m_L,1);
+			lua_getglobal(L,"OP_avatardir");
+			sprintf(lpPAI->filename,"%s\\%u.jpg",lua_tostring(L,-1),uin);
+			lua_pop(L,1);
 
 			Log("%s(): %u -> %s",__FUNCTION__,uin,lpPAI->filename);
-
-			/*
-			FoldersGetCustomPathW(m_folders[FOLDER_AVATARS],szPath,MAX_PATH,L"QQ");
-
-			sprintf(lpPAI->filename,"%S\\%u.jpg",szPath,tuin);
-			*/
 
 			lpPAI->format=PA_FORMAT_JPEG;
 
@@ -308,22 +310,11 @@ public:
 			// Code is for QQ Qun
 			sprintf(szParam,"%d\t%u\t%u\t%u",READC_D2("IsQun"),tuin,uin,READC_D2("code"));
 			Log("%s(): param=%s",__FUNCTION__,szParam);
-			m_protocol->callFunction("OP_GetAvatar",szParam,TRUE);
+			m_protocol->callFunction(L,"OP_GetAvatar",szParam);
 
 			//return GetFileAttributesA(lpPAI->filename)==INVALID_FILE_ATTRIBUTES?GAIR_NOAVATAR:GAIR_SUCCESS;
 			DWORD ret=GetFileAttributesA(lpPAI->filename);
 			return ret==INVALID_FILE_ATTRIBUTES?GAIR_NOAVATAR:GAIR_SUCCESS;
-			/*
-			if (READ_B2(NULL,"UHDownload")==2) {
-				// Download on demand
-				WRITEC_U8S("PendingAvatar",lpPAI->filename);
-				CreateThreadObj(&CProtocol::FetchAvatar,lpPAI->hContact);
-				return GAIR_WAITFOR;
-			} else if (GetFileAttributesA(lpPAI->filename)!=INVALID_FILE_ATTRIBUTES) {
-				return GAIR_SUCCESS;
-			}
-			*/
-
 		}
 		return GAIR_NOAVATAR;
 	}
@@ -396,7 +387,7 @@ public:
 	}
 
 	int __cdecl TestService(WPARAM wParam, LPARAM lParam) {
-		m_protocol->callFunction("test",NULL,1);
+		m_protocol->callFunction(m_op->m_L,NULL);
 		return 0;
 	}
 
@@ -501,7 +492,7 @@ public:
 			_ultoa(uid,szUID,10);
 			
 			if (uid && !is_qun) { // Remove general contact
-				m_op->callFunction("OP_DeleteUser",szUID,TRUE);
+				m_op->callFunction(m_op->m_threads[THREAD_GENERIC],"OP_DeleteUser",szUID);
 			} else if (is_qun) { // Remove qun contact
 				// TODO
 			}
@@ -719,7 +710,7 @@ public:
 		pszField+=strlen(pszField)+1;
 		str.append(pszField); // EM
 		
-		m_op->callFunction("OP_Authorize",str.c_str(),TRUE);
+		m_op->callFunction(m_op->m_threads[THREAD_GENERIC],"OP_Authorize",str.c_str());
 		mir_free(pszBlob);
 		
 		return 1;
@@ -777,7 +768,7 @@ public:
 		str.append(pszMsg);
 		mir_free(pszMsg);
 		
-		m_op->callFunction("OP_Deny",str.c_str(),TRUE);
+		m_op->callFunction(m_op->m_threads[THREAD_GENERIC],"OP_Deny",str.c_str());
 		mir_free(pszBlob);
 		
 		return 1;
@@ -830,7 +821,7 @@ public:
 		str.append(pszMessage);// +=pszMessage;
 		mir_free(pszMessage);
 
-		m_op->callFunction("OP_AddUser",str.c_str(),TRUE);
+		m_op->callFunction(m_op->m_threads[THREAD_GENERIC],"OP_AddUser",str.c_str());
 		
 		return 0;
 	}
@@ -895,7 +886,7 @@ public:
 	void __cdecl SearchBasicThread(LPVOID lpParameter) {
 		LPSEARCHBASIC lpSB=(LPSEARCHBASIC)lpParameter;
 		
-		lpSB->op->callFunction("OP_SearchBasic",lpSB->pszUIN,TRUE);
+		lpSB->op->callFunction(lpSB->op->m_threads[THREAD_GENERIC],"OP_SearchBasic",lpSB->pszUIN);
 		mir_free(lpSB->pszUIN);
 		mir_free(lpSB);
 	}
@@ -1146,7 +1137,7 @@ public:
 			}
 			str.append(" ");
 
-			m_op->callFunction("OP_SendMessage",str.c_str(),TRUE);
+			m_op->callFunction(lpSM->L,"OP_SendMessage",str.c_str());
 
 			while (tempimagelist.size()) {
 				DeleteFileA(tempimagelist.top().c_str());
@@ -1172,7 +1163,7 @@ public:
 			DWORD seq=GetTickCount();
 
 			lpSM->hContact=hContact;
-			lpSM->L=m_protocol->m_L;
+			lpSM->L=m_protocol->m_threads[THREAD_SENDMESSAGE];
 			lpSM->flags=flags;
 			lpSM->msg=mir_strdup(msg);
 			lpSM->seq=seq;
@@ -1259,9 +1250,15 @@ public:
 			if (READC_B2("NLUseProxy")==1) {
 				int type;
 				switch (READC_B2("NLProxyType")) {
+#ifdef LIBCURL
 					case PROXYTYPE_HTTP: type=CURLPROXY_HTTP; break;
 					case PROXYTYPE_SOCKS4: type=CURLPROXY_SOCKS4; break;
 					case PROXYTYPE_SOCKS5: type=CURLPROXY_SOCKS5; break;
+#else
+					case PROXYTYPE_HTTP: type=1; break;
+					case PROXYTYPE_SOCKS4: type=2; break;
+					case PROXYTYPE_SOCKS5: type=3; break;
+#endif
 				}
 				
 				char szProxyUrl[MAX_PATH]={0};
@@ -1294,7 +1291,7 @@ public:
 			m_iDesiredStatus=iNewStatus;
 			itoa(iNewStatus,szStatus,10);
 			if (iNewStatus==ID_STATUS_OFFLINE) m_op->signalInterrupt();
-			m_op->callFunction("OP_ChangeStatus",szStatus,TRUE);
+			m_op->callFunction(m_op->m_threads[THREAD_GENERIC],"OP_ChangeStatus",szStatus);
 			BroadcastStatus(iNewStatus);
 
 			/*
@@ -1441,10 +1438,10 @@ public:
 				if (strstr(pcszStatus,": ERR") || !strncmp(pcszStatus,"ERR",3)) {
 					LPCSTR pcszCode=strstr(pcszStatus,"ERR")+3;
 
-					if (!strncmp(pcszCode,"RESP",4)) {
+					if (!strncmp(pcszCode,"RESP",4)||!strncmp(pcszCode,"BRPY",4)) {
 						ShowNotification(TranslateT("Server responded with invalid response"),NIIF_ERROR);
 						MessageBoxA(NULL,pcszCode+4,NULL,MB_ICONERROR);
-						if (pAux==NULL) BroadcastStatus(ID_STATUS_OFFLINE);
+						// if (pAux==NULL) BroadcastStatus(ID_STATUS_OFFLINE);
 					} else if (!strncmp(pcszCode,"NOVC",4)) {
 						ShowNotification(TranslateT("Verification Code cancelled by user"),NIIF_ERROR);
 						ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_WRONGPASSWORD);
@@ -1454,6 +1451,12 @@ public:
 						ShowNotification(pszMsg,NIIF_ERROR);
 						oph_free(pszMsg);
 						ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_WRONGPASSWORD);
+					} else if (!strncmp(pcszCode,"MESG",4)) {
+						LPWSTR pszMsg=(LPWSTR)oph_malloc((strlen(pcszStatus)+1)*2);
+						MultiByteToWideChar(CP_UTF8,0,pcszCode+4,-1,pszMsg,(int)strlen(pcszStatus)+1);
+						ShowNotification(pszMsg,NIIF_ERROR);
+						oph_free(pszMsg);
+						return 1; // 1=Resume
 					} else if (!strncmp(pcszCode,"LOG2",4)) {
 						ShowNotification(TranslateT("Channel Login (Part 2) failed"),NIIF_ERROR);
 						ProtoBroadcastAck(m_szModuleName,NULL,ACKTYPE_LOGIN,ACKRESULT_FAILED,NULL,LOGINERR_WRONGPROTOCOL);
@@ -1469,6 +1472,7 @@ public:
 					} else if (!strncmp(pcszCode,"LOFF",4)) {
 						// Regular logoff
 						// BroadcastStatus(ID_STATUS_OFFLINE);
+						Log("Log off");
 					}
 					BroadcastStatus(ID_STATUS_OFFLINE);
 				} else {
