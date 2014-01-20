@@ -1372,7 +1372,7 @@ public:
 		mir_free(pData);
 	}
 	void oph_printdebug(LPCSTR pcszStr) {
-		_cprintf(pcszStr);
+		printf(pcszStr);
 		// fprintf(stdout,"%s",pcszStr);
 	}
 	void oph_pthread_create(void(*start_routine)(LPVOID), LPVOID arg) {
@@ -1523,7 +1523,7 @@ public:
 							while ((nNext=lua_next(L,2))!=0) {
 								pszKey=lua_tostring(L,-2);
 								pszValue=lua_tostring(L,-1);
-								_cprintf("%s(): tuin=%u %s=%s\n",__FUNCTION__,tuin,pszKey,pszValue);
+								printf("%s(): tuin=%u %s=%s\n",__FUNCTION__,tuin,pszKey,pszValue);
 
 								if (!strcmp(pszKey,"face")) {
 									face=atoi(pszValue);
@@ -1609,10 +1609,10 @@ public:
 
 								if (type==LUA_TNUMBER) {
 									dwValue=lua_tounsigned(L,-1);
-									_cprintf("%s(): tuin=%u %s=%u(u)\n",__FUNCTION__,tuin,pszKey,dwValue);
+									printf("%s(): tuin=%u %s=%u(u)\n",__FUNCTION__,tuin,pszKey,dwValue);
 								} else {
 									pszValue=lua_tostring(L,-1);
-									_cprintf("%s(): tuin=%u %s=%s(s)\n",__FUNCTION__,tuin,pszKey,pszValue);
+									printf("%s(): tuin=%u %s=%s(s)\n",__FUNCTION__,tuin,pszKey,pszValue);
 								}
 
 								if (!strcmp(pszKey,"MyHandle")) {

@@ -14,7 +14,7 @@ static DWORD WINAPI ClientThread(LPVOID lpParameter) {
 	SOCKET s=(SOCKET)lpParameter;
 	
 	if (!s_mutex) {
-		_cprintf("%s() Mutex already freed, dropping request!\n",__FUNCTION__);
+		printf("%s() Mutex already freed, dropping request!\n",__FUNCTION__);
 	} else {
 		char* pszBufferIn=(char*)s_handler->oph_malloc(BUFFER_IN);
 		char* pszBufferOut=(char*)s_handler->oph_malloc(BUFFER_OUT);
@@ -43,7 +43,7 @@ static DWORD WINAPI ClientThread(LPVOID lpParameter) {
 			if (!strncmp(pszBufferIn,"GET /",5)) {
 				ppszBufferIn=pszBufferIn+4;
 				*strchr(ppszBufferIn,'\r')=0;
-				_cprintf("%s(%p): Uri=%s\n",__FUNCTION__,s,ppszBufferIn);
+				printf("%s(%p): Uri=%s\n",__FUNCTION__,s,ppszBufferIn);
 
 				if (!strncmp(ppszBufferIn,"/qunimages/",11) || !strncmp(ppszBufferIn,"/p2pimages/",11)) {
 					LPSTR pszFilename;
@@ -76,7 +76,7 @@ static DWORD WINAPI ClientThread(LPVOID lpParameter) {
 							fp=pOP->handleQunImage(ppszBufferIn+1,p2p);
 							ReleaseMutex(s_mutex);
 						} else {
-							_cprintf("%s() Failed finding instance to handle %s\n",__FUNCTION__,ppszBufferIn+1);
+							printf("%s() Failed finding instance to handle %s\n",__FUNCTION__,ppszBufferIn+1);
 						}
 					}
 
@@ -94,7 +94,7 @@ static DWORD WINAPI ClientThread(LPVOID lpParameter) {
 						while (remainIn>0) {
 							received=(int)fread(pszBufferOut,1,min(BUFFER_OUT,remainIn),fp);
 							if (received==0) {
-								_cprintf("ERROR: received==0!\n");
+								printf("ERROR: received==0!\n");
 								break;
 							}
 							remainIn-=received;
@@ -138,16 +138,16 @@ static DWORD WINAPI ServerThread(LPVOID lpParameter) {
 	sin.sin_addr.s_addr = INADDR_ANY;
 	sin.sin_port = htons(171);
 
-	_cprintf("%s(): Server socket(%p) listen thread start\n",__FUNCTION__,s_serversocket);
+	printf("%s(): Server socket(%p) listen thread start\n",__FUNCTION__,s_serversocket);
 
 	unsigned char* pbAddr=(unsigned char*)&sin.sin_addr.S_un.S_addr;
 
 	while ((clientsocket=accept(s_serversocket,(sockaddr*)&sin,&length))!=INVALID_SOCKET) {
-		_cprintf("%s(): Connection from %d.%d.%d.%d\n",__FUNCTION__,(int)pbAddr[0],(int)pbAddr[1],(int)pbAddr[2],(int)pbAddr[3]);
+		printf("%s(): Connection from %d.%d.%d.%d\n",__FUNCTION__,(int)pbAddr[0],(int)pbAddr[1],(int)pbAddr[2],(int)pbAddr[3]);
 		CreateThread(NULL,0,ClientThread,(LPVOID)clientsocket,0,&dwThreadID);
 	}
 
-	_cprintf("%s(): Wait for last request to end",__FUNCTION__);
+	printf("%s(): Wait for last request to end",__FUNCTION__);
 	HANDLE hMutex=s_mutex;
 
 	WaitForSingleObject(hMutex,INFINITE);
@@ -156,7 +156,7 @@ static DWORD WINAPI ServerThread(LPVOID lpParameter) {
 	ReleaseMutex(hMutex);
 	CloseHandle(hMutex);
 
-	_cprintf("%s(): Server socket listen thread end, err=%d\n",__FUNCTION__,WSAGetLastError());
+	printf("%s(): Server socket listen thread end, err=%d\n",__FUNCTION__,WSAGetLastError());
 
 	return 0;
 }
@@ -168,7 +168,7 @@ m_port(port) {
 	s_instance=NULL;
 
 	if (port!=0) {
-		_cprintf("%s(): Initialize at port %d\n",__FUNCTION__,port);
+		printf("%s(): Initialize at port %d\n",__FUNCTION__,port);
 
 		strcpy(m_qunimagepath,qunimagepath);
 
@@ -180,13 +180,13 @@ m_port(port) {
 		sin.sin_port = htons(port);
 
 		if (FAILED(WSAStartup(MAKEWORD(2,0), &wsaData))) {
-			_cprintf("%s(): WSAStartup failed\n",__FUNCTION__);
+			printf("%s(): WSAStartup failed\n",__FUNCTION__);
 		} else if ((s_serversocket=socket(AF_INET,SOCK_STREAM,0))==INVALID_SOCKET) {
-			_cprintf("%s(): socket failed\n",__FUNCTION__);
+			printf("%s(): socket failed\n",__FUNCTION__);
 		} else if (FAILED(bind(s_serversocket, (sockaddr*)&sin, sizeof(sin)))) {
-			_cprintf("%s(): Bind failed\n",__FUNCTION__);
+			printf("%s(): Bind failed\n",__FUNCTION__);
 		} else if (!SUCCEEDED(listen(s_serversocket, SOMAXCONN))) {
-			_cprintf("%s(): Listen failed\n",__FUNCTION__);
+			printf("%s(): Listen failed\n",__FUNCTION__);
 		} else {
 			DWORD dwThreadID;
 			s_instance=this;

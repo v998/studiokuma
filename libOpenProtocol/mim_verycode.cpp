@@ -36,8 +36,8 @@ static INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARA
 				case IDOK:
 					{
 						LPSTR pszPath=(LPSTR)GetWindowLong(hwndDlg,GWL_USERDATA);
-						GetDlgItemTextA(hwndDlg,IDC_VERYCODE,pszPath,10);
-						if (strlen(pszPath)!=4) {
+						GetDlgItemTextA(hwndDlg,IDC_VERYCODE,pszPath,16);
+						if (strlen(pszPath)>16 || strlen(pszPath)<4) {
 							MessageBox(hwndDlg,TranslateT("Invalid verification code length, please try again"),NULL,MB_ICONERROR);
 						} else
 							EndDialog(hwndDlg,0);

@@ -30,7 +30,7 @@ public:
 	}
 
 	void oph_printdebug(LPCSTR psczStr) {
-		_cprintf(psczStr);
+		printf(psczStr);
 	}
 
 	void oph_pthread_create(void(*start_routine)(LPVOID), LPVOID arg) {

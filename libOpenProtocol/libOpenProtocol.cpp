@@ -1,5 +1,8 @@
+#define LUA52
+#define WINHTTP
+
 #include "libOpenProtocol.h"
-#ifdef WIN32
+#ifdef WINHTTP
 #include <winhttp.h>
 #pragma comment(lib,"winhttp")
 #else
@@ -22,7 +25,9 @@
 
 static list<COpenProtocol*> s_instances;
 static COpenProtocol* s_firstInstance=NULL;
-static char s_logtext[1024];
+// static char s_logtext[1024];
+
+int OP_CreateThreads(lua_State* L);
 
 /*** COpenProtocol ***/
 #ifdef LIBCURL
@@ -102,14 +107,14 @@ FILE* COpenProtocol::handleQunImage(LPCSTR pcszUri, BOOL isP2P) {
 	if (pszTemp=strchr(strcpy(szState,pszFilename),'.')) *pszTemp=0;
 
 	if (fp=fopen(szFilename,"rb")) {
-		_cprintf("%s() File already exists (#1), return it\n",__FUNCTION__);
+		printf("%s() File already exists (#1), return it\n",__FUNCTION__);
 		return fp;
 	}
 
 	WaitForSingleObject(m_qunimagemutex,INFINITE);
 
 	if (fp=fopen(szFilename,"rb")) {
-		_cprintf("%s() File already exists (#2), return it\n",__FUNCTION__);
+		printf("%s() File already exists (#2), return it\n",__FUNCTION__);
 		ReleaseMutex(m_qunimagemutex);
 		return fp;
 	}
@@ -118,10 +123,10 @@ FILE* COpenProtocol::handleQunImage(LPCSTR pcszUri, BOOL isP2P) {
 	ReleaseMutex(m_qunimagemutex);
 
 	if (fp=fopen(szFilename,"rb")) {
-		_cprintf("%s() Qun/P2P image %s saved, return it\n",__FUNCTION__,pszFilename);
+		printf("%s() Qun/P2P image %s saved, return it\n",__FUNCTION__,pszFilename);
 		return fp;
 	} else {
-		_cprintf("%s() Qun/P2P image %s failed\n",__FUNCTION__,pszFilename);
+		printf("%s() Qun/P2P image %s failed\n",__FUNCTION__,pszFilename);
 		return NULL;
 	}
 }
@@ -132,7 +137,7 @@ int test(lua_State* L) {
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
 	lua_pop(L,1);
 
-	_cprintf("%s(): pOP=%p params=%d\n",__FUNCTION__,pOP,lua_gettop(L));
+	printf("%s(): pOP=%p params=%d\n",__FUNCTION__,pOP,lua_gettop(L));
 	pOP->test();
 
 	return 0; // number of return values
@@ -148,7 +153,7 @@ typedef struct {
 size_t write_function( void *ptr, size_t size, size_t nmemb, void *stream) {
 	curl_buf_t* pCB=(curl_buf_t*) stream;
 	if (!pCB->cb) {
-		_cprintf("Warning: no Content-Length in header, reserving buffer of %d\n",DEFAULTPACKETSIZE);
+		printf("Warning: no Content-Length in header, reserving buffer of %d\n",DEFAULTPACKETSIZE);
 		pCB->cb=-1;
 		pCB->current=pCB->data=(unsigned char*) pCB->op->m_handler->oph_malloc(DEFAULTPACKETSIZE);
 		//pCB->data[8192]=0;
@@ -157,7 +162,7 @@ size_t write_function( void *ptr, size_t size, size_t nmemb, void *stream) {
 
 	int cb=(int)(size*nmemb);
 	if (pCB->cb==-1 && (pCB->current-pCB->data)+cb>=DEFAULTPACKETSIZE) {
-		_cprintf("Error: Buffer too small for current content!!!\n");
+		printf("Error: Buffer too small for current content!!!\n");
 	}
 	memcpy(pCB->current,ptr,cb);
 	pCB->current+=cb;
@@ -173,14 +178,14 @@ size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream) {
 		pData[size*nmemb-1]=0;
 
 		if (pCB->cb>0) {
-			_cprintf("Note: Removing previous data buffer of length %d (Redirect?)\n",pCB->cb);
+			printf("Note: Removing previous data buffer of length %d (Redirect?)\n",pCB->cb);
 			pCB->op->m_handler->oph_free(pCB->data);
 		}
 		pCB->cb=atoi(pData+16);
 		pCB->current=pCB->data=(unsigned char*) pCB->op->m_handler->oph_malloc(pCB->cb+1);
 		pCB->data[pCB->cb]=0;
 
-		// _cprintf("header: %s\n",(char*)pData);
+		// printf("header: %s\n",(char*)pData);
 
 		pCB->op->m_handler->oph_free(pData);
 	} else if (!memcmp(ptr,"Set-Cookie: ",12)) {
@@ -194,7 +199,7 @@ size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream) {
 		char* pszKey=pData+12;
 		char* pszValue=strchr(pData,'=')+1;
 		pszValue[-1]=0;
-		_cprintf("Set LUA global for cookie %s=%s\n",pszKey,pszValue);
+		printf("Set LUA global for cookie %s=%s\n",pszKey,pszValue);
 		if (!*pszValue) {
 			lua_pushnil(pCB->op->m_L);
 		} else {
@@ -208,9 +213,9 @@ size_t header_function( void *ptr, size_t size, size_t nmemb, void *stream) {
 }
 
 int OP_Sleep(lua_State* L) {
-	_cprintf("Start Sleeping...\n");
+	printf("Start Sleeping...\n");
 	Sleep((DWORD)lua_tointeger(L,1));
-	_cprintf("End Sleeping\n");
+	printf("End Sleeping\n");
 	return 0;
 }
 
@@ -280,13 +285,13 @@ int OP_GetTempFile(lua_State* L) {
 	lua_pop(L,1);
 	// GetTempPathA(MAX_PATH,szTempPath);
 	GetTempFileNameA(szTempPath,"_op",0,szTempFile);
-	_cprintf("%s(): Temp file=%s\n",__FUNCTION__,szTempFile);
+	printf("%s(): Temp file=%s\n",__FUNCTION__,szTempFile);
 
 	lua_pushstring(L,szTempFile);
 	return 1;
 }
 
-#ifdef WIN32
+#ifdef WINHTTP
 typedef struct _COOKIE {
 	LPSTR name;
 	LPSTR value;
@@ -648,7 +653,7 @@ void initUA(lua_State* L, COpenProtocol* pOP) {
 	}
 }
 
-#ifdef WIN32
+#ifdef WINHTTP
 static HINTERNET GetWinHttpSession(COpenProtocol* pOP, lua_State* L) {
 	lua_getglobal(L,"OP_hInet");
 	HINTERNET hInetSession=(HINTERNET*)lua_touserdata(L,-1);
@@ -695,7 +700,7 @@ int OP_Post(lua_State* L) {
 	const char* pcszCookies=lua_tostring(L,-1);
 
 	if ((fields=lua_gettop(L))<4) {
-		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		printf("%s(): Incorrect number of parameters\n",__FUNCTION__);
 		lua_pop(L,1); // cookie
 		lua_pushstring(L,"");
 	} else {
@@ -853,7 +858,6 @@ int OP_Post(lua_State* L) {
 		LPBYTE pszBuffer2;
 		DWORD cb2;
 
-		pOP->print_debug("OP_Post: 1 url=%s",pcszUrl);
 		if (WinHttpReceiveResponse(hInetReq,NULL)) {
 		// pOP->print_debug("OP_Post: 1.1");
 			ParseCookie(L,hInetReq);
@@ -892,7 +896,6 @@ int OP_Post(lua_State* L) {
 			cb2=0;
 		}
 
-		pOP->print_debug("OP_Post: 5");
 		WinHttpCloseHandle(hInetReq);
 		WinHttpCloseHandle(hInetConn);
 
@@ -928,7 +931,7 @@ int OP_Get(lua_State* L) {
 	const char* pcszCookies=lua_tostring(L,-1);
 
 	if ((fields=lua_gettop(L))<3) {
-		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		printf("%s(): Incorrect number of parameters\n",__FUNCTION__);
 		lua_pop(L,1);
 		lua_pushstring(L,"");
 	} else {
@@ -1018,6 +1021,11 @@ int OP_Get(lua_State* L) {
 					}
 				}
 				*ppszBuffer=0;
+			} else {
+				pOP->print_debug("OP_Get: Receive failed for %s, GetLastError()=%d",pcszUrl,GetLastError());
+				cb2=0;
+				pszBuffer=(LPBYTE)LocalAlloc(LMEM_FIXED,1);
+				*pszBuffer=0;
 			}
 			// pOP->print_debug("OP_Get: 2");
 		} else {
@@ -1032,6 +1040,8 @@ int OP_Get(lua_State* L) {
 
 		if (cb2>10 && cb2<1024 && pszBuffer[10]>0x20 && pszBuffer[10]<0x7f) {
 			printf("WinHttp GET dump:\n%s\n",pszBuffer);
+		} else {
+			printf("WinHttp GET url=%s size=%d\n",pcszUrl,cb2);
 		}
 
 		lua_pop(L,1); // Cookies
@@ -1060,7 +1070,7 @@ int OP_Post(lua_State* L) {
 	const char* pcszCookies=lua_tostring(L,-1);
 
 	if ((fields=lua_gettop(L))<4) {
-		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		printf("%s(): Incorrect number of parameters\n",__FUNCTION__);
 		lua_pop(L,1); // cookie
 		lua_pushstring(L,"");
 	} else {
@@ -1074,7 +1084,7 @@ int OP_Post(lua_State* L) {
 		curl_buf_t cb={0};
 		cb.op=pOP;
 		
-		// _cprintf(__FUNCTION__"(): url=%s referer=%s\n",pcszUrl,pcszReferer);
+		// printf(__FUNCTION__"(): url=%s referer=%s\n",pcszUrl,pcszReferer);
 
 		initUA(L,pOP);
 
@@ -1151,7 +1161,7 @@ int OP_Get(lua_State* L) {
 	const char* pcszCookies=lua_tostring(L,-1);
 
 	if ((fields=lua_gettop(L))<3) {
-		_cprintf("%s(): Incorrect number of parameters\n",__FUNCTION__);
+		printf("%s(): Incorrect number of parameters\n",__FUNCTION__);
 		lua_pop(L,1);
 		lua_pushstring(L,"");
 	} else {
@@ -1162,7 +1172,7 @@ int OP_Get(lua_State* L) {
 		curl_buf_t cb={0};
 		cb.op=pOP;
 		
-		// _cprintf(__FUNCTION__"(): url=%s referer=%s\n",pcszUrl,pcszReferer);
+		// printf(__FUNCTION__"(): url=%s referer=%s\n",pcszUrl,pcszReferer);
 
 		initUA(L,pOP);
 
@@ -1204,6 +1214,8 @@ int OP_LoginSuccess(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
 	pOP->m_handler->handler(OPEVENT_LOGINSUCCESS,NULL,NULL);
 
 	return 0;
@@ -1224,7 +1236,7 @@ int OP_UpdateProfile(lua_State* L) {
 
 	// pop key, push key+value
 	while (lua_next(L,2)!=0) {
-		_cprintf(__FUNCTION__"(): tuin=%u %s=%s\n",tuin,lua_tostring(L,-2),lua_tostring(L,-1));
+		printf(__FUNCTION__"(): tuin=%u %s=%s\n",tuin,lua_tostring(L,-2),lua_tostring(L,-1));
 		lua_pop(L,1); // Remove value and keep key
 	}
 
@@ -1239,7 +1251,7 @@ int OP_UpdateProfile(lua_State* L) {
 int OP_UpdateAvatar(lua_State* L) {
 	ENSURE_ARGUMENTS(2);
 
-	_cprintf("%s(): Update avatar of %u to %s\n",__FUNCTION__,lua_tounsigned(L,1),lua_tostring(L,2));
+	printf("%s(): Update avatar of %u to %s\n",__FUNCTION__,lua_tounsigned(L,1),lua_tostring(L,2));
 
 	return 0;
 }
@@ -1250,9 +1262,10 @@ int OP_Group(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	int index;
-	_cprintf("%s(): Group #%d: %s\n",__FUNCTION__,index=(int)lua_tointeger(L,1),lua_tostring(L,2));
+	printf("%s(): Group #%d: %s\n",__FUNCTION__,index=(int)lua_tointeger(L,1),lua_tostring(L,2));
 	pOP->m_handler->handler(OPEVENT_LOCALGROUP,lua_tostring(L,2),&index);
 
 	return 0;
@@ -1261,15 +1274,18 @@ int OP_Group(lua_State* L) {
 int OP_ContactStatus(lua_State* L) {
 	ENSURE_ARGUMENTS(3);
 
-	_cprintf("%s(): Contact %u changed status to %d, client_type=%d\n",__FUNCTION__,lua_tounsigned(L,1),lua_tointeger(L,2),lua_tointeger(L,3));
+	printf("%s(): Contact %u changed status to %d, client_type=%d\n",__FUNCTION__,lua_tounsigned(L,1),lua_tointeger(L,2),lua_tointeger(L,3));
 
 	lua_getglobal(L,"OP_inst");
 
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	DWORD dwParam=(DWORD)MAKELPARAM(lua_tointeger(L,2),lua_tointeger(L,3));
 	DWORD dwTUIN=lua_tounsigned(L,1);
 	pOP->m_handler->handler(OPEVENT_CONTACTSTATUS,(LPCSTR)&dwTUIN,&dwParam);
+
+	printf("%s(): End\n",__FUNCTION__);
 
 	return 0;
 }
@@ -1370,11 +1386,12 @@ int OP_AddTempContact(lua_State* L) {
 int OP_AddSearchResult(lua_State* L) {
 	ENSURE_ARGUMENTS(5);
 
-	_cprintf("%s(): Add search result for uin %d\n",__FUNCTION__,lua_tounsigned(L,2));
+	printf("%s(): Add search result for uin %d\n",__FUNCTION__,lua_tounsigned(L,2));
 
 	lua_getglobal(L,"OP_inst");
 
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	unsigned int tuin=lua_tounsigned(L,2);
 	pOP->m_handler->handler(OPEVENT_ADDSEARCHRESULT,(LPCSTR)&tuin,L);
@@ -1386,6 +1403,7 @@ int OP_EndOfSearch(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	pOP->m_handler->handler(OPEVENT_ENDOFSEARCH,NULL,NULL);
 	
@@ -1397,6 +1415,7 @@ int OP_RequestJoin(lua_State* L) {
 	
 	lua_getglobal(L,"OP_inst");
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	unsigned int tuin=lua_tounsigned(L,2);
 	pOP->m_handler->handler(OPEVENT_REQUESTJOIN,(LPCSTR)&tuin,L);
@@ -1407,6 +1426,7 @@ int OP_RequestJoin(lua_State* L) {
 int OP_CreateThreads(lua_State* L) {
 	lua_getglobal(L,"OP_inst");
 	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
 
 	char szThreadName[32]="thread_";
 
@@ -1421,16 +1441,25 @@ int OP_CreateThreads(lua_State* L) {
 }
 
 int loadstring(lua_State* L) {
-	const char* str=lua_tostring(L,-1);
-	if (luaL_dostring(L,str)) {
-		const char* pszError;
-		_cprintf("err: %s\n",pszError=/*m_handler->oph_strdup*/(lua_tostring(L,-1)));
-		MessageBoxA(NULL,pszError,NULL,MB_ICONERROR);
-		lua_pop(L,1);
+	lua_getglobal(L,"OP_inst");
 
+	COpenProtocol* pOP=(COpenProtocol*)lua_touserdata(L,-1);
+	lua_pop(L,1);
+
+	const char* str=lua_tostring(L,1);
+
+	if (luaL_dostring(pOP->m_threads[THREAD_INNER],str)) {
+		char* pszError;
+		printf("err: %s\n",pszError=strdup(lua_tostring(pOP->m_threads[THREAD_INNER],-1)));
+		// MessageBoxA(NULL,pszError,NULL,MB_ICONERROR);
+		lua_pop(pOP->m_threads[THREAD_INNER],1);
+
+		pOP->m_handler->handler(OPEVENT_ERROR,pszError,NULL);
 		lua_pushboolean(L,false);
+		free(pszError);
 	} else
 		lua_pushboolean(L,true);
+	
 
 	return 1;
 }
@@ -1439,19 +1468,21 @@ void COpenProtocol::_start() {
 	lua_pushinteger(m_L,m_initstatus);
 	lua_setglobal(m_L,"OP_status");
 
+	OP_CreateThreads(m_L);
+
 	while (luaL_dofile(m_L,m_definitionFile)) {
 		char* pszError;
-		_cprintf("err: %s\n",pszError=m_handler->oph_strdup(lua_tostring(m_L,-1)));
+		printf("err: %s\n",pszError=m_handler->oph_strdup(lua_tostring(m_L,-1)));
 		lua_pop(m_L,1);
 
 		if (!m_handler->handler(OPEVENT_ERROR,pszError,NULL)) {
 			// Don't continue
-			_cprintf("Breaking loop due to error\n");
+			printf("Breaking loop due to error\n");
 			m_handler->oph_free(pszError);
 			break;
 		}
 
-		_cprintf("Non-vital error, resume loop\n");
+		printf("Non-vital error, resume loop\n");
 		m_handler->oph_free(pszError);
 
 		/*
@@ -1461,7 +1492,7 @@ void COpenProtocol::_start() {
 		*/
 	}
 
-	_cprintf("End of start function\n");
+	printf("End of start function\n");
 
 	delete this;
 }
@@ -1473,7 +1504,7 @@ void COpenProtocol::_def_precheck() {
 }
 
 void COpenProtocol::test() {
-	_cprintf("%s(): m_L=%p\n",__FUNCTION__,m_L);
+	printf("%s(): m_L=%p\n",__FUNCTION__,m_L);
 }
 
 COpenProtocol::COpenProtocol(LPCSTR pszDefinitionFile, COpenProtocolHandler* handler):
@@ -1484,7 +1515,7 @@ m_proxytype(-1), m_proxyurl(NULL),
 m_proxyuserpwd(NULL)
 {
 	if (handler==NULL) {
-		_cprintf("%s(): handler==NULL!\n",__FUNCTION__);
+		printf("%s(): handler==NULL!\n",__FUNCTION__);
 		DebugBreak();
 	}
 
@@ -1508,7 +1539,7 @@ m_proxyuserpwd(NULL)
 
 	m_curlmutex=CreateMutex(NULL,FALSE,NULL);
 #endif
-#ifdef WIN32
+#ifdef WINHTTP
 	print_debug("HTTP/HTTPS Supported by WinHTTP");
 #endif
 
@@ -1682,7 +1713,7 @@ void COpenProtocol::callFunction(lua_State* L, LPCSTR pcszName, LPCSTR pcszArgs)
 	if (pcszArgs) lua_pushstring(L,pcszArgs);
 	if (lua_pcall(L,pcszArgs?1:0,0,0)!=0) {
 		char* pszError;
-		_cprintf("err: %s\n",pszError=m_handler->oph_strdup(lua_tostring(L,-1)));
+		printf("err: %s\n",pszError=m_handler->oph_strdup(lua_tostring(L,-1)));
 		lua_pop(L,1);
 
 		m_handler->handler(OPEVENT_ERROR,pszError,""); // Empty string allows error to continue

@@ -43,6 +43,7 @@ end
 -- Calling API functions with GET method
 function CallAPI(func,extra)
 	local url='http://s.web2.qq.com/api/'..func..'?'..extra..'&vfwebqq='..vfwebqq..'&t='..GetTS()
+	print('CallAPI: Before OP_Get, url='..url)
 	local s=OP_Get(url,OP_referer_s)
 	
 	print('CallAPI: func='..func)
@@ -722,7 +723,9 @@ end
 -- Get signature (Long Nick)
 function API_GetSingleLongNick2(tuin)
 	--long nick=signature
+	print('API_GetSingleLockNick2: Before CallAPI, tuin='..tuin);
 	local j=CallAPI('get_single_long_nick2','tuin='..tuin);
+	print('API_GetSingleLockNick2: After CallAPI');
 	-- {"retcode":0,"result":[{"uin":431533706,"lnick":"....................."}]}
 	
 	if j~=nil then
@@ -1131,9 +1134,14 @@ function OP_PollLoop()
 						end
 					elseif v.poll_type=='buddies_status_change' then
 						-- {"uin":3132949066,"status":"online","client_type":1}
-						print('Buddy '..v.value.uin..' changed status to '..v.value.status)
-						OP_ContactStatus(v.value.uin,StatusText2MIM(v.value.status),v.value.client_type)
-						if v.value.status~='offline' then API_GetSingleLongNick2(v.value.uin) end
+						local vuin=v.value.uin
+						local vstatus=v.value.status
+						
+						print('Buddy '..vuin..' changed status to '..vstatus)
+						OP_ContactStatus(vuin,StatusText2MIM(vstatus),v.value.client_type)
+						print('buddies_status_change: Before API_GetSingleLongNick2')
+						if vstatus~='offline' then API_GetSingleLongNick2(vuin) end
+						print('buddies_status_change: After API_GetSingleLongNick2')
 					elseif v.poll_type=='kick_message' then
 						error('ERRDUPL')
 					elseif v.poll_type=='input_notify' then
@@ -1244,6 +1252,8 @@ function OP_PollLoop()
 				error('ERRDUPL')
 			-- elseif j.retcode==102 then
 			-- 	print('Poll2: Poll completed, restart')
+			elseif j.retcode==103 and login2_103==nil then
+				login2_103=true
 			elseif j.retcode~=102 then
 				error('ERRPOLL'..j.retcode..':'..j.errmsg)
 			end
@@ -1554,7 +1564,6 @@ local init2=function()
 						psessionid=b.psessionid
 						clientkey=b.clientkey
 						
-						OP_CreateThreads();
 						OP_LoginSuccess()
 						start()
 					elseif a.retcode==103 then
