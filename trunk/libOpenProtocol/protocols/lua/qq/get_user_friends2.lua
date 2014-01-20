@@ -7,17 +7,27 @@ QQ_guf2hash=function(b,i)
 	pos=pos+5
 	local pos2=str:find('(',pos,true)
 	local fn=str:sub(pos,pos2-1)
+	local pos3;
 	print('pos='..pos..' pos2='..pos2..' fn='..fn)
 
 	pos=str:find(fn..'=function(',1,true)
-	pos2=str:find('},',pos,true)
-	pos2=str:find('},',pos2+1,true)
+	pos3=str:find('{',pos,true)+1
+	while true do
+		pos2=str:find('},',pos3,true)
+		pos3=str:find('{',pos3,true)
+		if pos3==nil or pos3>pos2 then break end
+	end
+	
 	local func=str:sub(pos,pos2)
 	print('\n'..func)
 
 	local fh=io.open('lua/qq/tmp.js',"wb")
 	fh:write(func)
 	fh:write(',WScript.StdOut.WriteLine('..fn.."('"..b.."','"..i.."'))")
+	fh:close()
+
+	fh=io.open('lua/qq/eqq.all.js',"wb")
+	fh:write(str)
 	fh:close()
 
   local f = assert(io.popen('cscript lua\\qq\\tmp.js //Nologo', 'r'))

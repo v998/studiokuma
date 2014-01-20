@@ -68,6 +68,8 @@ end
 
 local init=function()
 	print('login.init()')
+	-- OP_CreateThreads();
+	
 	local	data=OP_Get(g_referer_top,g_referer_web2);
 	loadvar(data,'g_version')
 	loadvar(data,'g_pt_version')

@@ -12,6 +12,7 @@
 #define THREAD_SENDMESSAGE 2
 #define THREAD_GENERIC 3
 #define THREAD_INNER 4
+// #define THREAD_GLOBAL 5
 
 #include <string.h>
 #include <conio.h>
@@ -38,12 +39,11 @@ extern "C" {
 }
 */
 extern "C" {
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
-#define lua_tounsigned(a,b) ((unsigned int)lua_tonumber(a,b))
-#pragma comment(lib,"lua51.lib")
-#pragma comment(lib,"lua5.1.lib")
+#include "lua52/lua.h"
+#include "lua52/lauxlib.h"
+#include "lua52/lualib.h"
+// #define lua_tounsigned(a,b) ((unsigned int)lua_tonumber(a,b))
+#pragma comment(lib,"lua52/lua52.lib")
 }
 
 #ifndef WIN32
@@ -143,7 +143,7 @@ public:
 
 	COpenProtocolHandler* m_handler;
 
-	lua_State* m_threads[3];
+	lua_State* m_threads[THREAD_COUNT];
 private:
 	void _def_precheck();
 

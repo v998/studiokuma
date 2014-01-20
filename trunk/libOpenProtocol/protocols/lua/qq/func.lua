@@ -11,6 +11,7 @@ quninfovalid={} -- Qun Information receive
 sminfovalid={}  -- Session Message Information receive
 msgpktbuffer={} -- Duplicated message checking
 smindex=0       -- Session Message index (1 based)
+qunextid={}     -- Qun real external ID for qun image retrieval
 
 -- Publish bad reply error
 function OP_BadReply(str)
@@ -63,7 +64,7 @@ function CallAPI(func,extra)
 	
 	if s:find('retcode')==nil or (s:byte(s:len())~=10 and s:byte(s:len())~=125) then
 		-- not 125, should be 10
-		print('CallAPI: First time data failed for '..func..', try again')
+		print('ERRRESPCallAPI: First time data failed for '..func..', try again') -- . ref='..s:byte(s:len()))
 		if s:find('retcode')~=nil then print('byte='..s:byte(s:len())) end
 		s=OP_Get(url,OP_referer_s)
 	end
@@ -78,25 +79,56 @@ function CallAPI(func,extra)
 	end
 end
 
+function url_encode(str)
+  if (str) then
+    str = string.gsub (str, "\n", "\r\n")
+    str = string.gsub (str, "([^%w ])",
+        function (c) return string.format ("%%%02X", string.byte(c)) end)
+    str = string.gsub (str, " ", "+")
+  end
+  return str	
+end
+
 -- Calling API functions with POST method
-function CallAPIPost(func,j1)
+function CallAPIPost(func,j1,v,raw)
 	local url='http://s.web2.qq.com/api/'..func
-	j1['vfwebqq']=vfwebqq
-	local s=OP_Post(url,OP_referer_s,'r='..JSON:encode(j1))
+	local r
+	
+	if type(j1)=='table' then
+		j1['vfwebqq']=vfwebqq
+		r='r='..url_encode(JSON:encode(j1))
+	else
+		r=url_encode(j1..'&vfwebqq='..vfwebqq)
+	end
+	
+	if v~=nil then
+		print('CallAPIPost: url='..url)
+		print('CallAPIPost: '..r)
+	end
+	local s=OP_Post(url,OP_referer_s,r)
 	
 	if s:find('retcode')==nil or (s:byte(s:len())~=10 and s:byte(s:len())~=125) then
-		print('CallAPIPost: First time data failed for '..func..', try again')
+		print('ERRRESPCallAPIPost: First time data failed for '..func..', try again. ref='..s:byte(s:len()))
 		if s:find('retcode')~=nil then print('byte='..s:byte(s:len())) end
-		s=OP_Post(url,OP_referer_s,'r='..JSON:encode(j1))
+		s=OP_Post(url,OP_referer_s,r)
+	end
+	
+	if v~=nil then
+		print('CallAPIPost: s='..s)
 	end
 	
 	local j=JSON:decode(s)
 	
-	if j~=nil and j.retcode==0 then
-		return j.result
+	if raw~=nil then
+		return j
 	else
-		OP_BadReply(func)
-		return nil
+		if j~=nil and j.retcode==0 then
+			return j.result
+		else
+			print('CallAPIPost('..func..') failed, response='..s);
+			OP_BadReply(func)
+			return nil
+		end
 	end
 end
 
@@ -106,7 +138,7 @@ function CallChannel(func,extra)
 	local s=OP_Get(url,OP_referer_d)
 	
 	if s:find('retcode')==nil or (s:byte(s:len())~=10 and s:byte(s:len())~=125) then
-		print('CallChannel: First time data failed for '..func..', try again')
+		print('ERRRESPCallChannel: First time data failed for '..func..', try again. ref='..s:byte(s:len()))
 		if s:find('retcode')~=nil then print('byte='..s:byte(s:len())) end
 		s=OP_Get(url,OP_referer_d)
 	end
@@ -200,7 +232,7 @@ function StatusMIM2QQ(st)
 end
 
 -- Process all kind of IM messages
-function ProcessMessage(msg,tuin,gid,msgid)
+function ProcessMessage(msg,tuin,gid,msgid,tm)
 	local s=''
 	local prefix,suffix='',''
 	for k2,v2 in ipairs(msg) do
@@ -233,7 +265,7 @@ function ProcessMessage(msg,tuin,gid,msgid)
 					if gid~=0 then
 						-- Qun Image
 						-- key unused
-						s=s..'[img]http://127.0.0.1:'..OP_imgserverport..'/qunimages/'..OP_uin..'/'..gid..'/'..tuin..'/'..string.gsub(o2.server,':','/')..'/'..o2.file_id..'/'..o2.name..'[/img]'
+						s=s..'[img]http://127.0.0.1:'..OP_imgserverport..'/qunimages/'..OP_uin..'/'..gid..'/'..tuin..'/'..tm..'/'..string.gsub(o2.server,':','/')..'/'..o2.file_id..'/'..o2.name..'[/img]'
 					else
 						s=s..'[img]http://127.0.0.1:'..OP_imgserverport..'/p2pimages/'..OP_uin..'/'..tuin..'/'..msgid..'/'..o2..'[/img]'
 					end
@@ -296,6 +328,11 @@ end
 function HandleP2PImage(uri)
 	-- tuin/msgid/name
 	-- tuin/filename
+	if clientid==nil or psessionid==nil then
+		print("HandleP2PImage: clientid or psessionid not set!")
+		return
+	end
+
 	local parts=Split(uri,"/")
 	if #parts==3 then
 		-- http://d.web2.qq.com/channel/get_cface2?lcid=18631&guid=5E10B9BCA2BDF8489CB3239DFFA745B5.jpg&to=3291940000&count=5&time=1&clientid=42759885&psessionid=8368046764001e636f6e6e7365727665725f77656271714031302e3132382e36362e3131350000049500001266016e04008aaeb8196d0000000a40504c4847507a4266466d00000028f2ed4db4ddbcc969b0659941493b3795c247e1360ccabc8ab68ec2c35f239b1517b789225706b2ab
@@ -339,13 +376,20 @@ end
 
 -- OP Web Server calls this to fetch Qun Images
 function HandleQunImage(uri)
-	-- gid/tuin/server/port/fileid/name
+	print('HandleQunImage: '..uri)
+
+	-- gid/tuin/tm/server/port/fileid/name
+	if vfwebqq==nil then
+		print("HandleQunImage: vfwebqq not set!")
+		return
+	end
+
 	local parts=Split(uri,"/")
-	if #parts==6 then
+	if #parts==7 then
 		-- http://webqq.qq.com/cgi-bin/get_group_pic?type=0&gid=1058984205&uin=4200642849&rip=124.115.12.192&rport=8000&fid=1799487874&pic=%7B4E3FF3AA-C100-E536-6CE3-6E53427DF5F6%7D.jpg&vfwebqq=1aa616dedcc8f8214e83b28704960dd2233cae8f3c800980eea50e01e93768e8b32af25cffe14342&t=1343641932
-		local url="http://webqq.qq.com/cgi-bin/get_group_pic?type=0&gid="..parts[1].."&uin="..parts[2].."&rip="..parts[3].."&rport="..parts[4].."&fid="..parts[5].."&pic="..parts[6].."&vfwebqq="..vfwebqq.."&t="..os.time(os.date('*t'))
-		local referer=OP_referer_g
-		print('Fetching '..parts[6]..' from qun '..parts[1]..'...')
+		local url="http://webqq.qq.com/cgi-bin/get_group_pic?type=0&gid="..parts[1].."&uin="..parts[2].."&rip="..parts[4].."&rport="..parts[5].."&fid="..parts[6].."&pic="..parts[7].."&vfwebqq="..vfwebqq.."&t="..parts[3]
+		local referer="http://webqq.qq.com/"
+		print('Fetching '..parts[7]..' from qun '..parts[1]..'...')
 		
 		local img=OP_Get(url,referer)
 		if (string.len(img)==0) then
@@ -355,12 +399,12 @@ function HandleQunImage(uri)
 		
 		if (string.len(img)~=0) then
 			print("HandleQunImage: GET url="..url.." size="..string.len(img))
-			local tempfile=OP_qunimagedir..'/'..parts[6]
+			local tempfile=OP_qunimagedir..'/'..parts[7]
 			local fh=io.open(tempfile,"wb")
 			fh:write(img)
 			fh:close()
 		else
-			print("HandleQunImage: GET failed for "..parts[6])
+			print("HandleQunImage: GET failed for "..parts[7])
 		end
 	else
 		print("HandleQunImage: Invalid input count: "..#parts..' uri='..uri)
@@ -525,12 +569,21 @@ function OP_SendMessage(str)
 			str2=str2..'[\\"face\\",'..s:sub(7)..']'
 		elseif s:sub(1,5)=='[img]' then
 			if parts[2]=='1' then
-				fn=OP_UploadQunImage(s:sub(6))
-				if addkey==false then
-					addkey=true
-					head=head..'"group_code":'..parts[3]..',"key":"'..gface_key..'","sig":"'..gface_sig..'",'
+				if gface_key==nil then
+					-- GFace Key required to send qun image (one time)
+					Channel_GetGFaceSig2()
 				end
-				str2=str2..fn
+				
+				fn=OP_UploadQunImage(s:sub(6))
+				if fn=='' then
+					error('ERRMESGQun Image Upload Failed')
+				else
+					if addkey==false then
+						addkey=true
+						head=head..'"group_code":'..parts[3]..',"key":"'..gface_key..'","sig":"'..gface_sig..'",'
+					end
+					str2=str2..fn
+				end
 			elseif parts[2]=='0' then
 				-- Contact Message
 				str2=str2..OP_UploadP2PImage(s:sub(6),parts[1])
@@ -566,7 +619,7 @@ function OP_SendMessage(str)
 	local ret=OP_Post(url,OP_referer_d,str2)
 	
 	if ret:find('retcode')==nil or (ret:byte(ret:len())~=10 and ret:byte(ret:len())~=125) then
-		print('OP_SendMessage: First time send failed, try again')
+		print('ERRRESPOP_SendMessage: First time send failed, try again. ref='..ret:byte(ret:len()))
 		ret=OP_Post(url,OP_referer_d,str2)
 	end
 	
@@ -587,6 +640,12 @@ function OP_UploadQunImage(pathname)
 	-- test6[img]D:\Miranda-IM\587D08324C50F0E9584ACA35CA4B13F1.JPG[/img]
 	-- <head><script type="text/javascript">document.domain='qq.com';parent.EQQ.Model.ChatMsg.callbackSendPicGroup({'ret':0,'msg':'587D08324C50F0E9584ACA35CA4B13F1.jPg'});</script></head><body></body>
 	-- <head><script type="text/javascript">document.domain='qq.com';parent.EQQ.Model.ChatMsg.callbackSendPicGroup({'ret':4,'msg':'587D08324C50F0E9584ACA35CA4B13F1.jPg -6102 upload cface failed'});</script></head><body></body>
+	if ret:find("'ret':0,")==nil and ret:find("'ret':4,")==nil then
+		printf('CFace upload failed, try again')
+		ret=OP_Post(url,OP_referer_g,'',-1,{from='control',f='EQQ.Model.ChatMsg.callbackSendPicGroup',vfwebqq=vfwebqq,custom_face='\t'..pathname})
+		print('result='..ret)		
+	end
+	
 	if ret:find("'ret':0,")~=nil or ret:find("'ret':4,")~=nil then
 		local discard
 		local pos
@@ -599,11 +658,6 @@ function OP_UploadQunImage(pathname)
 		
 		discard,pos=fn:find(' ')
 		if discard~=nil then fn=fn:sub(1,pos-1) end
-		
-		if gface_key==nil then
-			-- GFace Key required to send qun image (one time)
-			Channel_GetGFaceSig2()
-		end
 		
 		return '[\\"cface\\",\\"group\\",\\"'..fn..'\\"]'
 	else
@@ -630,6 +684,162 @@ function OP_UploadP2PImage(pathname,tuin)
 		return '[\\"offpic\\",\\"'..j.filepath..'\\",\\"'..j.filename..'\\",'..j.filesize..']';
 	else
 		return ' ';
+	end
+end
+
+function OP_SearchBasic(uin)
+	local verycode=' '
+	while verycode==' ' do
+		print('OP_SearchBasic: Requesting verycode')
+		local url='http://captcha.qq.com/getimage?aid=1003901&r='..math.random()
+		local tempfile=OP_GetTempFile()
+		os.remove(tempfile)
+		tempfile=tempfile..'.jpg'
+		local img=OP_Get(url,referer)
+		if img:len() == 0 then
+			print('Verycode request failed, try again')
+			img=OP_Get(url,referer)
+		end
+		local fh=io.open(tempfile,"wb")
+		fh:write(img)
+		fh:close()
+		verycode=OP_VeryCode(tempfile)
+		os.remove(tempfile)
+	end
+	
+	if verycode~=nil then
+		-- http://s.web2.qq.com/api/search_qq_by_uin2?tuin=431533706&verifysession=h00f92b799cdcec210d8486f9a5382118273268767d55ce8f23c653a695e003e96d4bc642bff8aeacab&code=yumn&vfwebqq=1a2a18bc4c309d9f92d30735e699000ce5a1376a3e732be825dd16530777d7462c95849e4ac9f782&t=1357113592675
+		local verifysession=OP_GetCookie('verifysession')
+		print('verifysession='..verifysession)
+		
+		local j=CallAPI('search_qq_by_uin2','tuin='..uin..'&verifysession='..verifysession..'&code='..verycode)
+		-- {"retcode":0,"result":{"face":0,"birthday":{"month":12,"year":1982,"day":7},"occupation":"0","phone":"-","allow":1,"college":"-","constel":11,"blood":0,"stat":20,"homepage":"-","country":"","city":"","uiuin":"","personal":"U+6DB4–Í–Ââ‘¦,U+59A6U+7E6Bˆùã½åÆèªU+72DFU+FE5D","nick":"\"^_^2","shengxiao":11,"email":"431533706@qq.com","token":"0483c62b554cf08dbfaf9c0b33d066c797ac9f6dec4e8579","province":"","account":431533706,"gender":"unknown","tuin":515446227,"mobile":""}}
+		
+		if j~=nil then
+			print('Call OP_AddSearchResult with nick='..j.nick..' and email='..j.email)
+			OP_AddSearchResult(0,j.account,j.nick,j.email,j.token)
+		else
+			print('OP_SearchBasic: j==nil')
+		end
+		
+		verycode=' '
+		
+		while verycode==' ' do
+			print('OP_SearchBasic: Requesting verycode')
+			local url='http://captcha.qq.com/getimage?aid=1003901&r='..math.random()
+			local tempfile=OP_GetTempFile()
+			os.remove(tempfile)
+			tempfile=tempfile..'.jpg'
+			local img=OP_Get(url,referer)
+			if img:len() == 0 then
+				print('Verycode request failed, try again')
+				img=OP_Get(url,referer)
+			end
+			local fh=io.open(tempfile,"wb")
+			fh:write(img)
+			fh:close()
+			verycode=OP_VeryCode(tempfile)
+			os.remove(tempfile)
+		end
+		
+		if (verycode~=nil) then
+			local resp=OP_Get('http://cgi.web2.qq.com/keycgi/qqweb/group/search.do?pg=1&perpage=10&all='..uin..'&c1=0&c2=0&c3=0&st=0&vfcode='..verycode..'&type=1&vfwebqq='..vfwebqq,'http://cgi.web2.qq.com/proxy.html?v=20110412001&callback=1&id=1')
+			-- {"result":[{"GC":"","GD":"","GE":2571213,"GF":"","TI":"Miranda IM","GA":"","BU":"","GB":"","DT":"","RQ":"","QQ":"","MD":"","TA":"","HF":"","UR":"","HD":"","HE":"","HB":"","HC":"","HA":"","LEVEL":1,"PD":"","TX":"","PA":"","PB":"","CL":"","GEX":1677179817,"PC":""}],"retcode":0,"responseHeader":{"CostTime":15,"Status":0,"TotalNum":1,"CurrentNum":1,"CurrentPage":1}}
+			print('OP_SearchBasic: resp='..resp)
+			j=JSON:decode(resp)
+			if j==nil then
+				print('OP_SearchBasic: group j==nil')
+			else
+				local o=j.result
+				if #o>0 then
+					o=o[1]
+					OP_AddSearchResult(1,o.GE,o.TI,'',o.GEX)
+				end
+			end
+		end
+		
+		OP_EndOfSearch()
+	end
+end
+
+function OP_AddUser(str)
+	-- uin nick fn(1/0) ln(token) em msg
+	print('OP_AddUser: '..str)
+	local parts=Split(str,'\t')
+	if parts[3]:sub(0,0)=='0' then
+		-- r=%7B%22account%22%3A431533706%2C%22myallow%22%3A1%2C%22groupid%22%3A0%2C%22msg%22%3A%22test%22%2C%22token%22%3A%228166867181f7f073f1a6e3f1388873b693881ca8b2e47ab5%22%2C%22vfwebqq%22%3A%229d71312ad476d8a41a5a7eccb12b7905a07b731bf4d3298582caed048e2540f77b98623ff4e8e76b%22%7D
+		local j=CallAPIPost('add_need_verify2',{account=parts[1],myallow=1,groupid=0,msg=parts[6],token=parts[4]},1)
+		if j==nil then
+			print('OP_AddUser: j==nil')
+		end
+	else
+		local verycode=' '
+		
+		while verycode==' ' do
+			print('OP_SearchBasic: Requesting verycode')
+			local url='http://captcha.qq.com/getimage?aid=1003903&r='..math.random()
+			local tempfile=OP_GetTempFile()
+			os.remove(tempfile)
+			tempfile=tempfile..'.jpg'
+			local img=OP_Get(url,referer)
+			if img:len() == 0 then
+				print('Verycode request failed, try again')
+				img=OP_Get(url,referer)
+			end
+			local fh=io.open(tempfile,"wb")
+			fh:write(img)
+			fh:close()
+			verycode=OP_VeryCode(tempfile)
+			os.remove(tempfile)
+		end
+		
+		if (verycode~=nil) then
+			-- r=%7B%22gcode%22%3A728970475%2C%22code%22%3A%22qawh%22%2C%22vfy%22%3A%22h00ba8e4ec4fdb1b2d147e2158ceeacbe265cc51bc396c4a130a4b9409db65aab87efbccce92ae47a1d%22%2C%22msg%22%3A%22test%22%2C%22vfwebqq%22%3A%2282fd4c65ffa61fa585237e96b523ef29f6568090b88e92c46d14f3158eabcf0350c7b5883856538b%22%7D
+			local verifysession=OP_GetCookie('verifysession')
+			local j=CallAPIPost('apply_join_group2',{gcode=parts[4],code=verycode,vfy=verifysession,msg=parts[6]},1)
+			if j==nil then
+				print('OP_AddUser(Group): j==nil')
+			end
+		end
+	end
+end
+
+function OP_Authorize(str)
+	-- uin nick fn(1/0) ln em
+	print('OP_Authorize: '..str)
+	local parts=Split(str,'\t')
+	-- r=%7B%22account%22%3A431533706%2C%22gid%22%3A0%2C%22mname%22%3A%22%22%2C%22vfwebqq%22%3A%229d71312ad476d8a41a5a7eccb12b7905a07b731bf4d3298582caed048e2540f77b98623ff4e8e76b%22%7D
+	if parts[3]:sub(0,0)=='0' then
+		local j=CallAPIPost('allow_and_add2',{account=parts[1],gid=0,mname=str[1]},1,1)
+		if j.retcode~=100000 and j.retcode~=0 then
+			print('OP_Authorize: j.retcode='..j.retcode)
+		else
+			print('OP_Authorize: response ok')
+		end
+	else
+	end
+end
+
+function OP_Deny(str)
+	-- uin nick fn ln em msg
+	print('OP_Deny: '..str)
+	local parts=Split(str,'\t')
+	-- ?
+	local j=CallAPIPost('deny_add_request2',{account=parts[1],msg=parts[6]},1,1)
+	if j.result~=100000 and j.result~=0 then
+		print('OP_Deny: j.result='..j.result)
+	else
+		print('OP_Deny: response ok')
+	end
+end
+
+function OP_DeleteUser(str)
+	-- uin
+	local j=CallAPIPost('delete_friend','tuin='..str..'&delType=1',1)
+	if j~=nil then
+		print('OP_DeleteUser success')
+	else
+		print('OP_DeleteUser failed')
 	end
 end
 
@@ -679,9 +889,128 @@ function API_GetFriendInfo2(tuin)
 	end
 end
 
+-- Hashing function for get_user_friends2
+function N(a,e)
+	-- print('N: a='..a..' e='..e);
+	
+	local c={}
+	local d=0;
+	
+	while d<a:len() do
+		c[d]=a:sub(d+1,d+1)
+		d=d+1;
+	end
+	
+	local b=0;
+	local k=-1;
+	local f;
+	d=0;
+	
+	while d<=#c do -- #c returned count excluding element 0
+		b=b+c[d];
+		b=b%e:len();
+		f=0;
+		if b+4>e:len() then
+			local g=4+b-e:len();
+			local h=0;
+			
+			while h<4 do
+				if h<g then
+					f=bit32.bor(f,bit32.lshift((bit32.band(e:byte(b+h+1),255)),(3 - h) * 8));
+				else
+					f=bit32.bor(f,bit32.lshift((bit32.band(e:byte(h-g+1),255)),(3 - h) * 8));
+				end
+			
+				h=h+1;
+			end
+		else
+			local h = 0;
+			
+			while h<4 do
+				f=bit32.bor(f,bit32.lshift((bit32.band(e:byte(b + h + 1),255)),(3 - h) * 8));
+			
+				h=h+1;
+			end
+		end
+		
+		k = bit32.bxor(k,f);
+		if k > 2147483647 then
+			-- bit32.bxor() handles the number as QWORD!
+			k = k - 4294967296
+		end
+		
+		d=d+1;
+	end
+	
+	c={};
+	
+	c[0] = bit32.band(bit32.rshift(k,24),255);
+	c[1] = bit32.band(bit32.rshift(k,16),255);
+	c[2] = bit32.band(bit32.rshift(k,8),255);
+	c[3] = bit32.band(k,255);
+	k = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
+	d = "";
+	
+	local b=0;
+	
+	while b<=#c do -- #c does not include index 0
+		d = d..k[bit32.band(bit32.rshift(c[b],4),15)+1]
+		d = d..k[bit32.band(c[b],15)+1];
+		
+		b=b+1;
+	end
+	
+	return d;
+end
+
+function O (b, i)
+	local a=i..'password error';
+	local s='';
+	local j={};
+	
+	while (true) do
+		if s:len() <= a:len() then
+			s=s..b;
+			if s:len()==a:len() then
+				break;
+			end
+		else
+			s=s:sub(1,a:len());
+			break;
+		end
+	end
+	
+	local d=1;
+	
+	while (d<=s:len()) do
+		j[d] = bit32.bxor(s:byte(d),a:byte(d));
+
+		if j[d] > 2147483647 then
+			-- bit32.bxor() handles the number as QWORD!
+			j[d] = j[d] - 4294967296;
+		end
+		
+		d=d+1;
+	end
+	
+	a = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
+	s = "";
+	
+	d=1;
+	
+	while d<=#j do
+		s=s..a[bit32.band(bit32.rshift(j[d],4),15)+1];
+		s=s..a[bit32.band(j[d],15)+1];
+		
+		d=d+1;
+	end
+	
+	return s
+end
+
 -- Get contact list
 function API_GetUserFriends2()
-	local j=CallAPIPost('get_user_friends2',{h='hello'})
+	local j=CallAPIPost('get_user_friends2',{h='hello',hash=O(OP_uin,ptwebqq)})
 	
 	if j~=nil then
 		local t={};
@@ -803,13 +1132,18 @@ end
 function Channel_GetGFaceSig2()
 	local j=CallChannel('get_gface_sig2','')
 	
+	if j==nil or j.gface_key==nil or j.gface_sig==nil then
+		print('GFace key retrieve error, try again')
+		j=CallChannel('get_gface_sig2','')
+	end
+	
 	if j~=nil then
 		-- {"retcode":0,"result":{"reply":0,"gface_key":"Icn6VvY89nFcaGiH","gface_sig":"a2e96a31386ce2ebac8fe8426b1d0b80a462bbf1c7340bb40508e82b9cbe52c668d7b78b13a2f42fccb882836a7327c2dfc63573ba718279"}}
 		print('GFace key acquired')
 		gface_key=j.gface_key
 		gface_sig=j.gface_sig
 	else
-		OP_BadReply('get_discu_list_new2')
+		OP_BadReply('get_gface_sig2')
 	end
 end
 
@@ -835,9 +1169,10 @@ function FACE_GetFace(tuin,tp,fid,uin)
 	local svr=10
 	if tuin~=OP_uin then svr=tuin%10+1 end
 	if uin==nil then uin=tuin end
-	if tp==4 then svr=1 end
+	-- if tp==4 then svr=1 end
 	
-	local url='http://face'..svr..'.qun.qq.com/cgi/svr/face/getface?cache=1&type='..tp..'&fid='..fid..'&uin='..tuin..'&vfwebqq='..vfwebqq..'&t='..GetTS()
+	local url='http://face'..svr..'.qun.qq.com/cgi/svr/face/getface?cache=0&type='..tp..'&fid='..fid..'&uin='..tuin..'&vfwebqq='..vfwebqq..'&t='..GetTS()
+	print ('FACE_GetFace(): url='..url)
 	local resp=OP_Get(url,OP_referer_s)
 	local fn=OP_avatardir..'/'..uin..'.jpg'
 	local fh=io.open(fn,"wb")
@@ -853,14 +1188,14 @@ end
 
 -- Wrapper for FACE_GetFace
 function OP_GetAvatar(str)
-	-- isqun tuin uin fid
+	-- isqun tuin uin code
 	local parts=Split(str,'\t')
 	-- local url
 	
 	if parts[1]=='1' then
 		-- Qun
 		-- url = 'http://face1.qun.qq.com/cgi/svr/face/getface?cache=0&type=4&fid=0&uin='..tuin..'&vfwebqq='..vfwebqq..'&t='..GetTS()
-		FACE_GetFace(tonumber(parts[2]),4,0,tonumber(parts[3]))
+		FACE_GetFace(tonumber(parts[4]),4,0,tonumber(parts[3]))
 	else
 		-- String urlStr = "http://face10.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=" + Auth.getMember().getAccount() + "&vfwebqq=" + Auth.getVfwebqq() + "&t=" + System.currentTimeMillis();
 		FACE_GetFace(tonumber(parts[2]),1,0,tonumber(parts[3]))
@@ -895,7 +1230,7 @@ function OP_PollLoop()
 								local tuin=o.send_uin
 								local tp=o.msg_type -- 43
 								local tm=o.time
-								local msg=ProcessMessage(o.content,tuin,gtuin,o.msg_id)
+								local msg=ProcessMessage(o.content,tuin,gext,o.msg_id,tm)
 								print('GM '..gtuin..'['..tuin..']: '..msg)
 								if quninfovalid[tostring(gtuin)]==nil then
 									OP_GetGroupInfoExt2(gext)
@@ -917,7 +1252,7 @@ function OP_PollLoop()
 								local tuin=o.send_uin
 								local tp=o.msg_type -- 42
 								local tm=o.time
-								local msg=ProcessMessage(o.content,tuin,did,o.msg_id)
+								local msg=ProcessMessage(o.content,tuin,did,o.msg_id,tm)
 								print('DM '..did..'['..tuin..']: '..msg)
 								if quninfovalid[tostring(did)]==nil then
 									OP_AddTempContact(did,40072) -- 40072=ID_STATUS_ONLINE
@@ -942,7 +1277,7 @@ function OP_PollLoop()
 							if CheckMessageID(o)==true then
 								local tuin=o.from_uin
 								local tm=o.time
-								local msg=ProcessMessage(o.content,tuin,0,o.msg_id)
+								local msg=ProcessMessage(o.content,tuin,0,o.msg_id,tm)
 								print('CM '..tuin..': '..msg)
 								OP_ContactMessage(tuin,tm,msg)
 							else
@@ -1019,7 +1354,7 @@ function OP_PollLoop()
 								local gtuin=o.id
 								local tuin=o.from_uin
 								local tm=o.time
-								local msg=ProcessMessage(o.content,tuin,0,o.msg_id)
+								local msg=ProcessMessage(o.content,tuin,0,o.msg_id,tm)
 								print('SM '..gtuin..'['..tuin..']: '..msg)
 								if sminfovalid[gtuin..'_'..tuin]==nil then
 									API_GetStrangerInfo(gtuin,tuin)
@@ -1032,10 +1367,29 @@ function OP_PollLoop()
 							print('Skipped session message with unknown msg_type '..v.value.msg_type)
 							print(JSON:encode(v.value))
 						end
+					elseif v.poll_type=='system_message' then
+						-- [{"poll_type":"system_message","value":{"account":85379868,"client_type":41,"from_uin":3441364886,"msg":"test","seq":31805,"stat":10,"type":"verify_required","uiuin":""}}]
+						o=v.value
+						if o.type=='verify_required' then
+							-- isqun account nick fn ln email msg
+							OP_RequestJoin(0,o.account,'','','',o.from_uin,o.msg)
+						else
+							print('system_message: '..JSON:encode(o))
+						end
+					elseif v.poll_type=='buddylist_change' then
+						-- [{"poll_type":"buddylist_change","value":{"added_friends":[{"groupid":0,"uin":1754314370}],"removed_friends":[]}}]
+						o=v.value
+						for k,v in ipairs(o.added_friends) do
+							API_GetFriendInfo2(v.uin)
+						end
+						for k,v in ipairs(o.removed_friends) do
+							-- TODO
+						end
 					else
 						print(JSON:encode(j.result))
 					end
 				end
+				-- [{"poll_type":"sys_g_msg","value":{"from_uin":3792974046,"gcode":2273134460,"msg_id":28386,"msg_id2":822524,"msg_type":34,"old_member":1754314370,"op_type":2,"reply_ip":176882264,"t_gcode":58914413,"t_old_member":"","to_uin":431533706,"type":"group_leave"}}]
 			elseif j.retcode==116 then
 				-- Update ptwebqq
 				ptwebqq=j.p
@@ -1070,6 +1424,18 @@ function OP_GetRealUIN(gcode)
 	return 0
 end
 
+-- Get External ID for quin tuin
+-- * Will user get blocked when calling too frequently?
+function OP_GetRealExternalID(tuin)
+	local j=CallAPI('get_friend_uin2','tuin='..tuin..'&verifysession=&type=4&code=');
+	
+	if j~=nil then
+		return j.account
+	end
+	
+	return 0
+end
+
 -- Change user status
 -- status is Miranda IM status (400xx)
 function OP_ChangeStatus(status)
@@ -1078,7 +1444,7 @@ function OP_ChangeStatus(status)
 	
 	print('Change status to '..statustext);
 	
-	if j~=nil then
+	if j==nil then
 		OP_BadReply('change_status2')
 	end
 end
@@ -1206,3 +1572,6 @@ end
 
 -- W+ does not support image in session message, this is what it looks like
 --{"retcode":0,"result":[{"poll_type":"sess_message","value":{"msg_id":7523,"from_uin":3043560234,"to_uin":431533706,"msg_id2":913871,"msg_type":140,"reply_ip":176882159,"time":1348136550,"id":2002795244,"ruin":85379868,"service_type":0,"flags":{"text":1,"pic":1,"file":1,"audio":1,"video":1},"content":[["font",{"size":8,"color":"000000","style":[0,0,0],"name":"Tahoma"}],["pic_id","5E10B9BC-A2BD-F848-9CB3-239DFFA745B5"],["image","jpg",0]," "]}}]}
+
+
+
