@@ -228,7 +228,7 @@ int OP_VeryCode(lua_State* L) {
 	LPSTR pcszFile=strdup(lua_tostring(L,1));
 	pOP->getHandler()->handler(OPEVENT_VERYCODE,NULL,pcszFile);
 
-	if (strlen(pcszFile)==4 || (*pcszFile==' ' && pcszFile[1]==0)) {
+	if ((strlen(pcszFile)>=4 && strlen(pcszFile)<=16) || (*pcszFile==' ' && pcszFile[1]==0)) {
 		_strupr(pcszFile);
 		lua_pushstring(L,pcszFile);
 	} else {
